@@ -4,9 +4,9 @@
 
 // Set the database connection parameters.
 $servername = "localhost";
-$username = "u645536029_ict_amsos_user";
-$password = "9Ad=:C~WJ>";
-$database = "u645536029_ict_amsos_db";
+$username = "root";
+$password = "";
+$database = "amsos";
 
 // Create a new MySQLi object.
 $conn = new mysqli($servername, $username, $password, $database);
