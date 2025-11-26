@@ -1,0 +1,107 @@
+
+header {
+    background: url('header-background.jpg') no-repeat center center / cover;
+    color: rgb(0, 0, 0);
+    text-align: center;
+    position: relative;
+    padding: 100px 0;
+}
+
+body {
+    background-image: url('image/background.jpg');
+    background-size: cover;
+    background-repeat: no-repeat;
+    background-attachment: fixed;
+    margin: 0;
+    font-family: Arial, sans-serif;
+}
+
+
+
+.header-content {
+    position: relative;
+    z-index: 1;
+}
+
+.logo {
+    width: 150px;
+    height: auto;
+}
+
+.logoservices {
+    width: 300px;
+    height: auto;
+}
+
+
+
+main {
+    padding: 50px 20px;
+    max-width: 1200px;
+    margin: 0 auto;
+    text-align: center;
+}
+
+.services-container {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 20px;
+}
+
+.service-box {
+    background-color: white;
+    width: 300px;
+    padding: 20px;
+    border-radius: 5px;
+    box-shadow: 0 2px 4px rgba(92, 0, 38, 0.1);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+}
+
+.service-logo {
+    font-size: 18px;
+    margin-bottom: 10px;
+    font-weight: bold;
+}
+
+.service-name {
+    font-size: 16px;
+    font-weight: bold;
+}
+
+
+
+
+/* Navigation bar */
+.navbar {
+    margin-top: 10px; /* Space between header content and nav */
+    background-color: rgba(0, 0, 0, 0.8); /* Example nav background */
+    padding: 10px; /* Example padding */
+}
+
+.navbar ul {
+    list-style: none; /* Remove bullets */
+    display: flex; /* Align items horizontally */
+    justify-content: center; /* Center the nav items */
+    margin: 0; /* Remove default margin */
+    padding: 0; /* Remove default padding */
+}
+
+.navbar li {
+    margin: 0 15px; /* Space between nav items */
+}
+
+.navbar a {
+    color: white; /* Nav link color */
+    text-decoration: none; /* Remove underline */
+    font-weight: bold; /* Example font weight */
+}
+
+.navbar a:hover {
+    text-decoration: underline; /* Underline on hover */
+}
+

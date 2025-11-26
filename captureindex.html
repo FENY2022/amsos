@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Property Details Form with OCR</title>
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@2.1.4/dist/tesseract.min.js"></script>
+    <style>
+
+
+        h1, h2 {
+            color: #333;
+        }
+
+        form {
+            background-color: #fff;
+            border-radius: 5px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        label {
+            display: block;
+            margin-top: 10px;
+            font-weight: bold;
+        }
+
+        input[type="text"], input[type="date"], textarea, input[type="file"] {
+            width: calc(100% - 22px);
+            padding: 10px;
+            margin-top: 5px;
+            margin-bottom: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+
+        textarea {
+            height: 100px;
+        }
+
+        input[type="submit"], button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            margin-top: 10px;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+
+        input[type="submit"]:hover, button:hover {
+            background-color: #0056b3;
+        }
+
+        #loading {
+            display: none;
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        #loading img {
+            vertical-align: middle;
+        }
+
+        #loading span {
+            display: inline-block;
+            margin-left: 10px;
+            vertical-align: middle;
+        }
+    </style>
+</head>
+
+
+<body>
+    <form id="propertyForm" action="upload.php" method="post" enctype="multipart/form-data">
+        <h1>Property Details Form</h1>
+        <label for="unit">Office Unit/Office:</label>
+        <input type="text" id="unit" name="unit" required>
+
+        <label for="devicename">Device Name:</label>
+        <input type="text" id="devicename" name="devicename" required>
+
+        <label for="article">Article Description:</label>
+        <textarea id="article" name="article" required></textarea>
+
+        <label for="propertyNumber">Property Number:</label>
+        <input type="text" id="propertyNumber" name="propertyNumber" required>
+
+        <label for="serialNumber">Serial Number:</label>
+        <input type="text" id="serialNumber" name="serialNumber" required>
+
+        <label for="dateAcquired">Date Acquired:</label>
+        <input type="text" id="dateAcquired" name="dateAcquired" required>
+
+        <label for="dateA">Date Acquired:</label>
+        <input type="date" id="dateA" name="dateA" required>
+
+        <label for="purchasedFrom">Purchased From:</label>
+        <input type="text" id="purchasedFrom" name="purchasedFrom" required>
+
+        <label for="amount">Amount:</label>
+        <input type="text" id="amount" name="amount" required>
+
+        <label for="issuedTo">Issued To:</label>
+        <input type="text" id="issuedTo" name="issuedTo" required>
+
+        <label for="remarks">Remarks:</label>
+        <input type="text" id="remarks" name="remarks" required>
+
+        <input type="submit" value="Submit">
+    </form>
+
+    <form id="imageForm" method="post" enctype="multipart/form-data">
+        <h2>Capture or Select Image for OCR</h2>
+        <div id="loading">
+            <img src="https://i.gifer.com/ZZ5H.gif" alt="Loading" width="50">
+            <span>Processing...</span>
+        </div>
+        <input type="file" accept="image/*" id="imageInput" name="imageFile"><br><br>
+        <button type="button" onclick="processImage()">Process Image</button>
+    </form>
+
+    <script>
+        function processImage() {
+            const input = document.getElementById('imageInput');
+            
+            if (input.files && input.files[0]) {
+                document.getElementById('loading').style.display = 'block';
+                const reader = new FileReader();
+                
+                reader.onload = function(e) {
+                    preprocessAndResizeImage(e.target.result, processedImage => {
+                        Tesseract.recognize(
+                            processedImage,
+                            'eng', 
+                            {
+                                logger: m => console.log(m),
+                                tessedit_char_whitelist: 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789',
+                                preserve_interword_spaces: true 
+                            }
+                        ).then(({ data: { text } }) => {
+                            document.getElementById('loading').style.display = 'none';
+                            console.log(text);
+                            populateForm(text);
+                        }).catch(err => {
+                            document.getElementById('loading').style.display = 'none';
+                            console.error(err);
+                            alert('Error processing image. Please try again.');
+                        });
+                    });
+                };
+                
+                reader.readAsDataURL(input.files[0]);
+            } else {
+                alert('Please select an image.');
+            }
+        }
+
+        function preprocessAndResizeImage(dataUrl, callback) {
+            const MAX_FILE_SIZE_BYTES = 800 * 1024;
+            const img = new Image();
+            img.src = dataUrl;
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                
+                let width = img.width;
+                let height = img.height;
+                let scaleFactor = 1;
+                
+                const currentFileSize = dataUrl.length;
+                if (currentFileSize > MAX_FILE_SIZE_BYTES) {
+                    scaleFactor = Math.sqrt(MAX_FILE_SIZE_BYTES / currentFileSize);
+                    width = Math.floor(width * scaleFactor);
+                    height = Math.floor(height * scaleFactor);
+                }
+                
+                canvas.width = width;
+                canvas.height = height;
+                ctx.drawImage(img, 0, 0, width, height);
+                
+                const resizedDataUrl = canvas.toDataURL('image/jpeg', 0.8);
+                
+                callback(resizedDataUrl);
+            };
+        }
+
+        function populateForm(text) {
+            // Example function to populate the form with OCR text
+            // This function should be implemented based on your specific requirements
+            const lines = text.split('\n');
+            // Example: Split the text and assign to form fields
+            if (lines.length >= 10) {
+                document.getElementById('unit').value = lines[0];
+                document.getElementById('devicename').value = lines[1];
+                document.getElementById('article').value = lines[2];
+                document.getElementById('propertyNumber').value = lines[3];
+                document.getElementById('serialNumber').value = lines[4];
+                document.getElementById('dateAcquired').value = lines[5];
+                document.getElementById('dateA').value = lines[6];
+                document.getElementById('purchasedFrom').value = lines[7];
+                document.getElementById('amount').value = lines[8];
+                document.getElementById('issuedTo').value = lines[9];
+                document.getElementById('remarks').value = lines[10];
+            }
+        }
+    </script>
+</body>
+</html>

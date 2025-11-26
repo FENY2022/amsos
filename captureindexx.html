@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Property Details Form with OCR</title>
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@2.1.4/dist/tesseract.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+        }
+        form {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-top: 10px;
+        }
+        input[type="text"], input[type="date"], input[type="number"], textarea {
+            width: 100%;
+            padding: 8px;
+            margin-top: 5px;
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        textarea {
+            height: 200px;
+            resize: vertical;
+            overflow: auto;
+        }
+        input[type="submit"], button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        input[type="submit"]:hover, button:hover {
+            background-color: #45a049;
+        }
+        #loading {
+            display: none;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Property Details Form with OCR</h1>
+    
+    <form id="propertyForm" action="/submit_form" method="post">
+        <label for="extractedText">Extracted Text:</label>
+        <textarea id="extractedText" name="extractedText" required></textarea>
+
+        <input type="submit" value="Submit">
+    </form>
+
+    <h2>Capture Text Using Camera</h2>
+    <input type="file" accept="image/*" capture="camera" id="cameraInput"><br><br>
+    <button onclick="processImage()">Process Image</button>
+    <div id="loading">
+        <img src="https://i.gifer.com/ZZ5H.gif" alt="Loading" width="50">
+        <span>Processing...</span>
+    </div>
+
+    <script>
+        function processImage() {
+            const input = document.getElementById('cameraInput');
+            if (input.files && input.files[0]) {
+                document.getElementById('loading').style.display = 'block';
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    Tesseract.recognize(
+                        e.target.result,
+                        'eng',
+                        {
+                            logger: m => console.log(m)
+                        }
+                    ).then(({ data: { text } }) => {
+                        document.getElementById('loading').style.display = 'none';
+                        console.log(text);
+                        document.getElementById('extractedText').value = text.trim();
+                    }).catch(err => {
+                        document.getElementById('loading').style.display = 'none';
+                        console.error(err);
+                        alert('Error processing image. Please try again.');
+                    });
+                };
+                reader.readAsDataURL(input.files[0]);
+            } else {
+                alert('Please select an image.');
+            }
+        }
+    </script>
+</body>
+</html>
