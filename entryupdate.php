@@ -220,14 +220,14 @@
 
             <form action="mainmenu.php?dir=edupdate" method="POST" class="search-form" style="margin-bottom: 1rem;">
                 <div class="row">
-                    <div class="col-md-4 mb-3">
+                    <div class="col-md-3 mb-3">
                         <label for="officeDivision" class="form-label">Office Division:</label>
                         <select id="officeDivision" name="officeDivision" class="form-select" required style="padding: 0.375rem 0.75rem; border: 1px solid #ced4da; border-radius: 0.25rem;">
                             <option value="">-- Select Office --</option>
                             <?php echo $office_division_options; ?>
                         </select>
                     </div>
-                    <div class="col-md-4 mb-3">
+                    <div class="col-md-3 mb-3">
                         <label for="employeeName" class="form-label">Employee Name:</label>
                         <select id="employeeName" name="employeeName" class="form-select" style="padding: 0.375rem 0.75rem; border: 1px solid #ced4da; border-radius: 0.25rem;">
                             <option value="">-- Select Employee --</option>
@@ -239,6 +239,13 @@
                             <option value="">All</option>
                             <option value="1">Done</option>
                             <option value="0">Not Done</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2 mb-3">
+                        <label for="sortBy" class="form-label">Sort By:</label>
+                        <select id="sortBy" name="sortBy" class="form-select" style="padding: 0.375rem 0.75rem; border: 1px solid #ced4da; border-radius: 0.25rem;">
+                            <option value="id_desc">Newest First</option>
+                            <option value="name_asc">Employee Name (A-Z)</option>
                         </select>
                     </div>
                     <div class="col-md-2 d-grid">
@@ -275,7 +282,8 @@
                 // GET SEARCH PARAMETERS
                 $officeDivision = isset($_REQUEST['officeDivision']) ? $_REQUEST['officeDivision'] : '';
                 $employeeName = isset($_REQUEST['employeeName']) ? $_REQUEST['employeeName'] : '';
-                $statusFilter = isset($_REQUEST['statusFilter']) ? $_REQUEST['statusFilter'] : ''; // Get the status filter
+                $statusFilter = isset($_REQUEST['statusFilter']) ? $_REQUEST['statusFilter'] : '';
+                $sortBy = isset($_REQUEST['sortBy']) ? $_REQUEST['sortBy'] : 'id_desc'; // Get Sort By param
 
                 // BUILD THE COUNT QUERY
                 $count_query = "SELECT COUNT(*) as total FROM inv_inventory WHERE Office = ?";
@@ -292,11 +300,10 @@
                     $params[] = '%' . $employeeName . '%';
                     $types .= "s";
                 }
-                // Add status filter condition
-                if ($statusFilter !== '') { // Use strict comparison for 0 or 1
+                if ($statusFilter !== '') { 
                     $count_query .= " AND mark_as_done = ?";
                     $params[] = $statusFilter;
-                    $types .= "i"; // 'i' for integer
+                    $types .= "i";
                 }
 
                 // GET TOTAL RECORDS
@@ -331,17 +338,24 @@
                     $params_data[] = '%' . $employeeName . '%';
                     $types_data .= "s";
                 }
-                // Add status filter condition to data query
-                if ($statusFilter !== '') { // Use strict comparison for 0 or 1
+                if ($statusFilter !== '') {
                     $query .= " AND mark_as_done = ?";
                     $params_data[] = $statusFilter;
-                    $types_data .= "i"; // 'i' for integer
+                    $types_data .= "i";
                 }
                 
-                $query .= " ORDER BY id DESC LIMIT ?, ?";
+                // APPLY SORTING LOGIC
+                if ($sortBy == 'name_asc') {
+                    $query .= " ORDER BY employeeName ASC, id DESC"; // Sort by Name A-Z, then Newest ID
+                } else {
+                    $query .= " ORDER BY id DESC"; // Default: Newest ID first
+                }
+
+                // LIMIT CLAUSE
+                $query .= " LIMIT ?, ?";
                 $params_data[] = $offset;
                 $params_data[] = $records_per_page;
-                $types_data .= "ii"; // 'ii' for two integers (offset, limit)
+                $types_data .= "ii";
 
                 $stmt = mysqli_prepare($conn, $query);
                 if ($stmt) {
@@ -349,7 +363,7 @@
                     mysqli_stmt_execute($stmt);
                     $result = mysqli_stmt_get_result($stmt);
                 } else {
-                    $result = null; // Handle case where statement preparation fails
+                    $result = null;
                     error_log("Error preparing data statement: " . mysqli_error($conn));
                 }
             ?>
@@ -489,7 +503,8 @@
                             'dir' => 'edupdate',
                             'officeDivision' => $officeDivision,
                             'employeeName' => $employeeName,
-                            'statusFilter' => $statusFilter // Add status filter to pagination links
+                            'statusFilter' => $statusFilter,
+                            'sortBy' => $sortBy // Add sortBy to pagination params
                         ]);
 
                         // Previous button
@@ -635,6 +650,7 @@
         const officeDivisionSelect = document.getElementById("officeDivision");
         const employeeNameSelect = document.getElementById("employeeName");
         const statusFilterSelect = document.getElementById("statusFilter");
+        const sortBySelect = document.getElementById("sortBy"); // Get sort element
 
         // Restore saved office division
         const savedOfficeDivision = getCookie("officeDivision") || localStorage.getItem("officeDivision");
@@ -648,8 +664,14 @@
 
         // Restore saved status filter
         const savedStatusFilter = getCookie("statusFilter") || localStorage.getItem("statusFilter");
-        if (savedStatusFilter !== null) { // Check for null as '0' is a valid value
+        if (savedStatusFilter !== null) { 
             statusFilterSelect.value = savedStatusFilter;
+        }
+
+        // Restore saved sort order
+        const savedSortBy = getCookie("sortBy") || localStorage.getItem("sortBy");
+        if (savedSortBy) {
+            sortBySelect.value = savedSortBy;
         }
     });
 
@@ -671,6 +693,12 @@
     document.getElementById("statusFilter").addEventListener("change", function() {
         setCookie("statusFilter", this.value, 30);
         localStorage.setItem("statusFilter", this.value);
+    });
+    
+    // Event listener for Sort By change
+    document.getElementById("sortBy").addEventListener("change", function() {
+        setCookie("sortBy", this.value, 30);
+        localStorage.setItem("sortBy", this.value);
     });
 
 })(jQuery); // Pass jQuery to the IIFE
