@@ -9,7 +9,7 @@ require_once 'connect.php';
 $saved_data = isset($_SESSION['form_data']) ? $_SESSION['form_data'] : [];
 unset($_SESSION['form_data']); // Clear the saved data after retrieving it
 
-// Fetch employee data
+// --- 1. Fetch employee data for DATALISTS (Searchable Inputs) ---
 $user_options = "";
 $officeSRF = isset($_SESSION['OfficeSRF']) ? $_SESSION['OfficeSRF'] : 'DefaultOffice';
 
@@ -22,19 +22,14 @@ if ($stmt_employees) {
 
     if ($result_employees->num_rows > 0) {
         while ($row_employee = $result_employees->fetch_assoc()) {
-            // Check if this employee was the one previously selected
-            $selected = (isset($saved_data['employeeName']) && $saved_data['employeeName'] == $row_employee['Full_Name']) ? 'selected' : '';
-            $user_options .= "<option value='" . htmlspecialchars($row_employee['Full_Name']) . "' $selected>" . htmlspecialchars(strtoupper($row_employee['Full_Name'])) . "</option>";
+            // For datalists, we only need the option value, no 'selected' logic needed here
+            $user_options .= "<option value='" . htmlspecialchars($row_employee['Full_Name']) . "'>";
         }
-    } else {
-        $user_options = "<option value=''>No employees found</option>";
     }
     $stmt_employees->close();
-} else {
-    $user_options = "<option value=''>Error fetching employees</option>";
 }
 
-// Fetch office/station data
+// --- 2. Fetch office/station data for STANDARD SELECT (Dropdown) ---
 $office_options = "";
 $sql_offices = "SELECT DISTINCT Office, officeDivision FROM inv_inventory WHERE Office = ? AND officeDivision IS NOT NULL AND officeDivision != '' ORDER BY officeDivision ASC";
 $stmt_offices = $conn->prepare($sql_offices);
@@ -45,6 +40,7 @@ if ($stmt_offices) {
 
     if ($result_offices->num_rows > 0) {
         while ($row_office = $result_offices->fetch_assoc()) {
+            // Logic for standard Select Dropdown
             $selected = (isset($saved_data['officeDivision']) && $saved_data['officeDivision'] == $row_office['officeDivision']) ? 'selected' : '';
             $office_options .= "<option value='" . htmlspecialchars($row_office['officeDivision']) . "' $selected>" . htmlspecialchars($row_office['officeDivision']) . "</option>";
         }
@@ -56,7 +52,7 @@ if ($stmt_offices) {
     $office_options = "<option value=''>Error fetching offices</option>";
 }
 
-// Fetch equipment
+// --- 3. Fetch equipment data ---
 $equipment_options = "";
 $sql_equipment = "SELECT DISTINCT equipmentType FROM inv_inventory WHERE equipmentType IS NOT NULL AND TRIM(equipmentType) != '' ORDER BY equipmentType ASC";
 $result_equipment = $conn->query($sql_equipment);
@@ -250,11 +246,11 @@ $conn_otos->close();
                         <div class="col-md-6">
                             <div class="form-group">
                                 <label class="form-label required">Employee's Name</label>
-                                <select class="form-select" id="employeeName" name="employeeName" required>
-                                    <option value="" disabled selected>Select an employee</option>
-                                    <option value="N/A" <?php echo (isset($saved_data['employeeName']) && $saved_data['employeeName'] == 'N/A') ? 'selected' : ''; ?>>N/A</option>
+                                <input type="text" class="form-control" id="employeeName" name="employeeName" list="employeeList" placeholder="Type to search..." value="<?php echo htmlspecialchars($saved_data['employeeName'] ?? ''); ?>" required autocomplete="off">
+                                <datalist id="employeeList">
+                                    <option value="N/A">
                                     <?php echo $user_options; ?>
-                                </select>
+                                </datalist>
                             </div>
                         </div>
                         <div class="col-md-6">
@@ -323,6 +319,11 @@ $conn_otos->close();
             <div class="card">
                 <div class="card-header">Specifications / Descriptions</div>
                 <div class="card-body">
+                    <div class="form-group">
+                        <label class="form-label">Computer Specs</label>
+                        <textarea class="form-control" id="computer_specs" name="computer_specs" rows="3" placeholder="1.MODEL, 2.PROCESSOR For Desktop & Laptop -eg. i7-10700T-, 3.INSTALLED MEMORY RAM SIZE, 4.COMPUTER NAME. 5.VideoCard"><?php echo htmlspecialchars($saved_data['computer_specs'] ?? ''); ?></textarea>
+                    </div>
+
                     <div class="form-group">
                         <label class="form-label required">Specifications / Descriptions</label>
                         <textarea class="form-control" id="specifications" name="specifications" rows="5" required><?php echo htmlspecialchars($saved_data['specifications'] ?? ''); ?></textarea>
@@ -473,18 +474,11 @@ $conn_otos->close();
                         <div class="col-md-6">
                             <div class="form-group">
                                 <label class="form-label required">Accountable Person</label>
-                                <select class="form-select" id="accountablePerson" name="accountablePerson" required>
-                                    <option value="" disabled selected>-- Select User --</option>
-                                    <?php 
-                                        $user_options_ap = str_replace(
-                                            "value='" . htmlspecialchars($saved_data['accountablePerson'] ?? '') . "'", 
-                                            "value='" . htmlspecialchars($saved_data['accountablePerson'] ?? '') . "' selected", 
-                                            $user_options
-                                        );
-                                        echo $user_options_ap;
-                                    ?>
-                                    <option value="N/A" <?php echo ($saved_data['accountablePerson'] ?? '') === 'N/A' ? 'selected' : ''; ?>>N/A</option>
-                                </select>
+                                <input type="text" class="form-control" id="accountablePerson" name="accountablePerson" list="accountablePersonList" placeholder="Type to search..." value="<?php echo htmlspecialchars($saved_data['accountablePerson'] ?? ''); ?>" required autocomplete="off">
+                                <datalist id="accountablePersonList">
+                                    <option value="N/A">
+                                    <?php echo $user_options; ?>
+                                </datalist>
                             </div>
                         </div>
                         <div class="col-md-6">
@@ -507,14 +501,7 @@ $conn_otos->close();
                                 <label class="form-label required">Office / Division</label>
                                 <select class="form-select" id="officeDivision" name="officeDivision" required>
                                     <option value="" disabled selected>Select Office / Division</option>
-                                    <?php 
-                                        $office_options_ap = str_replace(
-                                            "value='" . htmlspecialchars($saved_data['officeDivision'] ?? '') . "'", 
-                                            "value='" . htmlspecialchars($saved_data['officeDivision'] ?? '') . "' selected", 
-                                            $office_options
-                                        );
-                                        echo $office_options_ap;
-                                    ?>
+                                    <?php echo $office_options; ?>
                                     <option value="N/A" <?php echo ($saved_data['officeDivision'] ?? '') === 'N/A' ? 'selected' : ''; ?>>N/A</option>
                                 </select>
                             </div>
@@ -540,18 +527,11 @@ $conn_otos->close();
                             <div class="col-md-6">
                                 <div class="form-group">
                                     <label class="form-label required">Actual User</label>
-                                    <select class="form-select" id="actualUser" name="actualUser" required>
-                                        <option value="" disabled selected>-- Select User --</option>
-                                        <?php 
-                                            $user_options_au = str_replace(
-                                                "value='" . htmlspecialchars($saved_data['actualUser'] ?? '') . "'", 
-                                                "value='" . htmlspecialchars($saved_data['actualUser'] ?? '') . "' selected", 
-                                                $user_options
-                                            );
-                                            echo $user_options_au;
-                                        ?>
-                                        <option value="N/A" <?php echo ($saved_data['actualUser'] ?? '') === 'N/A' ? 'selected' : ''; ?>>N/A</option>
-                                    </select>
+                                    <input type="text" class="form-control" id="actualUser" name="actualUser" list="actualUserList" placeholder="Type to search..." value="<?php echo htmlspecialchars($saved_data['actualUser'] ?? ''); ?>" required autocomplete="off">
+                                    <datalist id="actualUserList">
+                                        <option value="N/A">
+                                        <?php echo $user_options; ?>
+                                    </datalist>
                                 </div>
                             </div>
                             <div class="col-md-6">

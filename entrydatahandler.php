@@ -16,7 +16,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $softwareInstalled = $_POST['softwareInstalled'];
     $licensingModel = $_POST['licensingModel'];
     
-    // --- Robust N/A and Whitespace Handling for Serial Number (This part is correct) ---
+    // --- Robust N/A and Whitespace Handling for Serial Number ---
     $serialNumberInput = isset($_POST['serialNumber']) ? trim($_POST['serialNumber']) : '';
     if (strtoupper($serialNumberInput) === 'N/A' || $serialNumberInput === '') {
         $serialNumber = 'N/A';
@@ -24,7 +24,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $serialNumber = $serialNumberInput;
     }
 
-    // --- Robust N/A and Whitespace Handling for Property Number (This part is correct) ---
+    // --- Robust N/A and Whitespace Handling for Property Number ---
     $propertyNumberInput = isset($_POST['propertyNumber']) ? trim($_POST['propertyNumber']) : '';
     if (strtoupper($propertyNumberInput) === 'N/A' || $propertyNumberInput === '') {
         $propertyNumber = 'N/A';
@@ -41,28 +41,31 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $actualUserStatusOfEmployment = $_POST['actualUserStatusOfEmployment'];
     $natureOfWork = $_POST['natureOfWork'];
     $remarks = $_POST['remarks'];
+    
+    // ---------------------------------------------------------
+    // 1. CAPTURE THE NEW VARIABLE
+    // ---------------------------------------------------------
+    $computer_specs = $_POST['computer_specs']; 
+    
     $office = $_SESSION['OfficeSRF'];
 
-    // --- NEW: Smarter Uniqueness Check ---
+    // --- Smarter Uniqueness Check ---
     $check_clauses = [];
     $params = [];
     $types = "";
 
-    // 1. Only add propertyNumber to the check if it's a real value (not 'N/A').
     if (strtoupper($propertyNumber) !== 'N/A') {
         $check_clauses[] = "propertyNumber = ?";
         $params[] = $propertyNumber;
         $types .= "s";
     }
 
-    // 2. Only add serialNumber to the check if it's a real value (not 'N/A').
     if (strtoupper($serialNumber) !== 'N/A') {
         $check_clauses[] = "serialNumber = ?";
         $params[] = $serialNumber;
         $types .= "s";
     }
 
-    // 3. Only run the database query if there is at least one real value to check.
     if (!empty($check_clauses)) {
         $check_sql = "SELECT COUNT(*) FROM inv_inventory WHERE " . implode(" OR ", $check_clauses);
 
@@ -86,14 +89,22 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             exit();
         }
     }
-    // --- End of new uniqueness check logic ---
 
     // --- Prepare and execute the insertion query ---
-    $sql = "INSERT INTO inv_inventory (employeeName, equipmentType, yearAcquired, shelfLife, brand, specifications, rangeCategory, softwareInstalled, licensingModel, serialNumber, propertyNumber, accountablePerson, sex, officeDivision, statusOfEmployment, actualUser, actualUserSex, actualUserStatusOfEmployment, natureOfWork, remarks, amount, depreciation_value, office) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+    
+    // ---------------------------------------------------------
+    // 2. ADD COLUMN TO SQL INSERT
+    // Added 'computer_specs' to columns and '?' to values
+    // ---------------------------------------------------------
+    $sql = "INSERT INTO inv_inventory (employeeName, equipmentType, yearAcquired, shelfLife, brand, specifications, rangeCategory, softwareInstalled, licensingModel, serialNumber, propertyNumber, accountablePerson, sex, officeDivision, statusOfEmployment, actualUser, actualUserSex, actualUserStatusOfEmployment, natureOfWork, remarks, amount, depreciation_value, office, computer_specs) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
     if ($stmt = $conn->prepare($sql)) {
-        $stmt->bind_param("ssssssssssssssssssssdss",
-            $employeeName, $equipmentType, $yearAcquired, $shelfLife, $brand, $specifications, $rangeCategory, $softwareInstalled, $licensingModel, $serialNumber, $propertyNumber, $accountablePerson, $sex, $officeDivision, $statusOfEmployment, $actualUser, $actualUserSex, $actualUserStatusOfEmployment, $natureOfWork, $remarks, $amount, $depreciation_value, $office);
+        // ---------------------------------------------------------
+        // 3. UPDATE BIND_PARAM
+        // Added 's' to type string (now 24 chars) and '$computer_specs' to variables
+        // ---------------------------------------------------------
+        $stmt->bind_param("ssssssssssssssssssssdsss",
+            $employeeName, $equipmentType, $yearAcquired, $shelfLife, $brand, $specifications, $rangeCategory, $softwareInstalled, $licensingModel, $serialNumber, $propertyNumber, $accountablePerson, $sex, $officeDivision, $statusOfEmployment, $actualUser, $actualUserSex, $actualUserStatusOfEmployment, $natureOfWork, $remarks, $amount, $depreciation_value, $office, $computer_specs);
 
         if ($stmt->execute()) {
             $_SESSION['success'] = "Inventory record saved successfully!";
