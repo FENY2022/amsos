@@ -1,491 +1,489 @@
 <?php
-// reports_advanced.php
-// Full Solution for AMSOS Advanced Reporting
-// Requirements Covered: 1, 2, 3, 5, 6
+/**
+ * AMSOS Analytics Dashboard
+ * Combines Backend API logic and Frontend UI in one file.
+ */
 
-include 'connect.php'; 
+require 'connect.php'; // Ensure this file exists and connects to your database
 
-// --- 1. HANDLE FILTERS & INPUTS ---
-$current_year = date('Y');
-$filter_year = isset($_GET['year']) ? $_GET['year'] : $current_year;
-$filter_month = isset($_GET['month']) ? $_GET['month'] : date('m');
-$filter_division = isset($_GET['division']) ? $_GET['division'] : '';
-$filter_employee = isset($_GET['employee']) ? $_GET['employee'] : '';
-$active_tab = isset($_GET['tab']) ? $_GET['tab'] : 'dashboard';
+// --------------------------------------------------------------------------
+// PART 1: BACKEND API HANDLER
+// --------------------------------------------------------------------------
+if (isset($_GET['action'])) {
+    header('Content-Type: application/json');
+    $action = $_GET['action'];
 
-// --- 2. HELPER FUNCTIONS ---
-function get_db_count($conn, $sql) {
-    $result = mysqli_query($conn, $sql);
-    if($result) {
-        $row = mysqli_fetch_array($result);
-        return $row[0] ?? 0;
+    // Helper: Calculate if item is older than 5 years
+    function checkAge($yearAcquired) {
+        $currentYear = date("Y");
+        $acquired = intval($yearAcquired);
+        // If year is invalid (e.g. 0 or empty), treat as "Unknown" or handle specifically
+        if ($acquired == 0) return 'Unknown'; 
+        $age = $currentYear - $acquired;
+        return $age >= 5 ? 'Above 5 Years' : 'Below 5 Years';
     }
-    return 0;
+
+    switch ($action) {
+        // Requirement 1: Computers/Laptop/Printer Above and Below 5yrs
+        case 'age_analysis':
+            $query = "SELECT equipmentType, yearAcquired, COUNT(*) as count 
+                      FROM inv_inventory 
+                      WHERE equipmentType IN ('Desktop Computer', 'Desktop Computers', 'Laptop', 'Printer') 
+                      GROUP BY equipmentType, yearAcquired";
+            $result = mysqli_query($con, $query);
+            
+            $data = [
+                'above_5' => 0,
+                'below_5' => 0,
+                'breakdown' => [] // Optional: detailed breakdown by type
+            ];
+
+            while($row = mysqli_fetch_assoc($result)) {
+                $status = checkAge($row['yearAcquired']);
+                if($status == 'Above 5 Years') $data['above_5'] += $row['count'];
+                elseif($status == 'Below 5 Years') $data['below_5'] += $row['count'];
+            }
+            echo json_encode($data);
+            break;
+
+        // Requirement 2: List of updated personnel (Last 50 entries)
+        case 'updated_personnel':
+            $query = "SELECT employeeName, division, yearAcquired, equipmentType 
+                      FROM inv_inventory 
+                      WHERE employeeName != ''
+                      ORDER BY id DESC LIMIT 50";
+            $result = mysqli_query($con, $query);
+            $data = [];
+            while($row = mysqli_fetch_assoc($result)) {
+                $data[] = $row;
+            }
+            echo json_encode($data);
+            break;
+
+        // Requirement 3: Count every ICT Equipment Per division
+        case 'division_stats':
+            $query = "SELECT division, COUNT(*) as count 
+                      FROM inv_inventory 
+                      WHERE division != '' AND division IS NOT NULL
+                      GROUP BY division
+                      ORDER BY count DESC";
+            $result = mysqli_query($con, $query);
+            $labels = [];
+            $values = [];
+            while($row = mysqli_fetch_assoc($result)) {
+                $labels[] = $row['division'];
+                $values[] = $row['count'];
+            }
+            echo json_encode(['labels' => $labels, 'values' => $values]);
+            break;
+
+        // Requirement 4: Total Inventoried vs Procured CY 2025
+        case 'procurement_stats':
+            // Total
+            $q1 = mysqli_query($con, "SELECT COUNT(*) as c FROM inv_inventory");
+            $r1 = mysqli_fetch_assoc($q1);
+            
+            // Procured 2025
+            $q2 = mysqli_query($con, "SELECT COUNT(*) as c FROM inv_inventory WHERE yearAcquired = '2025'");
+            $r2 = mysqli_fetch_assoc($q2);
+            
+            echo json_encode([
+                'total_inventoried' => $r1['c'],
+                'procured_2025' => $r2['c']
+            ]);
+            break;
+
+        // Requirement 5: Generate per employee of specific division
+        case 'get_division_employees':
+            $division = isset($_GET['division']) ? mysqli_real_escape_string($con, $_GET['division']) : '';
+            $query = "SELECT * FROM inv_inventory WHERE division = '$division' ORDER BY employeeName ASC";
+            $result = mysqli_query($con, $query);
+            $data = [];
+            while($row = mysqli_fetch_assoc($result)) {
+                // Add calculated fields
+                $row['age_status'] = checkAge($row['yearAcquired']);
+                $row['full_specs'] = trim($row['brand'] . ' ' . $row['computer_specs']);
+                $data[] = $row;
+            }
+            echo json_encode($data);
+            break;
+
+        // Helper: Get list of Divisions for the dropdown
+        case 'get_divisions_list':
+            $query = "SELECT DISTINCT division FROM inv_inventory WHERE division != '' ORDER BY division";
+            $result = mysqli_query($con, $query);
+            $data = [];
+            while($row = mysqli_fetch_assoc($result)) {
+                $data[] = $row['division'];
+            }
+            echo json_encode($data);
+            break;
+
+        default:
+            echo json_encode(['error' => 'Invalid Action']);
+    }
+    // Stop execution so we don't render HTML when an API call is made
+    exit;
 }
-
-// --- 3. FETCH HIGH-LEVEL METRICS (Req #3) ---
-// Req 3: Total Inventoried
-$total_inventory = get_db_count($conn, "SELECT COUNT(*) FROM inv_inventory");
-
-// Req 3: Total Procured CY 2025
-// Note: Checks 'yearAcquired' for 2025
-$total_procured_2025 = get_db_count($conn, "SELECT COUNT(*) FROM inv_inventory WHERE yearAcquired LIKE '%2025%'");
-
-// Req 5: Quick Count of Old Items (> 5 Years)
-// Assumes yearAcquired is stored as YYYY
-$old_threshold_year = (int)$current_year - 5;
-$total_old_items = get_db_count($conn, "SELECT COUNT(*) FROM inv_inventory WHERE yearAcquired <= '$old_threshold_year' AND yearAcquired != ''");
 ?>
+
+<?php include 'navbar.php'; // Optional: Include your navbar if you have one ?>
 
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AMSOS | Advanced Reports</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <title>ICT Inventory Analytics Dashboard</title>
+    
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.datatables.net/1.13.4/css/dataTables.bootstrap5.min.css" rel="stylesheet">
+    <link href="https://cdn.datatables.net/buttons/2.3.6/css/buttons.bootstrap5.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     
     <style>
-        /* --- MODERN UI STYLING --- */
-        :root {
-            --primary: #2c3e50;
-            --accent: #3498db;
-            --success: #27ae60;
-            --warning: #f39c12;
-            --danger: #c0392b;
-            --light: #ecf0f1;
-            --dark: #2c3e50;
-        }
-
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f4f6f9;
-            margin: 0;
-            padding: 0;
-            color: #333;
-        }
-
-        /* Sidebar Placeholder (If you have an include) */
-        .sidebar-space { width: 250px; float: left; min-height: 100vh; background: #333; display: none; } 
-        /* Assuming you include your sidebar via PHP, adjust margins accordingly */
-
-        .main-content {
-            padding: 20px;
-            max-width: 1400px;
-            margin: 0 auto;
-        }
-
-        /* Header */
-        .page-header {
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-            margin-bottom: 25px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .page-header h1 { margin: 0; font-size: 1.5rem; color: var(--primary); }
-        .page-header p { margin: 5px 0 0; color: #7f8c8d; }
-
-        /* KPI Cards (Req 3) */
-        .kpi-row {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 20px;
-            margin-bottom: 30px;
-        }
-        .kpi-card {
-            background: white;
-            padding: 25px;
-            border-radius: 10px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-            display: flex;
-            align-items: center;
-            border-bottom: 4px solid var(--accent);
-            transition: transform 0.2s;
-        }
-        .kpi-card:hover { transform: translateY(-3px); }
-        .kpi-icon {
-            width: 60px; height: 60px;
-            background: var(--light);
-            border-radius: 50%;
-            display: flex; align-items: center; justify-content: center;
-            font-size: 1.8rem; color: var(--accent);
-            margin-right: 20px;
-        }
-        .kpi-data h3 { margin: 0; font-size: 2rem; color: var(--dark); }
-        .kpi-data p { margin: 0; color: #7f8c8d; font-weight: 600; font-size: 0.9rem; text-transform: uppercase; }
-
-        /* Tabs */
-        .nav-tabs { display: flex; gap: 10px; margin-bottom: 0; border-bottom: 2px solid #ddd; }
-        .nav-link {
-            padding: 12px 25px;
-            background: #e9ecef;
-            border: none;
-            border-radius: 8px 8px 0 0;
-            cursor: pointer;
-            font-weight: 600;
-            color: #6c757d;
-            transition: 0.3s;
-            text-decoration: none;
-        }
-        .nav-link:hover { background: #dde2e6; color: var(--primary); }
-        .nav-link.active {
-            background: var(--accent);
-            color: white;
-        }
-
-        /* Tab Content */
-        .tab-pane {
-            background: white;
-            padding: 30px;
-            border-radius: 0 0 8px 8px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
-            display: none;
-        }
-        .tab-pane.active { display: block; animation: fadeIn 0.4s; }
-
-        /* Filters & Tables */
-        .filter-bar {
-            background: #f8f9fa;
-            padding: 15px;
-            border-radius: 6px;
-            margin-bottom: 20px;
-            border: 1px solid #e9ecef;
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-            align-items: center;
-        }
-        select, input[type="number"], .btn-action {
-            padding: 10px 15px;
-            border: 1px solid #ced4da;
-            border-radius: 4px;
-            font-size: 0.9rem;
-        }
-        .btn-action {
-            background: var(--accent);
-            color: white;
-            border: none;
-            cursor: pointer;
-        }
-        .btn-action:hover { background: #2980b9; }
-
-        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
-        th { background: var(--primary); color: white; padding: 12px; text-align: left; font-size: 0.9rem; }
-        td { padding: 12px; border-bottom: 1px solid #eee; color: #555; }
-        tr:hover { background-color: #f1f1f1; }
-
-        /* Badges */
-        .badge { padding: 5px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: bold; color: white; }
-        .bg-old { background-color: var(--warning); }
-        .bg-new { background-color: var(--success); }
-
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        body { background-color: #f8f9fa; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        .card { border: none; border-radius: 10px; box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15); margin-bottom: 1.5rem; transition: 0.3s; }
+        .card:hover { transform: translateY(-3px); }
+        .card-header { background-color: #fff; border-bottom: 1px solid #e3e6f0; font-weight: bold; color: #4e73df; border-radius: 10px 10px 0 0 !important; }
+        .text-xs { font-size: .7rem; }
+        .border-left-primary { border-left: .25rem solid #4e73df !important; }
+        .border-left-success { border-left: .25rem solid #1cc88a !important; }
+        .border-left-info { border-left: .25rem solid #36b9cc !important; }
+        .border-left-warning { border-left: .25rem solid #f6c23e !important; }
+        .text-gray-800 { color: #5a5c69 !important; }
+        .icon-circle { height: 3rem; width: 3rem; border-radius: 100%; display: flex; align-items: center; justify-content: center; }
+        
+        /* Loading Overlay */
+        #loading-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.8); z-index: 9999; display: flex; justify-content: center; align-items: center; }
     </style>
 </head>
 <body>
 
-    <?php if(file_exists('sidebar.php')) { include 'sidebar.php'; } ?>
+<div id="loading-overlay">
+    <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">Loading...</span>
+    </div>
+</div>
 
-    <div class="main-content">
-        
-        <div class="page-header">
-            <div>
-                <h1>Advanced Analytics Dashboard</h1>
-                <p>Hardware Lifecycle, Personnel Tracking, and Procurement Reports</p>
-            </div>
-            <div>
-                <button class="btn-action" onclick="window.print()"><i class="fas fa-print"></i> Print Report</button>
-            </div>
-        </div>
+<div class="container-fluid py-4">
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800"><i class="fas fa-chart-pie me-2"></i>ICT Inventory Dashboard</h1>
+        <button class="btn btn-sm btn-primary shadow-sm" onclick="window.print()"><i class="fas fa-print fa-sm text-white-50"></i> Print Report</button>
+    </div>
 
-        <div class="kpi-row">
-            <div class="kpi-card" style="border-bottom-color: var(--primary);">
-                <div class="kpi-icon"><i class="fas fa-cubes"></i></div>
-                <div class="kpi-data">
-                    <h3><?php echo number_format($total_inventory); ?></h3>
-                    <p>Total Inventory</p>
-                </div>
-            </div>
-            <div class="kpi-card" style="border-bottom-color: var(--success);">
-                <div class="kpi-icon"><i class="fas fa-cart-plus"></i></div>
-                <div class="kpi-data">
-                    <h3><?php echo number_format($total_procured_2025); ?></h3>
-                    <p>Procured CY 2025</p>
-                </div>
-            </div>
-            <div class="kpi-card" style="border-bottom-color: var(--warning);">
-                <div class="kpi-icon"><i class="fas fa-history"></i></div>
-                <div class="kpi-data">
-                    <h3><?php echo number_format($total_old_items); ?></h3>
-                    <p>Items > 5 Years Old</p>
+    <div class="row">
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-primary h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Total Inventoried</div>
+                            <div class="h3 mb-0 font-weight-bold text-gray-800" id="stat-total">0</div>
+                        </div>
+                        <div class="col-auto">
+                            <div class="icon-circle bg-primary text-white"><i class="fas fa-boxes fa-lg"></i></div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <div class="nav-tabs">
-            <a href="?tab=dashboard" class="nav-link <?php echo ($active_tab == 'dashboard') ? 'active' : ''; ?>">
-                <i class="fas fa-chart-pie"></i> 1. Division Stats (Req 2)
-            </a>
-            <a href="?tab=lifecycle" class="nav-link <?php echo ($active_tab == 'lifecycle') ? 'active' : ''; ?>">
-                <i class="fas fa-hourglass-half"></i> 2. Lifecycle (>5 Yrs) (Req 5)
-            </a>
-            <a href="?tab=employee" class="nav-link <?php echo ($active_tab == 'employee') ? 'active' : ''; ?>">
-                <i class="fas fa-user-tag"></i> 3. Employee Items (Req 1)
-            </a>
-            <a href="?tab=personnel" class="nav-link <?php echo ($active_tab == 'personnel') ? 'active' : ''; ?>">
-                <i class="fas fa-users"></i> 4. Personnel List (Req 6)
-            </a>
-        </div>
-
-        <div class="tab-pane <?php echo ($active_tab == 'dashboard') ? 'active' : ''; ?>">
-            <h3><i class="fas fa-building"></i> Equipment Count by Division</h3>
-            <p>Sort and generate count of ICT Equipment per division for specific dates.</p>
-            
-            <form method="GET" class="filter-bar">
-                <input type="hidden" name="tab" value="dashboard">
-                <label>Year Acquired:</label>
-                <input type="number" name="year" value="<?php echo $filter_year; ?>" min="2000" max="2100">
-                <button type="submit" class="btn-action">Filter Statistics</button>
-            </form>
-
-            <table>
-                <thead>
-                    <tr>
-                        <th>Division / Office</th>
-                        <th>Total Units Acquired (<?php echo $filter_year; ?>)</th>
-                        <th>Status</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php
-                    // Grouping by 'office' (Column 18 in your structure)
-                    // We assume the column name is 'office' based on 'ORED' values. Adjust if it is 'division'.
-                    $sql_div = "SELECT office, COUNT(*) as count 
-                                FROM inv_inventory 
-                                WHERE yearAcquired = '$filter_year' 
-                                GROUP BY office 
-                                ORDER BY count DESC";
-                    
-                    $res_div = mysqli_query($conn, $sql_div);
-                    
-                    if (mysqli_num_rows($res_div) > 0) {
-                        while ($row = mysqli_fetch_assoc($res_div)) {
-                            $divName = empty($row['office']) ? "Unassigned" : $row['office'];
-                            echo "<tr>
-                                    <td><strong>{$divName}</strong></td>
-                                    <td><span style='font-size:1.1rem; font-weight:bold;'>{$row['count']}</span> units</td>
-                                    <td>Active</td>
-                                  </tr>";
-                        }
-                    } else {
-                        echo "<tr><td colspan='3' style='text-align:center; padding:20px;'>No acquisitions found for Year $filter_year</td></tr>";
-                    }
-                    ?>
-                </tbody>
-            </table>
-        </div>
-
-        <div class="tab-pane <?php echo ($active_tab == 'lifecycle') ? 'active' : ''; ?>">
-            <h3><i class="fas fa-server"></i> Equipment Lifecycle (5 Year Threshold)</h3>
-            <p>Computers, Laptops, and Printers classified by age.</p>
-
-            <div class="filter-bar">
-                <label>View Category:</label>
-                <select id="lifeFilter" onchange="filterLifeTable()">
-                    <option value="all">Show All</option>
-                    <option value="old">Above 5 Years (For Replacement)</option>
-                    <option value="new">Below 5 Years (Good Condition)</option>
-                </select>
-            </div>
-
-            <table id="lifeTable">
-                <thead>
-                    <tr>
-                        <th>Property No / ID</th>
-                        <th>Type</th>
-                        <th>Brand & Model</th>
-                        <th>Acquired</th>
-                        <th>Age (Years)</th>
-                        <th>Status</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php
-                    // Filter specifically for computers/printers
-                    $sql_life = "SELECT * FROM inv_inventory 
-                                 WHERE equipmentType LIKE '%Computer%' 
-                                    OR equipmentType LIKE '%Laptop%' 
-                                    OR equipmentType LIKE '%Printer%'
-                                 ORDER BY yearAcquired DESC";
-                    $res_life = mysqli_query($conn, $sql_life);
-
-                    while($row = mysqli_fetch_assoc($res_life)) {
-                        $acq_year = (int)$row['yearAcquired'];
-                        if($acq_year == 0) continue; // Skip invalid years
-                        
-                        $age = (int)$current_year - $acq_year;
-                        $is_old = $age >= 5;
-                        $row_class = $is_old ? 'row-old' : 'row-new';
-                        $badge_class = $is_old ? 'bg-old' : 'bg-new';
-                        $status_text = $is_old ? '> 5 Years' : '< 5 Years';
-
-                        echo "<tr class='{$row_class}'>
-                                <td>{$row['id']}</td>
-                                <td>{$row['equipmentType']}</td>
-                                <td>{$row['brand']}</td>
-                                <td>{$row['yearAcquired']}</td>
-                                <td><strong>{$age}</strong></td>
-                                <td><span class='badge {$badge_class}'>{$status_text}</span></td>
-                              </tr>";
-                    }
-                    ?>
-                </tbody>
-            </table>
-            
-            <script>
-                function filterLifeTable() {
-                    let filter = document.getElementById('lifeFilter').value;
-                    let rowsOld = document.querySelectorAll('.row-old');
-                    let rowsNew = document.querySelectorAll('.row-new');
-                    
-                    if(filter === 'all') {
-                        rowsOld.forEach(r => r.style.display = '');
-                        rowsNew.forEach(r => r.style.display = '');
-                    } else if (filter === 'old') {
-                        rowsOld.forEach(r => r.style.display = '');
-                        rowsNew.forEach(r => r.style.display = 'none');
-                    } else {
-                        rowsOld.forEach(r => r.style.display = 'none');
-                        rowsNew.forEach(r => r.style.display = '');
-                    }
-                }
-            </script>
-        </div>
-
-        <div class="tab-pane <?php echo ($active_tab == 'employee') ? 'active' : ''; ?>">
-            <h3><i class="fas fa-id-card"></i> Employee Accountability Report</h3>
-            <p>Generate list of equipment per employee within a specific division.</p>
-            
-            <form method="GET" class="filter-bar">
-                <input type="hidden" name="tab" value="employee">
-                
-                <select name="division" onchange="this.form.submit()">
-                    <option value="">-- Select Division First --</option>
-                    <?php
-                    $d_sql = "SELECT DISTINCT office FROM inv_inventory WHERE office != '' ORDER BY office";
-                    $d_res = mysqli_query($conn, $d_sql);
-                    while($row = mysqli_fetch_assoc($d_res)){
-                        $sel = ($filter_division == $row['office']) ? 'selected' : '';
-                        echo "<option value='{$row['office']}' $sel>{$row['office']}</option>";
-                    }
-                    ?>
-                </select>
-
-                <select name="employee">
-                    <option value="">-- Select Employee --</option>
-                    <?php
-                    if($filter_division) {
-                        // Assuming 'accountable_officer' is the relevant column, or 'employeeName'
-                        // Based on your data, 'accountable_officer' seems more appropriate for accountability
-                        $e_sql = "SELECT DISTINCT accountable_officer FROM inv_inventory WHERE office = '$filter_division' ORDER BY accountable_officer";
-                        $e_res = mysqli_query($conn, $e_sql);
-                        while($row = mysqli_fetch_assoc($e_res)){
-                            $sel = ($filter_employee == $row['accountable_officer']) ? 'selected' : '';
-                            echo "<option value='{$row['accountable_officer']}' $sel>{$row['accountable_officer']}</option>";
-                        }
-                    }
-                    ?>
-                </select>
-
-                <button type="submit" class="btn-action">Generate</button>
-            </form>
-
-            <?php if($filter_employee): ?>
-                <div style="background:#e8f4fc; padding:15px; border-left:5px solid var(--accent); margin-bottom:15px;">
-                    <strong>Accountability List for:</strong> <?php echo $filter_employee; ?> <br>
-                    <strong>Division:</strong> <?php echo $filter_division; ?>
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-success h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Procured CY 2025</div>
+                            <div class="h3 mb-0 font-weight-bold text-gray-800" id="stat-2025">0</div>
+                        </div>
+                        <div class="col-auto">
+                            <div class="icon-circle bg-success text-white"><i class="fas fa-calendar-check fa-lg"></i></div>
+                        </div>
+                    </div>
                 </div>
+            </div>
+        </div>
 
-                <table>
-                    <thead>
-                        <tr>
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-info h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">Equipment < 5 Years</div>
+                            <div class="h3 mb-0 font-weight-bold text-gray-800" id="stat-below5">0</div>
+                        </div>
+                        <div class="col-auto">
+                            <div class="icon-circle bg-info text-white"><i class="fas fa-laptop-code fa-lg"></i></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-warning h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">Equipment > 5 Years</div>
+                            <div class="h3 mb-0 font-weight-bold text-gray-800" id="stat-above5">0</div>
+                        </div>
+                        <div class="col-auto">
+                            <div class="icon-circle bg-warning text-white"><i class="fas fa-history fa-lg"></i></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-xl-8 col-lg-7">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                    <h6 class="m-0 font-weight-bold text-primary">Equipment Distribution by Division</h6>
+                </div>
+                <div class="card-body">
+                    <div class="chart-area" style="height: 320px;">
+                        <canvas id="divisionChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-4 col-lg-5">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                    <h6 class="m-0 font-weight-bold text-primary">Lifecycle Analysis</h6>
+                </div>
+                <div class="card-body">
+                    <div class="chart-pie pt-4 pb-2" style="height: 320px; position: relative;">
+                        <canvas id="ageChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <div class="row align-items-center">
+                <div class="col-md-6">
+                    <h6 class="m-0 font-weight-bold text-primary"><i class="fas fa-table me-2"></i>Detailed Reports</h6>
+                </div>
+                <div class="col-md-6">
+                    <div class="d-flex gap-2 justify-content-end">
+                        <select class="form-select form-select-sm" id="divisionFilter" style="max-width: 200px;">
+                            <option value="">Select Division</option>
+                            </select>
+                        <select class="form-select form-select-sm" id="reportType" style="max-width: 200px;">
+                            <option value="detailed">Inventory by Division</option>
+                            <option value="updated">Recently Updated Personnel</option>
+                        </select>
+                        <button class="btn btn-sm btn-success" onclick="generateReport()">Generate</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover" id="reportTable" width="100%" cellspacing="0">
+                    <thead class="table-light">
+                        <tr id="tableHeaderRow">
+                            <th>Employee Name</th>
+                            <th>Division</th>
                             <th>Type</th>
-                            <th>Brand/Model</th>
-                            <th>Description</th>
-                            <th>Value (Cost)</th>
+                            <th>Brand / Specs</th>
+                            <th>Year</th>
                             <th>Status</th>
                         </tr>
                     </thead>
-                    <tbody>
-                        <?php
-                        // Fetch items for specific employee in specific division
-                        $emp_inv_sql = "SELECT * FROM inv_inventory 
-                                        WHERE office = '$filter_division' 
-                                        AND accountable_officer = '$filter_employee'";
-                        $emp_inv_res = mysqli_query($conn, $emp_inv_sql);
-                        
-                        if(mysqli_num_rows($emp_inv_res) > 0) {
-                            while($row = mysqli_fetch_assoc($emp_inv_res)){
-                                // Handle potential empty value columns
-                                $val = !empty($row['unit_value']) ? $row['unit_value'] : 'N/A';
-                                echo "<tr>
-                                        <td>{$row['equipmentType']}</td>
-                                        <td>{$row['brand']}</td>
-                                        <td>{$row['specifications']}</td>
-                                        <td>{$val}</td>
-                                        <td>Active</td>
-                                      </tr>";
-                            }
-                        } else {
-                            echo "<tr><td colspan='5'>No equipment found assigned to this officer.</td></tr>";
-                        }
-                        ?>
-                    </tbody>
+                    <tbody id="tableBody">
+                        </tbody>
                 </table>
-            <?php endif; ?>
+            </div>
         </div>
-
-        <div class="tab-pane <?php echo ($active_tab == 'personnel') ? 'active' : ''; ?>">
-            <h3><i class="fas fa-address-book"></i> Updated Personnel List</h3>
-            <p>Master list of personnel identified in the inventory system.</p>
-
-            <table>
-                <thead>
-                    <tr>
-                        <th>#</th>
-                        <th>Name of Personnel</th>
-                        <th>Designation / Position</th>
-                        <th>Office / Division</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php
-                    // Get distinct personnel. We check both employeeName and accountable_officer
-                    $p_sql = "SELECT DISTINCT accountable_officer, office, employment_status FROM inv_inventory 
-                              WHERE accountable_officer != '' 
-                              ORDER BY office, accountable_officer";
-                    $p_res = mysqli_query($conn, $p_sql);
-                    $count = 1;
-                    
-                    while($row = mysqli_fetch_assoc($p_res)){
-                        echo "<tr>
-                                <td>{$count}</td>
-                                <td><strong>{$row['accountable_officer']}</strong></td>
-                                <td>{$row['employment_status']}</td>
-                                <td>{$row['office']}</td>
-                              </tr>";
-                        $count++;
-                    }
-                    ?>
-                </tbody>
-            </table>
-        </div>
-
     </div>
+
+</div>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.4/js/dataTables.bootstrap5.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.3.6/js/dataTables.buttons.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.1.3/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/pdfmake.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/vfs_fonts.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.3.6/js/buttons.html5.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.3.6/js/buttons.print.min.js"></script>
+
+<script>
+    let tableInstance = null;
+
+    $(document).ready(function() {
+        // Initialize dashboard
+        loadStats();
+        loadDivisions();
+        
+        // Load default report (Updated Personnel) on start
+        $('#reportType').val('updated');
+        generateReport();
+    });
+
+    // 1. Fetch Top Stats & Draw Charts
+    function loadStats() {
+        // Procurement & Total
+        $.get('?action=procurement_stats', function(data) {
+            $('#stat-total').text(data.total_inventoried);
+            $('#stat-2025').text(data.procured_2025);
+        });
+
+        // Age Analysis (Text & Pie Chart)
+        $.get('?action=age_analysis', function(data) {
+            $('#stat-above5').text(data.above_5);
+            $('#stat-below5').text(data.below_5);
+
+            // Pie Chart
+            new Chart(document.getElementById("ageChart"), {
+                type: 'doughnut',
+                data: {
+                    labels: ["Below 5 Years", "Above 5 Years"],
+                    datasets: [{
+                        data: [data.below_5, data.above_5],
+                        backgroundColor: ['#36b9cc', '#f6c23e'],
+                        hoverBackgroundColor: ['#2c9faf', '#dda20a'],
+                        hoverBorderColor: "rgba(234, 236, 244, 1)",
+                    }],
+                },
+                options: {
+                    maintainAspectRatio: false,
+                    tooltips: { backgroundColor: "rgb(255,255,255)", bodyFontColor: "#858796", borderColor: '#dddfeb', borderWidth: 1, xPadding: 15, yPadding: 15, displayColors: false, caretPadding: 10 },
+                    legend: { display: true, position: 'bottom' },
+                    cutout: '70%',
+                },
+            });
+        });
+
+        // Division Stats (Bar Chart)
+        $.get('?action=division_stats', function(data) {
+            // Bar Chart
+            new Chart(document.getElementById("divisionChart"), {
+                type: 'bar',
+                data: {
+                    labels: data.labels,
+                    datasets: [{
+                        label: "Item Count",
+                        backgroundColor: "#4e73df",
+                        hoverBackgroundColor: "#2e59d9",
+                        borderColor: "#4e73df",
+                        data: data.values,
+                    }],
+                },
+                options: {
+                    maintainAspectRatio: false,
+                    layout: { padding: { left: 10, right: 25, top: 25, bottom: 0 } },
+                    scales: {
+                        x: { grid: { display: false, drawBorder: false }, ticks: { maxTicksLimit: 10 } },
+                        y: { ticks: { beginAtZero: true, maxTicksLimit: 5, padding: 10 } }
+                    },
+                    legend: { display: false }
+                },
+            });
+            $('#loading-overlay').fadeOut();
+        });
+    }
+
+    // 2. Populate Dropdown
+    function loadDivisions() {
+        $.get('?action=get_divisions_list', function(list) {
+            list.forEach(div => {
+                $('#divisionFilter').append(new Option(div, div));
+            });
+        });
+    }
+
+    // 3. Main Report Logic
+    function generateReport() {
+        const type = $('#reportType').val();
+        const division = $('#divisionFilter').val();
+
+        if (type === 'detailed' && !division) {
+            alert('Please select a Division for the detailed inventory report.');
+            return;
+        }
+
+        const url = type === 'updated' 
+            ? '?action=updated_personnel' 
+            : `?action=get_division_employees&division=${encodeURIComponent(division)}`;
+
+        // Destroy old table
+        if (tableInstance) {
+            tableInstance.destroy();
+            $('#tableBody').empty();
+        }
+
+        $('#loading-overlay').show();
+
+        $.get(url, function(data) {
+            let html = '';
+            
+            // Adjust headers based on report type
+            if(type === 'updated') {
+                $('#tableHeaderRow').html('<th>Employee Name</th><th>Division</th><th>Equipment</th><th>Year Acquired</th><th>Status</th>');
+                
+                data.forEach(row => {
+                    html += `
+                        <tr>
+                            <td class="fw-bold">${row.employeeName || 'N/A'}</td>
+                            <td>${row.division || 'N/A'}</td>
+                            <td>${row.equipmentType || 'N/A'}</td>
+                            <td>${row.yearAcquired || ''}</td>
+                            <td><span class="badge bg-success">Updated Recently</span></td>
+                        </tr>
+                    `;
+                });
+            } else {
+                // Detailed Division Report
+                $('#tableHeaderRow').html('<th>Employee Name</th><th>Type</th><th>Specs/Brand</th><th>Year</th><th>Age Status</th><th>Category</th>');
+                
+                data.forEach(row => {
+                    let badge = row.age_status === 'Above 5 Years' ? 'bg-warning text-dark' : 'bg-info';
+                    html += `
+                        <tr>
+                            <td class="fw-bold">${row.employeeName}</td>
+                            <td>${row.equipmentType}</td>
+                            <td>${row.full_specs}</td>
+                            <td>${row.yearAcquired}</td>
+                            <td><span class="badge ${badge}">${row.age_status}</span></td>
+                            <td>${row.rangeCategory || ''}</td>
+                        </tr>
+                    `;
+                });
+            }
+
+            $('#tableBody').html(html);
+            
+            // Re-init DataTable
+            let title = type === 'updated' ? 'Recently Updated Personnel' : `Inventory Report - ${division}`;
+            
+            tableInstance = $('#reportTable').DataTable({
+                dom: 'Bfrtip',
+                buttons: [
+                    { extend: 'excel', className: 'btn btn-sm btn-success', title: title },
+                    { extend: 'pdf', className: 'btn btn-sm btn-danger', title: title },
+                    { extend: 'print', className: 'btn btn-sm btn-secondary', title: title }
+                ],
+                pageLength: 10,
+                order: [[0, 'asc']]
+            });
+            
+            $('#loading-overlay').fadeOut();
+        });
+    }
+</script>
 
 </body>
 </html>
