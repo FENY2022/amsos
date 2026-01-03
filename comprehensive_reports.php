@@ -173,7 +173,7 @@ $report_result = $conn->query($report_sql);
 <nav class="navbar mb-4 sticky-top">
     <div class="container">
         <a class="navbar-brand" href="#">
-            <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/5/58/Department_of_Environment_and_Natural_Resources_%28DENR%29_Logo.png/240px-Department_of_Environment_and_Natural_Resources_%28DENR%29_Logo.png" alt="DENR Logo" class="denr-logo">
+            <img src="logo/amsos.png" alt="DENR Logo" class="denr-logo">
             <div>
                 <div style="font-size: 0.8em; line-height: 1.2;" class="text-secondary fw-normal">DENR Caraga</div>
                 AMSOS <span class="fw-light">Inventory</span>
