@@ -9,11 +9,14 @@ $procured_2025 = $conn->query("SELECT COUNT(*) FROM inv_inventory WHERE yearAcqu
 $within_5 = $conn->query("SELECT COUNT(*) FROM inv_inventory WHERE shelfLife LIKE '%Within%'")->fetch_row()[0];
 $beyond_5 = $conn->query("SELECT COUNT(*) FROM inv_inventory WHERE shelfLife LIKE '%Beyond%'")->fetch_row()[0];
 
-// --- B. Age Category Report ---
+// --- B. Age Category Report (UPDATED) ---
+// Changed to LIKE to ensure "Desktop", "Desktop Computers", "Printer", and "Printers" are all caught.
 $age_sql = "SELECT id, equipmentType, brand, specifications, yearAcquired, shelfLife, serialNumber, 
                    propertyNumber, accountablePerson, actualUser, officeDivision, remarks 
             FROM inv_inventory 
-            WHERE equipmentType IN ('Desktop Computers', 'Laptop Computers', 'Printers')
+            WHERE (equipmentType LIKE '%Desktop%' 
+               OR equipmentType LIKE '%Laptop%' 
+               OR equipmentType LIKE '%Printer%')
             ORDER BY shelfLife DESC, yearAcquired DESC, equipmentType";
 $age_result = $conn->query($age_sql);
 
