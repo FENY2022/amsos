@@ -261,9 +261,46 @@
 
     <div class="row mb-3">
         <div class="col text-end">
-            <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addRecordModal">
+            <button type="button" class="btn btn-success me-2" data-bs-toggle="modal" data-bs-target="#addRecordModal">
                 <i class="fas fa-plus-circle me-2"></i>Add New Record
             </button>
+<button type="button" class="btn btn-info" data-bs-toggle="modal" data-bs-target="#comprehensiveReportsModal">
+    <i class="fas fa-chart-pie me-2"></i>Comprehensive Reports
+</button>
+
+        </div>
+    </div>
+
+    <!-- Comprehensive Reports Modal -->
+    <div class="modal fade" id="comprehensiveReportsModal" tabindex="-1" aria-labelledby="comprehensiveReportsLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-fullscreen-lg-down" style="max-width: 95vw;">
+            <div class="modal-content">
+                <div class="modal-header bg-info text-white">
+                    <h5 class="modal-title" id="comprehensiveReportsLabel">
+                        <i class="fas fa-file-chart-line me-2"></i>Comprehensive Reports
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white opacity-75" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-0">
+                    <div class="loading-spinner position-absolute top-50 start-50 translate-middle d-none">
+                        <div class="spinner-border text-info" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </div>
+                    <iframe
+                        src="comprehensive_reports.php"
+                        style="width: 100%; height: 85vh; border: none;"
+                        class="smooth-transition"
+                        onload="this.previousElementSibling.classList.add('d-none')"
+                        title="Comprehensive Reports"
+                    ></iframe>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-1"></i>Close
+                    </button>
+                </div>
+            </div>
         </div>
     </div>
     
