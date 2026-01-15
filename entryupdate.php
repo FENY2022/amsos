@@ -279,7 +279,7 @@
                     <h5 class="modal-title" id="comprehensiveReportsLabel">
                         <i class="fas fa-file-chart-line me-2"></i>Comprehensive Reports
                     </h5>
-                    <button type="button" class="btn-close btn-close-white opacity-75" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <button type="button" class="btn-close btn-close-white opacity-75" data-bs-dismiss="modal" aria-label="Close">x</button>
                 </div>
                 <div class="modal-body p-0">
                     <div class="loading-spinner position-absolute top-50 start-50 translate-middle d-none">
