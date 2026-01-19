@@ -118,7 +118,7 @@
         
         .dashboard {
             display: grid;
-            grid-template-columns: 1fr 1fr; /* Changed back to 2 columns for the second chart */
+            grid-template-columns: 1fr 1fr;
             gap: 25px;
             margin-bottom: 30px;
         }
@@ -236,21 +236,6 @@
             display: inline-block;
         }
         
-        .status-done {
-            background-color: #e8f5e9;
-            color: var(--success);
-        }
-        
-        .status-pending {
-            background-color: #fff8e1;
-            color: var(--warning);
-        }
-        
-        .status-processing {
-            background-color: #e3f2fd;
-            color: var(--secondary);
-        }
-        
         .pagination {
             display: flex;
             justify-content: center;
@@ -277,12 +262,6 @@
         .pagination button:disabled {
             opacity: 0.5;
             cursor: not-allowed;
-        }
-        
-        .pagination .active {
-            background: var(--primary);
-            color: white;
-            border-color: var(--primary);
         }
         
         .page-info {
@@ -354,28 +333,23 @@
     </style>
 
     <?php
-    
     require_once 'connect.php';
 
-    // Get the office from the session. mainmenu.php should have started the session.
+    // Session logic
     $sessionOffice = $_SESSION['OfficeSRF'] ?? '';
 
-    // Use prepared statements for security.
-    // Fetch distinct office values for the dropdown, filtered by the session office.
     $office_sql = "SELECT DISTINCT office FROM inv_inventory WHERE office = ?";
     $stmt_offices = $conn->prepare($office_sql);
     $stmt_offices->bind_param("s", $sessionOffice);
     $stmt_offices->execute();
     $offices = $stmt_offices->get_result();
 
-    // Fetch distinct officeDivision values for the dropdown, filtered by the session office.
     $division_sql = "SELECT DISTINCT officeDivision FROM inv_inventory WHERE office = ?";
     $stmt_divisions = $conn->prepare($division_sql);
     $stmt_divisions->bind_param("s", $sessionOffice);
     $stmt_divisions->execute();
     $divisions = $stmt_divisions->get_result();
 
-    // Fetch inventory data
     $query = "SELECT employeeName, equipmentType, office, officeDivision FROM inv_inventory WHERE office = ?";
     $stmt_data = $conn->prepare($query);
     $stmt_data->bind_param("s", $sessionOffice);
@@ -386,14 +360,12 @@
         $inventoryData[] = $row;
     }
     
-    // Pass the data to JavaScript as JSON
     echo "<script>var inventoryData = " . json_encode($inventoryData) . ";</script>";
 
     $stmt_offices->close();
     $stmt_divisions->close();
     $stmt_data->close();
     ?>
-
 </head>
 <body>
 
@@ -441,7 +413,7 @@
                 <select id="officeDropdown">
                     <option value="">Select Office</option>
                     <?php 
-                    $offices->data_seek(0); // Reset pointer for second use
+                    $offices->data_seek(0);
                     while ($office = $offices->fetch_assoc()): ?>
                         <option value="<?= htmlspecialchars($office['office']) ?>"><?= htmlspecialchars($office['office']) ?></option>
                     <?php endwhile; ?>
@@ -452,7 +424,7 @@
                 <select id="officeDivisionDropdown">
                     <option value="">Select Office Division</option>
                     <?php 
-                    $divisions->data_seek(0); // Reset pointer for second use
+                    $divisions->data_seek(0);
                     while ($division = $divisions->fetch_assoc()): ?>
                         <option value="<?= htmlspecialchars($division['officeDivision']) ?>"><?= htmlspecialchars($division['officeDivision']) ?></option>
                     <?php endwhile; ?>
@@ -475,8 +447,7 @@
                     <th>Office Division</th>
                 </tr>
             </thead>
-            <tbody id="inventoryTableBody">
-                </tbody>
+            <tbody id="inventoryTableBody"></tbody>
         </table>
         
         <div class="pagination no-print">
@@ -498,16 +469,14 @@ document.addEventListener('DOMContentLoaded', function () {
     const employeeNameInput = document.getElementById('employeeNameInput');
     const officeDropdown = document.getElementById('officeDropdown');
     const officeDivisionDropdown = document.getElementById('officeDivisionDropdown');
-    const chartCtx = document.getElementById('inventoryChart').getContext('2d'); // Renamed to avoid confusion
-    const officeChartCtx = document.getElementById('officeChart').getContext('2d'); // New context for office chart
+    const chartCtx = document.getElementById('inventoryChart').getContext('2d');
+    const officeChartCtx = document.getElementById('officeChart').getContext('2d');
     const inventoryTableBody = document.getElementById('inventoryTableBody');
 
-    // Pagination variables
     let currentPage = 1;
-    const rowsPerPage = 5; // Number of rows per page
-    let filteredData = [...inventoryData]; // Make a copy of the initial data
+    const rowsPerPage = 5;
+    let filteredData = [...inventoryData];
 
-    // Pagination DOM elements
     const currentPageEl = document.getElementById('currentPage');
     const totalPagesEl = document.getElementById('totalPages');
     const prevPageBtn = document.getElementById('prevPage');
@@ -515,41 +484,25 @@ document.addEventListener('DOMContentLoaded', function () {
     const firstPageBtn = document.getElementById('firstPage');
     const lastPageBtn = document.getElementById('lastPage');
 
-    // Set current date for print
-    const now = new Date();
-    const printDateElement = document.getElementById('printDate');
-    if (printDateElement) {
-        printDateElement.textContent = now.toLocaleDateString('en-US', {
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric'
-        });
-    }
-
-    // Chart instances (declared outside to be accessible for updates)
     let inventoryChart;
     let officeChart;
 
-    // Initial setup when DOM is loaded
     renderTable();
     setupCharts();
     setupEventListeners();
-    updatePagination(); // Initial update of pagination controls
+    updatePagination();
 
-    // Set up event listeners for filters and pagination
     function setupEventListeners() {
         employeeNameInput.addEventListener('input', applyFilters);
         officeDropdown.addEventListener('change', applyFilters);
         officeDivisionDropdown.addEventListener('change', applyFilters);
 
-        // Pagination buttons
         prevPageBtn.addEventListener('click', () => changePage(currentPage - 1));
         nextPageBtn.addEventListener('click', () => changePage(currentPage + 1));
         firstPageBtn.addEventListener('click', () => changePage(1));
         lastPageBtn.addEventListener('click', () => changePage(Math.ceil(filteredData.length / rowsPerPage)));
     }
 
-    // Apply all filters
     function applyFilters() {
         const employeeName = employeeNameInput.value.toLowerCase();
         const selectedOffice = officeDropdown.value.toLowerCase();
@@ -559,23 +512,19 @@ document.addEventListener('DOMContentLoaded', function () {
             const matchesName = item.employeeName.toLowerCase().includes(employeeName);
             const matchesOffice = !selectedOffice || item.office.toLowerCase().includes(selectedOffice);
             const matchesDivision = !selectedDivision || item.officeDivision.toLowerCase().includes(selectedDivision);
-
             return matchesName && matchesOffice && matchesDivision;
         });
         
-        currentPage = 1; // Reset to first page after applying filters
+        currentPage = 1;
         renderTable();
         updatePagination();
-        updateCharts(); // Update charts when filters change
+        updateCharts();
     }
 
-    // Render the table with current data and pagination
     function renderTable() {
         inventoryTableBody.innerHTML = '';
-        
         const startIndex = (currentPage - 1) * rowsPerPage;
-        const endIndex = startIndex + rowsPerPage;
-        const pageData = filteredData.slice(startIndex, endIndex);
+        const pageData = filteredData.slice(startIndex, startIndex + rowsPerPage);
         
         if (pageData.length === 0) {
             inventoryTableBody.innerHTML = `<tr><td colspan="4" style="text-align: center;">No inventory items found</td></tr>`;
@@ -584,120 +533,89 @@ document.addEventListener('DOMContentLoaded', function () {
         
         pageData.forEach(item => {
             const row = document.createElement('tr');
-            row.innerHTML = `
-                <td>${item.employeeName}</td>
-                <td>${item.equipmentType}</td>
-                <td>${item.office}</td>
-                <td>${item.officeDivision}</td>
-            `;
+            row.innerHTML = `<td>${item.employeeName}</td><td>${item.equipmentType}</td><td>${item.office}</td><td>${item.officeDivision}</td>`;
             inventoryTableBody.appendChild(row);
         });
     }
 
-    // Change current page
     function changePage(page) {
         const totalPages = Math.ceil(filteredData.length / rowsPerPage);
-        
         if (page < 1) page = 1;
         if (page > totalPages) page = totalPages;
-        
         currentPage = page;
         renderTable();
         updatePagination();
     }
 
-    // Update pagination controls
     function updatePagination() {
         const totalPages = Math.ceil(filteredData.length / rowsPerPage);
-        
         currentPageEl.textContent = currentPage;
-        totalPagesEl.textContent = totalPages === 0 ? 1 : totalPages; // Show at least 1 page
-        
-        // Disable/enable navigation buttons
+        totalPagesEl.textContent = totalPages === 0 ? 1 : totalPages;
         prevPageBtn.disabled = currentPage === 1 || totalPages === 0;
         nextPageBtn.disabled = currentPage === totalPages || totalPages === 0;
         firstPageBtn.disabled = currentPage === 1 || totalPages === 0;
         lastPageBtn.disabled = currentPage === totalPages || totalPages === 0;
     }
 
-    // Set up initial charts
     function setupCharts() {
-        // Equipment distribution chart
+        // Equipment distribution chart with CUSTOM LEGEND LABELS
         inventoryChart = new Chart(chartCtx, {
-            type: 'doughnut', // Changed to doughnut as per screenshot for equipment
+            type: 'doughnut',
             data: getEquipmentChartData(filteredData),
             options: {
                 responsive: true,
                 plugins: {
                     legend: {
-                        position: 'right' // Legend on the right as per screenshot
-                    },
-                    tooltip: {
-                        callbacks: {
-                            label: function (context) {
-                                return `${context.label}: ${context.raw}`;
+                        position: 'right',
+                        labels: {
+                            // Custom function to add the numbers next to labels
+                            generateLabels: function(chart) {
+                                const data = chart.data;
+                                if (data.labels.length && data.datasets.length) {
+                                    return data.labels.map((label, i) => {
+                                        const value = data.datasets[0].data[i];
+                                        return {
+                                            text: `${value} ${label}`, // Adds the figure besides the color
+                                            fillStyle: data.datasets[0].backgroundColor[i],
+                                            strokeStyle: data.datasets[0].backgroundColor[i],
+                                            lineWidth: 0,
+                                            hidden: isNaN(data.datasets[0].data[i]) || chart.getDatasetMeta(0).data[i].hidden,
+                                            index: i
+                                        };
+                                    });
+                                }
+                                return [];
                             }
                         }
                     },
-                    title: {
-                        display: true,
-                        text: 'Equipment Distribution'
-                    }
+                    title: { display: true, text: 'Equipment Distribution' }
                 }
             }
         });
 
-        // Office distribution chart
         officeChart = new Chart(officeChartCtx, {
             type: 'bar',
             data: getOfficeChartData(filteredData),
             options: {
                 responsive: true,
-                plugins: {
-                    legend: {
-                        display: false
-                    },
-                    title: {
-                        display: true,
-                        text: 'Items per Office'
-                    }
-                },
-                scales: {
-                    x: {
-                        title: {
-                            display: false // No X-axis title in screenshot
-                        }
-                    },
-                    y: {
-                        beginAtZero: true,
-                        ticks: {
-                            stepSize: 1
-                        },
-                        title: {
-                            display: false // No Y-axis title in screenshot
-                        }
-                    }
-                }
+                plugins: { legend: { display: false }, title: { display: true, text: 'Items per Office' } },
+                scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
             }
         });
     }
 
-    // Update existing charts with new filtered data
     function updateCharts() {
         inventoryChart.data = getEquipmentChartData(filteredData);
         inventoryChart.update();
-
         officeChart.data = getOfficeChartData(filteredData);
         officeChart.update();
     }
 
-    // Function to create doughnut chart data for equipment
     function getEquipmentChartData(data) {
         const equipmentCounts = data.reduce((acc, item) => {
             acc[item.equipmentType] = (acc[item.equipmentType] || 0) + 1;
             return acc;
         }, {});
-
         return {
             labels: Object.keys(equipmentCounts),
             datasets: [{
@@ -708,47 +626,26 @@ document.addEventListener('DOMContentLoaded', function () {
         };
     }
 
-    // Function to create bar chart data for offices
     function getOfficeChartData(data) {
         const officeCounts = data.reduce((acc, item) => {
             acc[item.office] = (acc[item.office] || 0) + 1;
             return acc;
         }, {});
-
         return {
             labels: Object.keys(officeCounts),
-            datasets: [{
-                label: 'Number of Items',
-                data: Object.values(officeCounts),
-                backgroundColor: '#3498db', // Use a consistent bar color
-                borderWidth: 1
-            }]
+            datasets: [{ label: 'Number of Items', data: Object.values(officeCounts), backgroundColor: '#3498db', borderWidth: 1 }]
         };
     }
 
-    // Print inventory function
     window.printTable = function () {
-        // Hide elements not needed for print
         const noPrintElements = document.querySelectorAll('.no-print');
         noPrintElements.forEach(el => el.style.display = 'none');
-        
-        // Show print-only header
-        const printOnlyHeader = document.querySelector('.print-only');
-        if (printOnlyHeader) {
-            printOnlyHeader.style.display = 'block';
-        }
-
+        document.querySelector('.print-only').style.display = 'block';
         window.print();
-
-        // Restore visibility after printing
-        noPrintElements.forEach(el => el.style.display = ''); // Revert to original display
-        if (printOnlyHeader) {
-            printOnlyHeader.style.display = 'none'; // Hide print-only header again
-        }
+        noPrintElements.forEach(el => el.style.display = '');
+        document.querySelector('.print-only').style.display = 'none';
     };
 });
-
 </script>
-
 </body>
 </html>
