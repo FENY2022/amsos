@@ -24,8 +24,9 @@ $whereSql = !empty($whereClauses) ? "WHERE " . implode(" AND ", $whereClauses) :
 
 // --- EXCEL EXPORT LOGIC (Exports full filtered list, ignoring pagination) ---
 if (isset($_GET['export']) && $_GET['export'] == 'excel') {
-    $statusValue = ($viewMode == 'pending') ? 0 : 1;
-    $filename = ($viewMode == 'pending') ? "Pending_Inventory_" : "Conducted_Inventory_";
+    // Check for 'unreconciled' instead of 'pending'
+    $statusValue = ($viewMode == 'unreconciled') ? 0 : 1;
+    $filename = ($viewMode == 'unreconciled') ? "Unreconciled_Inventory_" : "Conducted_Inventory_";
     
     header("Content-Type: application/vnd.ms-excel");
     header("Content-Disposition: attachment; filename=" . $filename . date('Ymd_Hi') . ".xls");
@@ -55,10 +56,11 @@ if (isset($_GET['export']) && $_GET['export'] == 'excel') {
 }
 
 // 3. Query for stats (For the cards)
+// Changed alias 'pending' to 'unreconciled'
 $statsQuery = "SELECT 
                 COUNT(*) as total, 
                 SUM(CASE WHEN mark_as_done = 1 THEN 1 ELSE 0 END) as conducted,
-                SUM(CASE WHEN mark_as_done = 0 THEN 1 ELSE 0 END) as pending
+                SUM(CASE WHEN mark_as_done = 0 THEN 1 ELSE 0 END) as unreconciled
                FROM inv_inventory $whereSql";
 
 $result = $conn->query($statsQuery);
@@ -66,7 +68,7 @@ $stats = $result->fetch_assoc();
 
 $total = $stats['total'] ?: 0;
 $conducted = $stats['conducted'] ?: 0;
-$pending = $stats['pending'] ?: 0;
+$unreconciled = $stats['unreconciled'] ?: 0; // Updated variable name
 $percentage = ($total > 0) ? round(($conducted / $total) * 100, 2) : 0;
 
 // --- PAGINATION LOGIC ---
@@ -75,8 +77,8 @@ $currentPage = isset($_GET['page']) && is_numeric($_GET['page']) ? (int)$_GET['p
 if ($currentPage < 1) $currentPage = 1;
 $offset = ($currentPage - 1) * $recordsPerPage;
 
-// Determine status filter for the table
-$statusFilter = ($viewMode == 'pending') ? 0 : 1;
+// Determine status filter for the table (unreconciled = 0, conducted = 1)
+$statusFilter = ($viewMode == 'unreconciled') ? 0 : 1;
 
 // Count total records for this specific filtered view to calculate pages
 $countSql = "SELECT COUNT(*) as count FROM inv_inventory $whereSql " . (empty($whereSql) ? "WHERE" : "AND") . " mark_as_done = $statusFilter";
@@ -341,7 +343,6 @@ function getPageUrl($pageNum) {
 <body>
 
 <div class="container-fluid">
-    <!-- Header -->
     <div class="header-gradient animated-bg">
         <div class="row align-items-center">
             <div class="col-md-8">
@@ -356,7 +357,6 @@ function getPageUrl($pageNum) {
         </div>
     </div>
 
-    <!-- Filters -->
     <div class="filter-pill glass-card">
         <form method="GET" class="row g-3 align-items-center">
             <input type="hidden" name="view" value="<?= $viewMode ?>">
@@ -418,7 +418,6 @@ function getPageUrl($pageNum) {
         </form>
     </div>
 
-    <!-- Stats Cards -->
     <div class="row g-4 mb-4">
         <div class="col-lg-3 col-md-6">
             <div class="stat-card default glass-card">
@@ -456,25 +455,24 @@ function getPageUrl($pageNum) {
         </div>
         
         <div class="col-lg-3 col-md-6">
-            <div class="stat-card warning glass-card <?= $viewMode == 'pending' ? 'active' : '' ?>" 
-                 onclick="switchView('pending')">
+            <div class="stat-card warning glass-card <?= $viewMode == 'unreconciled' ? 'active' : '' ?>" 
+                 onclick="switchView('unreconciled')">
                 <h6 class="small fw-bold mb-2">
-                    <span class="view-indicator warning"></span>PENDING
+                    <span class="view-indicator warning"></span>UNRECONCILED
                 </h6>
-                <div class="stat-value"><?= $pending ?></div>
-                <p class="mb-0 opacity-90">Awaiting inventory check</p>
+                <div class="stat-value"><?= $unreconciled ?></div>
+                <p class="mb-0 opacity-90">Awaiting reconciliation</p>
                 <i class="fas fa-clock stat-icon"></i>
             </div>
         </div>
     </div>
 
-    <!-- Table Section -->
     <div class="glass-card p-4 mt-4">
         <div class="d-flex justify-content-between align-items-center mb-4">
             <div>
                 <h4 class="fw-bold mb-1">
-                    <?php if($viewMode == 'pending'): ?>
-                        <i class="fas fa-clock text-warning me-2"></i>Pending Inventory Items
+                    <?php if($viewMode == 'unreconciled'): ?>
+                        <i class="fas fa-clock text-warning me-2"></i>Unreconciled Inventory Items
                     <?php else: ?>
                         <i class="fas fa-check-circle text-success me-2"></i>Conducted Inventory Items
                     <?php endif; ?>
@@ -486,7 +484,7 @@ function getPageUrl($pageNum) {
             </div>
             <div class="d-flex align-items-center gap-2">
                 <span class="badge bg-light text-dark badge-modern">
-                    <i class="fas fa-eye me-1"></i> <?= $viewMode == 'pending' ? 'Pending View' : 'Conducted View' ?>
+                    <i class="fas fa-eye me-1"></i> <?= $viewMode == 'unreconciled' ? 'Unreconciled View' : 'Conducted View' ?>
                 </span>
             </div>
         </div>
@@ -538,7 +536,7 @@ function getPageUrl($pageNum) {
                                         </span>
                                     <?php else: ?>
                                         <span class="badge bg-warning text-dark badge-modern">
-                                            <i class="fas fa-clock me-1"></i> PENDING
+                                            <i class="fas fa-clock me-1"></i> UNRECONCILED
                                         </span>
                                     <?php endif; ?>
                                 </td>
@@ -602,9 +600,11 @@ function getPageUrl($pageNum) {
     new Chart(ctx, {
         type: 'doughnut',
         data: {
-            labels: ['Completed', 'Remaining'],
+            // UPDATED: Label
+            labels: ['Completed', 'Unreconciled'],
             datasets: [{
-                data: [<?= $conducted ?>, <?= $pending ?>],
+                // UPDATED: Data Variable
+                data: [<?= $conducted ?>, <?= $unreconciled ?>],
                 backgroundColor: [gradient, '#e2e8f0'],
                 borderWidth: 0,
                 borderRadius: 10,
