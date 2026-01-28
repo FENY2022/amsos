@@ -230,7 +230,6 @@ $count = count($records);
         </div>
     </div>
 </div>
-
 <!-- Main Content -->
 <div class="container mb-5">
     <div class="row">
@@ -268,6 +267,9 @@ $count = count($records);
                                     <th class="py-3 text-center text-white fw-semibold">
                                         <i class="bi bi-tools me-2"></i>Equipment Type
                                     </th>
+                                    <th class="py-3 text-center text-white fw-semibold">
+                                        <i class="bi bi-gear me-2"></i>Actions
+                                    </th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -297,11 +299,18 @@ $count = count($records);
                                             </span>
                                             <small class="d-block text-muted mt-1">Requires update</small>
                                         </td>
+                                        <td class="text-center align-middle">
+                                            <button class="btn btn-sm btn-outline-primary edit-equipment" 
+                                                    data-employee-name="<?php echo htmlspecialchars($row['employeeName']); ?>"
+                                                    data-current-type="<?php echo htmlspecialchars($row['equipmentType']); ?>">
+                                                <i class="bi bi-pencil me-1"></i>Edit
+                                            </button>
+                                        </td>
                                     </tr>
                                     <?php endforeach; ?>
                                 <?php else: ?>
                                     <tr>
-                                        <td colspan="3" class="empty-state">
+                                        <td colspan="4" class="empty-state">
                                             <div class="empty-state-icon">
                                                 <i class="bi bi-check-circle"></i>
                                             </div>
@@ -373,6 +382,56 @@ $count = count($records);
     <i class="bi bi-arrow-clockwise fs-5"></i>
 </button>
 
+<!-- Edit Equipment Modal -->
+<div class="modal fade" id="editEquipmentModal" tabindex="-1" aria-labelledby="editEquipmentModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content glass-card">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title fw-bold" id="editEquipmentModalLabel">
+                    <i class="bi bi-pencil-square me-2"></i>Edit Equipment Type
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editEquipmentForm">
+                    <div class="mb-4">
+                        <label class="form-label fw-semibold">Employee Name</label>
+                        <input type="text" class="form-control" id="modalEmployeeName" readonly>
+                    </div>
+                    <div class="mb-4">
+                        <label class="form-label fw-semibold">Current Equipment Type</label>
+                        <input type="text" class="form-control" id="modalCurrentType" readonly>
+                    </div>
+                    <div class="mb-4">
+                        <label class="form-label fw-semibold">New Equipment Type</label>
+                        <select class="form-select" id="modalNewType" required>
+                            <option value="">Select Equipment Type</option>
+                            <option value="Laptop">Laptop</option>
+                            <option value="Desktop">Desktop</option>
+                            <option value="Monitor">Monitor</option>
+                            <option value="Phone">Phone</option>
+                            <option value="Tablet">Tablet</option>
+                            <option value="Printer">Printer</option>
+                            <option value="Scanner">Scanner</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Notes (Optional)</label>
+                        <textarea class="form-control" id="modalNotes" rows="3" placeholder="Add any additional notes..."></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="saveEquipmentChanges">
+                    <i class="bi bi-check-lg me-2"></i>Save Changes
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Toast Notifications Container -->
 <div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 9999;">
     <!-- Success Toast -->
@@ -409,6 +468,117 @@ $count = count($records);
         </div>
     </div>
 </div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        // Show loading spinner
+        const loadingSpinner = document.getElementById('loadingSpinner');
+        loadingSpinner.style.display = 'flex';
+        
+        // Show success toast
+        const successToast = new bootstrap.Toast(document.getElementById('successToast'));
+        
+        // Show warning toast if there are records
+        const warningToast = new bootstrap.Toast(document.getElementById('warningToast'));
+        
+        // Edit Equipment Modal
+        const editModal = new bootstrap.Modal(document.getElementById('editEquipmentModal'));
+        
+        // Edit button functionality
+        document.querySelectorAll('.edit-equipment').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const employeeName = this.getAttribute('data-employee-name');
+                const currentType = this.getAttribute('data-current-type');
+                
+                document.getElementById('modalEmployeeName').value = employeeName;
+                document.getElementById('modalCurrentType').value = currentType;
+                document.getElementById('modalNewType').value = '';
+                document.getElementById('modalNotes').value = '';
+                
+                editModal.show();
+            });
+        });
+        
+        // Save changes functionality
+        document.getElementById('saveEquipmentChanges').addEventListener('click', function() {
+            const newType = document.getElementById('modalNewType').value;
+            const employeeName = document.getElementById('modalEmployeeName').value;
+            const notes = document.getElementById('modalNotes').value;
+            
+            if (!newType) {
+                alert('Please select a new equipment type');
+                return;
+            }
+            
+            // Show loading
+            loadingSpinner.style.display = 'flex';
+            
+            // Simulate API call
+            setTimeout(() => {
+                loadingSpinner.style.display = 'none';
+                editModal.hide();
+                
+                // Show success message
+                const toastBody = document.querySelector('#successToast .toast-body p');
+                toastBody.textContent = `Equipment type updated to "${newType}" for ${employeeName}`;
+                successToast.show();
+                
+                // Refresh page after 2 seconds
+                setTimeout(() => {
+                    window.location.reload();
+                }, 2000);
+            }, 1500);
+        });
+        
+        // Hide loading spinner after page load
+        setTimeout(() => {
+            loadingSpinner.style.display = 'none';
+            
+            // Show success toast
+            successToast.show();
+            
+            // Show warning toast if there are N/A records
+            <?php if ($count > 0): ?>
+            setTimeout(() => {
+                warningToast.show();
+            }, 2000);
+            <?php endif; ?>
+        }, 800);
+        
+        // Refresh button functionality
+        const refreshBtn = document.getElementById('refreshBtn');
+        refreshBtn.addEventListener('click', function() {
+            loadingSpinner.style.display = 'flex';
+            
+            // Simulate refresh with a delay
+            setTimeout(() => {
+                window.location.reload();
+            }, 500);
+        });
+        
+        // Add animation to table rows on hover
+        const tableRows = document.querySelectorAll('.table-hover tbody tr');
+        tableRows.forEach(row => {
+            row.addEventListener('mouseenter', function() {
+                this.style.boxShadow = '0 4px 15px rgba(0, 0, 0, 0.1)';
+            });
+            
+            row.addEventListener('mouseleave', function() {
+                this.style.boxShadow = 'none';
+            });
+        });
+        
+        // Export button functionality (mock)
+        document.querySelectorAll('.btn-outline-primary, .btn-outline-success').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const toast = new bootstrap.Toast(document.getElementById('successToast'));
+                const toastBody = document.querySelector('#successToast .toast-body p');
+                toastBody.textContent = 'Export functionality would be implemented here';
+                toast.show();
+            });
+        });
+    });
+</script>
 
 <!-- Bootstrap JS Bundle with Popper -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
