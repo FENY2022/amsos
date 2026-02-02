@@ -90,7 +90,10 @@ $action_result = $stmt_action->get_result();
     <div class="container max-w-4xl mx-auto bg-white rounded-lg shadow-xl p-6 mb-8">
         <div class="flex justify-between items-center mb-6">
             <h1 class="text-3xl font-bold text-gray-800">Receive History</h1>
-            <button onclick="autoAdjustReceiveTime()" class="btn btn-sm btn-accent text-white">Auto Adjust Time</button>
+            <div class="flex gap-2">
+                <button onclick="autoAdjustReceiveDate()" class="btn btn-sm btn-outline btn-primary">Auto Adjust Date</button>
+                <button onclick="autoAdjustReceiveTime()" class="btn btn-sm btn-accent text-white">Auto Adjust Time</button>
+            </div>
         </div>
         <?php if ($history_result->num_rows > 0): ?>
             <div class="overflow-x-auto">
@@ -150,7 +153,7 @@ $action_result = $stmt_action->get_result();
                 function saveChanges(id) {
                     var name = document.getElementById('name_input_' + id).value;
                     var date = document.getElementById('date_input_' + id).value;
-                    var time = document.getElementById('time_input_' + id).value; // This is "hh:mm AM/PM"
+                    var time = document.getElementById('time_input_' + id).value; 
                     var details = document.getElementById('details_input_' + id).value;
 
                     fetch('update-receive.php', {
@@ -178,7 +181,10 @@ $action_result = $stmt_action->get_result();
     <div class="container max-w-4xl mx-auto bg-white rounded-lg shadow-xl p-6">
         <div class="flex justify-between items-center mb-6">
             <h1 class="text-3xl font-bold text-gray-800">RICTU Staff Actions</h1>
-            <button onclick="autoAdjustActionTime()" class="btn btn-sm btn-accent text-white">Auto Adjust Time</button>
+            <div class="flex gap-2">
+                <button onclick="autoAdjustActionDate()" class="btn btn-sm btn-outline btn-primary">Auto Adjust Date</button>
+                <button onclick="autoAdjustActionTime()" class="btn btn-sm btn-accent text-white">Auto Adjust Time</button>
+            </div>
         </div>
         <?php if ($action_result && $action_result->num_rows > 0): ?>
             <div class="overflow-x-auto">
@@ -237,7 +243,7 @@ $action_result = $stmt_action->get_result();
 
                 function saveRow(id) {
                     var date = document.getElementById('date_input_' + id).value;
-                    var time = document.getElementById('time_input_' + id).value; // This is "hh:mm AM/PM"
+                    var time = document.getElementById('time_input_' + id).value;
                     var remarks = document.getElementById('remarks_input_' + id).value;
                     var name = document.getElementById('name_input_' + id).value;
 
@@ -322,6 +328,37 @@ $action_result = $stmt_action->get_result();
             return `${String(hours).padStart(2, '0')}:${minutes}:00`;
         }
 
+        /**
+         * Sets all dates to match the date of the first row.
+         */
+        function autoAdjustDate(tableId) {
+            const rows = document.querySelectorAll(`#${tableId} tbody tr`);
+            if (rows.length < 2) return;
+
+            const firstDateInput = rows[0].querySelector('input[id^="date_input_"]');
+            const targetDate = firstDateInput.value;
+            
+            if (!targetDate) {
+                alert("Please ensure the first row has a valid date.");
+                return;
+            }
+            
+            if (!confirm(`Set all rows to match the first row's date (${targetDate})?`)) return;
+
+            for (let i = 1; i < rows.length; i++) {
+                const dateInput = rows[i].querySelector('input[id^="date_input_"]');
+                if (dateInput) {
+                    dateInput.value = targetDate;
+                    const id = dateInput.id.split('_').pop();
+                    
+                    const editBtn = document.getElementById(`edit_btn_${id}`) || document.querySelector(`.edit-action-btn-${id}`);
+                    if (editBtn && !editBtn.classList.contains('hidden')) {
+                        tableId === 'receiveHistoryTable' ? toggleEdit(id) : editRow(id);
+                    }
+                }
+            }
+        }
+
         function autoAdjustTime(tableId) {
             const incrementInput = prompt("Enter the time increment in minutes:", "32");
             if (incrementInput === null) return;
@@ -355,7 +392,7 @@ $action_result = $stmt_action->get_result();
                     timeInput.value = newTimeString12;
                     const id = timeInput.id.split('_').pop();
                     const editBtn = document.getElementById(`edit_btn_${id}`) || document.querySelector(`.edit-action-btn-${id}`);
-                    if (!editBtn.classList.contains('hidden')) {
+                    if (editBtn && !editBtn.classList.contains('hidden')) {
                         tableId === 'receiveHistoryTable' ? toggleEdit(id) : editRow(id);
                     }
                 }
@@ -365,6 +402,8 @@ $action_result = $stmt_action->get_result();
 
         function autoAdjustReceiveTime() { autoAdjustTime('receiveHistoryTable'); }
         function autoAdjustActionTime() { autoAdjustTime('staffActionsTable'); }
+        function autoAdjustReceiveDate() { autoAdjustDate('receiveHistoryTable'); }
+        function autoAdjustActionDate() { autoAdjustDate('staffActionsTable'); }
     </script>
 </body>
 </html>
