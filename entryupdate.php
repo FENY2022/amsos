@@ -220,13 +220,19 @@
 
             <form action="mainmenu.php?dir=edupdate" method="POST" class="search-form" style="margin-bottom: 1rem;">
                 <div class="row">
-                    <div class="col-md-3 mb-3">
-                        <label for="officeDivision" class="form-label">Office Division:</label>
-                        <select id="officeDivision" name="officeDivision" class="form-select" required style="padding: 0.375rem 0.75rem; border: 1px solid #ced4da; border-radius: 0.25rem;">
-                            <option value="">-- Select Office --</option>
-                            <?php echo $office_division_options; ?>
-                        </select>
-                    </div>
+                <div class="col-md-3 mb-3">
+                    <label for="officeDivision" class="form-label">Office Division:</label>
+                    <select id="officeDivision" name="officeDivision" class="form-select" required
+                        style="padding: 0.375rem 0.75rem; border: 1px solid #ced4da; border-radius: 0.25rem;">
+                        
+                        <option value="">-- Select Office --</option>
+                        
+                        <?php echo $office_division_options; ?>
+
+                        
+                    </select>
+                </div>
+
                     <div class="col-md-3 mb-3">
                         <label for="employeeName" class="form-label">Employee Name:</label>
                         <select id="employeeName" name="employeeName" class="form-select" style="padding: 0.375rem 0.75rem; border: 1px solid #ced4da; border-radius: 0.25rem;">

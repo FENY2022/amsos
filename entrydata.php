@@ -503,6 +503,7 @@ $conn_otos->close();
                                     <option value="" disabled selected>Select Office / Division</option>
                                     <?php echo $office_options; ?>
                                     <option value="N/A" <?php echo ($saved_data['officeDivision'] ?? '') === 'N/A' ? 'selected' : ''; ?>>N/A</option>
+                                    <option value="COA">COA</option>
                                 </select>
                             </div>
                         </div>
