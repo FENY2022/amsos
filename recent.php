@@ -331,29 +331,30 @@ echo "<div class='modal fade' id='rate{$srfId}' tabindex='-1' aria-hidden='true'
 </div>";
 
 // History Modal
-echo "<div class='modal fade' id='history{$row['id']}' data-equipmentid='{$row['equipment_id']}' tabindex='-1' aria-hidden='true'>
-<div class='modal-dialog'>
-    <form method='POST' action='history.php'>
+echo "
+<div class='modal fade' id='history{$row['id']}' tabindex='-1' aria-hidden='true'>
+    <div class='modal-dialog modal-xl modal-dialog-centered'>
         <div class='modal-content'>
             <div class='modal-header bg-secondary'>
                 <h5 class='modal-title text-white'>View Details</h5>
                 <button type='button' class='btn-close' data-bs-dismiss='modal' aria-label='Close'></button>
             </div>
-            <div class='modal-body'>
-                <div class='table-responsive'>
-                    <div id='table-content-{$row['id']}'>
-                        <p>Loading...</p>
-                    </div>
-                </div>
+
+            <div class='modal-body p-0'>
+                <iframe 
+                    src='history.php?equipment_id={$row['equipment_id']}'
+                    style='width:100%; height:70vh; border:none;'
+                    loading='lazy'>
+                </iframe>
             </div>
+
             <div class='modal-footer'>
-                <input type='hidden' name='equipment_id' value='{$row['equipment_id']}'>
                 <button type='button' class='btn btn-secondary' data-bs-dismiss='modal'>Close</button>
             </div>
         </div>
-    </form>
-</div>
+    </div>
 </div>";
+
 
 // Other modals (Disapprove, Print, View Upload, Assign, Read) follow a similar pattern
 // Replicate your original modal code here for each record.
