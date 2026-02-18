@@ -1,64 +1,63 @@
 <?php
+// ai_suggestion.php
 header('Content-Type: text/plain');
+header("Access-Control-Allow-Origin: *"); // Optional: Allows CORS if frontend is on a different port
 
 // --- CONFIGURATION ---
-// Ollama runs locally by default on port 11434.
-// If your Ollama instance is on a different server, replace 'localhost' with that IP.
+// Ensure this matches the model you pulled (deepseek-r1:8b)
 $apiUrl = "http://localhost:11434/api/generate";
-$modelName = "deepseek-r1:latest";
+$modelName = "deepseek-r1:8b"; 
 
-// Get data from the POST request sent by JavaScript
-$requestType = isset($_POST['requestType']) ? trim($_POST['requestType']) : 'N/A';
-$description = isset($_POST['description']) ? trim($_POST['description']) : 'N/A';
+// Get data from the POST request
+$requestType = isset($_POST['requestType']) ? trim($_POST['requestType']) : '';
+$description = isset($_POST['description']) ? trim($_POST['description']) : '';
 
-// If data is missing, exit gracefully
-if ($requestType === 'N/A' && $description === 'N/A') {
-    http_response_code(400); // Bad Request
-    echo "Error: Missing request type and description.";
+// Quick validation
+if (empty($requestType) || empty($description)) {
+    http_response_code(400); 
+    echo "Error: Missing request type or description.";
     exit;
 }
 
-// Construct a clear and specific prompt for the AI
-// Note: We instruct the model explicitly to avoid conversational filler.
-$prompt = "You are an IT service desk dispatcher in the Philippines. Your task is to provide a concise, professional, and actionable suggestion for an 'Action Taken' field. This field documents the *initial step* for a service request. The suggestion should be a single, clear action.
+// Construct a prompt specifically for R1
+// We ask it to be brief to minimize the 'thinking' time, though R1 will always think a little.
+$prompt = "Task: Provide a single, professional, and concise 'Action Taken' sentence for an IT Service Desk ticket.
+Context:
+- Request Type: $requestType
+- Description: $description
 
-For example:
-- For 'Password Reset', suggest 'Sent password reset link to user.'
-- For 'PC not booting', suggest 'Scheduled remote session to diagnose boot issue.'
-- For 'Printer not working', suggest 'Advised user to restart the printer and check connections.'
+Rules:
+- Start directly with the action verb (e.g., 'Reset...', 'Scheduled...', 'Advised...').
+- Do not include explanations or conversational filler.
+- Output ONLY the action sentence.
 
-Now, based on the following service request, provide ONLY the suggested 'Action Taken' text. Do not provide explanations.
+Suggested Action:";
 
-Request Type: '{$requestType}'
-Description: '{$description}'
-
-Suggested Action Taken:";
-
-// Prepare the data payload for the Ollama API
+// Prepare the payload
 $data = [
     'model' => $modelName,
     'prompt' => $prompt,
-    'stream' => false, // Important: We want the full response at once, not a stream
+    'stream' => false, 
     'options' => [
-        'temperature' => 0.3, // Lower temperature for more deterministic/professional results
-        'num_predict' => 60,  // Limit output length
+        'temperature' => 0.1, // Very low temp for consistent, factual answers
+        'num_predict' => 500, // CRITICAL: Must be high enough to allow R1 to "think" before answering
     ]
 ];
 
 $jsonData = json_encode($data);
 
-// Use cURL to make the API request
+// Init cURL
 $ch = curl_init($apiUrl);
 curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
 curl_setopt($ch, CURLOPT_POSTFIELDS, $jsonData);
 curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-// curl_setopt($ch, CURLOPT_TIMEOUT, 30); // Optional: Set a timeout if Ollama is slow
+curl_setopt($ch, CURLOPT_TIMEOUT, 30); 
 
 $response = curl_exec($ch);
 
-// Handle cURL errors
+// Error Handling
 if (curl_errno($ch)) {
-    http_response_code(500); // Internal Server Error
+    http_response_code(500); 
     echo 'cURL error: ' . curl_error($ch);
     curl_close($ch);
     exit;
@@ -67,28 +66,29 @@ if (curl_errno($ch)) {
 $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
 curl_close($ch);
 
-// Process the AI's response
 if ($httpCode === 200) {
     $result = json_decode($response, true);
     
-    // Check if the 'response' key exists (Standard Ollama output)
     if (isset($result['response'])) {
         $rawText = $result['response'];
 
         // --- DEEPSEEK CLEANUP ---
-        // DeepSeek-R1 often includes a <think>...</think> block. We must remove it.
+        // 1. Remove the <think>...</think> block which R1 always generates
         $cleanText = preg_replace('/<think>.*?<\/think>/s', '', $rawText);
         
-        // Final cleanup of whitespace and quotes
-        $suggestion = trim($cleanText, " \t\n\r\0\x0B\"'");
+        // 2. Remove markdown formatting if it adds it (like **Action:**)
+        $cleanText = str_replace(['**', '##'], '', $cleanText);
+
+        // 3. Trim whitespace
+        $suggestion = trim($cleanText);
         
         echo $suggestion;
     } else {
         http_response_code(500);
-        echo 'Error: Could not parse the AI response.';
+        echo 'Error: AI returned empty response.';
     }
 } else {
     http_response_code($httpCode);
-    echo "Error: API request failed. Code: {$httpCode}";
+    echo "Error: API responded with code {$httpCode}";
 }
 ?>
