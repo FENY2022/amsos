@@ -1,12 +1,11 @@
 <?php
 header('Content-Type: text/plain');
 
-// --- SECURITY WARNING ---
-// Storing API keys directly in the code is highly insecure.
-// In a production environment, use environment variables or a secure secrets management system.
-$apiKey = 'AIzaSyCjQTWCw-mPpAh1LMcEw0xTWjzBWnVPyUs';
-$apiUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=" . $apiKey;
-
+// --- CONFIGURATION ---
+// Ollama runs locally by default on port 11434.
+// If your Ollama instance is on a different server, replace 'localhost' with that IP.
+$apiUrl = "http://localhost:11434/api/generate";
+$modelName = "deepseek-r1:latest";
 
 // Get data from the POST request sent by JavaScript
 $requestType = isset($_POST['requestType']) ? trim($_POST['requestType']) : 'N/A';
@@ -20,6 +19,7 @@ if ($requestType === 'N/A' && $description === 'N/A') {
 }
 
 // Construct a clear and specific prompt for the AI
+// Note: We instruct the model explicitly to avoid conversational filler.
 $prompt = "You are an IT service desk dispatcher in the Philippines. Your task is to provide a concise, professional, and actionable suggestion for an 'Action Taken' field. This field documents the *initial step* for a service request. The suggestion should be a single, clear action.
 
 For example:
@@ -27,30 +27,22 @@ For example:
 - For 'PC not booting', suggest 'Scheduled remote session to diagnose boot issue.'
 - For 'Printer not working', suggest 'Advised user to restart the printer and check connections.'
 
-Now, based on the following service request, provide the suggested 'Action Taken':
+Now, based on the following service request, provide ONLY the suggested 'Action Taken' text. Do not provide explanations.
 
 Request Type: '{$requestType}'
 Description: '{$description}'
 
 Suggested Action Taken:";
 
-
-// Prepare the data payload for the Gemini API
+// Prepare the data payload for the Ollama API
 $data = [
-    'contents' => [
-        [
-            'parts' => [
-                ['text' => $prompt]
-            ]
-        ]
-    ],
-    'generationConfig' => [
-        'temperature' => 0.5,
-        'topK' => 1,
-        'topP' => 1,
-        'maxOutputTokens' => 60,
-        'stopSequences' => [],
-    ],
+    'model' => $modelName,
+    'prompt' => $prompt,
+    'stream' => false, // Important: We want the full response at once, not a stream
+    'options' => [
+        'temperature' => 0.3, // Lower temperature for more deterministic/professional results
+        'num_predict' => 60,  // Limit output length
+    ]
 ];
 
 $jsonData = json_encode($data);
@@ -60,7 +52,8 @@ $ch = curl_init($apiUrl);
 curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
 curl_setopt($ch, CURLOPT_POSTFIELDS, $jsonData);
 curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true); // It's good practice to verify SSL certs
+// curl_setopt($ch, CURLOPT_TIMEOUT, 30); // Optional: Set a timeout if Ollama is slow
+
 $response = curl_exec($ch);
 
 // Handle cURL errors
@@ -77,17 +70,25 @@ curl_close($ch);
 // Process the AI's response
 if ($httpCode === 200) {
     $result = json_decode($response, true);
-    // Navigate through the JSON structure to find the text
-    if (isset($result['candidates'][0]['content']['parts'][0]['text'])) {
-        $suggestion = $result['candidates'][0]['content']['parts'][0]['text'];
-        // Clean up the response (remove quotes if AI adds them)
-        echo trim($suggestion, " \t\n\r\0\x0B\"'");
+    
+    // Check if the 'response' key exists (Standard Ollama output)
+    if (isset($result['response'])) {
+        $rawText = $result['response'];
+
+        // --- DEEPSEEK CLEANUP ---
+        // DeepSeek-R1 often includes a <think>...</think> block. We must remove it.
+        $cleanText = preg_replace('/<think>.*?<\/think>/s', '', $rawText);
+        
+        // Final cleanup of whitespace and quotes
+        $suggestion = trim($cleanText, " \t\n\r\0\x0B\"'");
+        
+        echo $suggestion;
     } else {
         http_response_code(500);
         echo 'Error: Could not parse the AI response.';
     }
 } else {
     http_response_code($httpCode);
-    echo "Error: API request failed. Response: {$response}";
+    echo "Error: API request failed. Code: {$httpCode}";
 }
 ?>
