@@ -164,7 +164,8 @@ if ($stmt->affected_rows > 0) {
     
         // Redirect to request list when the modal is closed
         document.getElementById("receive_read' . $srfId . '").addEventListener("hidden.bs.modal", function () {
-            window.location.href = "mainmenu.php?dir=srfactiontaken";
+            window.top.location.href = "mainmenu.php?dir=srfactiontaken";
+
         });
     </script>';
     

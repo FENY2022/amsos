@@ -1,10 +1,3 @@
-<?php
-
-require_once "session_checker.php";
-
-
-?>
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -378,7 +371,7 @@ require_once "session_checker.php";
 <body>
 
 <?php
-
+require_once "session_checker.php";
 
 function generateTicketNumber() {
     if (!isset($_SESSION['ticket_number'])) {
@@ -714,7 +707,7 @@ $date = date('Y-m-d');
         const equipmentId = document.getElementById('equipment_id').value.trim();
 
         // Keywords that indicate a hardware or installation request
-        const hwKeywords = ['repair', 'install', 'no display',  'blue screen', 'laptop', 'desktop', 'computer', 'printer', 'ink', 'screen', 'monitor', 'keyboard', 'format', 'slow', 'virus', 'boot', 'hardware', 'device', 'broken', 'damaged', 'malfunction', 'crash', 'freeze', 'network', 'wifi', 'driver', 'cable', 'port', 'battery', 'charger', 'power', 'replacement', 'upgrade', 'disk', 'memory', 'ram', 'gpu', 'cpu', 'motherboard', 'fan', 'overheat', 'asus', 'dell', 'hp', 'lenovo', 'acer'];
+        const hwKeywords = ['repair', 'install', 'no display', 'laptop', 'desktop', 'computer', 'screen', 'monitor', 'keyboard', 'format', 'slow', 'virus', 'boot'];
         
         // Check if description contains any keyword
         const isHardwareRequest = hwKeywords.some(keyword => description.includes(keyword));

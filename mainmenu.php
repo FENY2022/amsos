@@ -78,7 +78,7 @@ require_once 'sidebar.php';
 
             }elseif ($_dirlist == 'srfrequestform') {
 
-                require_once 'srfrequestform.php' ;
+                echo '<iframe src="srfrequestform.php" style="width:100%; height:100vh; border:none;"></iframe>';
 
             }elseif ($_dirlist == 'srfactiontaken') {
 
