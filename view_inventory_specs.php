@@ -3,7 +3,7 @@
 require_once 'connect.php';
 
 // Fetch the necessary columns from the inv_inventory table
-$query = "SELECT brand, yearAcquired, rangeCategory, computer_specs, specifications, softwareInstalled, amount, remarks FROM inv_inventory ORDER BY id DESC";
+$query = "SELECT brand, yearAcquired, rangeCategory, equipmentType, computer_specs, specifications, softwareInstalled, amount, remarks FROM inv_inventory ORDER BY id DESC";
 $result = $conn->query($query);
 
 // Calculate Total Records
@@ -42,7 +42,6 @@ $total_records = ($result) ? $result->num_rows : 0;
     </script>
 
     <style>
-        /* Custom Overrides for DataTables to match Tailwind */
         .dataTables_wrapper .dataTables_length select,
         .dataTables_wrapper .dataTables_filter input {
             border: 1px solid #e2e8f0;
@@ -92,13 +91,14 @@ $total_records = ($result) ? $result->num_rows : 0;
     </div>
 
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12">
-        
         <div class="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden">
             <div class="p-6">
                 <table id="inventoryTable" class="w-full text-sm text-left text-gray-500 display responsive nowrap" style="width:100%">
                     <thead class="text-xs text-gray-700 uppercase bg-gray-50">
                         <tr>
+                            <th class="w-10"><i class="fa-solid fa-hashtag mr-1 text-gray-400"></i> No.</th>
                             <th><i class="fa-solid fa-tag mr-1 text-gray-400"></i> Brand</th>
+                            <th><i class="fa-solid fa-desktop mr-1 text-gray-400"></i> Type</th>
                             <th><i class="fa-regular fa-calendar mr-1 text-gray-400"></i> Year</th>
                             <th><i class="fa-solid fa-layer-group mr-1 text-gray-400"></i> Category</th>
                             <th><i class="fa-solid fa-hard-drive mr-1 text-gray-400"></i> HDD</th>
@@ -120,6 +120,7 @@ $total_records = ($result) ? $result->num_rows : 0;
                                 $ram = '<span class="text-gray-300">-</span>';
                                 $processor = '<span class="text-gray-300">-</span>';
                                 $os = !empty($row['softwareInstalled']) ? htmlspecialchars($row['softwareInstalled']) : '<span class="text-gray-300">-</span>';
+                                $equipType = !empty($row['equipmentType']) ? htmlspecialchars($row['equipmentType']) : '<span class="text-gray-300">-</span>';
                                 
                                 $raw_specs = !empty($row['specifications']) ? $row['specifications'] : $row['computer_specs'];
                                 
@@ -138,10 +139,14 @@ $total_records = ($result) ? $result->num_rows : 0;
 
                                 // Styling Elements
                                 $categoryBadge = "<span class='bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded border border-blue-400'>" . htmlspecialchars($row['rangeCategory']) . "</span>";
+                                $typeBadge = "<span class='bg-gray-100 text-gray-700 text-xs font-semibold px-2 py-1 rounded border border-gray-200'>" . $equipType . "</span>";
                                 $osBadge = "<span class='bg-gray-100 text-gray-800 text-xs font-semibold px-2 py-1 rounded'>" . htmlspecialchars(str_replace('<span class="text-gray-300">-</span>', '-', $os)) . "</span>";
                                 
                                 echo "<tr class='hover:bg-brand-50 transition-colors duration-200 border-b border-gray-50'>";
+                                // The first cell is left empty so JS can populate it dynamically
+                                echo "<td class='text-center font-medium text-gray-500'></td>"; 
                                 echo "<td class='font-medium text-gray-900'>" . htmlspecialchars($row['brand']) . "</td>";
+                                echo "<td>" . $typeBadge . "</td>";
                                 echo "<td>" . htmlspecialchars($row['yearAcquired']) . "</td>";
                                 echo "<td>" . $categoryBadge . "</td>";
                                 echo "<td>" . $hdd . "</td>";
@@ -174,15 +179,28 @@ $total_records = ($result) ? $result->num_rows : 0;
                 language: {
                     search: "_INPUT_",
                     searchPlaceholder: "Search inventory...",
-                    info: "Showing _START_ to _END_ of _TOTAL_ entries" // Built-in footer counter
+                    info: "Showing _START_ to _END_ of _TOTAL_ entries"
                 },
                 columnDefs: [
-                    { responsivePriority: 1, targets: 0 },
-                    { responsivePriority: 2, targets: 5 },
-                    { responsivePriority: 3, targets: 8 }
+                    { 
+                        // Disable sorting on the index column
+                        "orderable": false, 
+                        "targets": 0 
+                    },
+                    { responsivePriority: 1, targets: 1 }, // Brand
+                    { responsivePriority: 2, targets: 7 }, // RAM
+                    { responsivePriority: 3, targets: 10 } // Amount
                 ],
-                order: [[ 1, "desc" ]]
+                order: [[ 3, "desc" ]] // Default sort by Year (Column index 3)
             });
+
+            // Re-calculate the "No." sequence whenever the table is drawn (search/sort/page change)
+            table.on('order.dt search.dt', function () {
+                let i = 1;
+                table.cells(null, 0, { search: 'applied', order: 'applied' }).every(function (cell) {
+                    this.data(i++);
+                });
+            }).draw();
         });
     </script>
 </body>
