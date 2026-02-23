@@ -8,6 +8,21 @@ $result = $conn->query($query);
 
 // Calculate Total Records
 $total_records = ($result) ? $result->num_rows : 0;
+
+// Helper to get unique values for dropdowns
+function getUniqueValues($conn, $column) {
+    $vals = [];
+    $res = $conn->query("SELECT DISTINCT $column FROM inv_inventory WHERE $column IS NOT NULL AND $column != '' ORDER BY $column ASC");
+    while($row = $res->fetch_assoc()) {
+        $vals[] = $row[$column];
+    }
+    return $vals;
+}
+
+$brands = getUniqueValues($conn, 'brand');
+$categories = getUniqueValues($conn, 'rangeCategory');
+$types = getUniqueValues($conn, 'equipmentType');
+$years = getUniqueValues($conn, 'yearAcquired');
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -48,7 +63,9 @@ $total_records = ($result) ? $result->num_rows : 0;
             border-radius: 0.375rem;
             padding: 0.25rem 0.5rem;
             outline: none;
-            margin-bottom: 1rem;
+        }
+        .dataTables_wrapper .dataTables_filter {
+            margin-bottom: 1.5rem;
         }
         .dataTables_wrapper .dataTables_filter input:focus {
             border-color: #14b8a6;
@@ -58,11 +75,17 @@ $total_records = ($result) ? $result->num_rows : 0;
             border-bottom: 2px solid #e2e8f0;
             padding: 12px 10px;
         }
-        table.dataTable.no-footer {
-            border-bottom: 1px solid #e2e8f0;
-        }
         .glass-header {
             background: linear-gradient(135deg, #0d9488 0%, #115e59 100%);
+        }
+        /* Custom styling for the filter dropdowns */
+        .filter-select {
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+            background-position: right 0.5rem center;
+            background-repeat: no-repeat;
+            background-size: 1.5em 1.5em;
+            padding-right: 2.5rem;
         }
     </style>
 </head>
@@ -91,7 +114,41 @@ $total_records = ($result) ? $result->num_rows : 0;
     </div>
 
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12">
-        <div class="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden">
+        <!-- FILTER SECTION -->
+        <div class="bg-white p-6 rounded-t-xl border border-gray-100 shadow-sm mb-0">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div>
+                    <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Brand</label>
+                    <select id="filter-brand" class="filter-select w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-brand-500 focus:border-brand-500">
+                        <option value="">All Brands</option>
+                        <?php foreach($brands as $b) echo "<option value='".htmlspecialchars($b)."'>".htmlspecialchars($b)."</option>"; ?>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Equipment Type</label>
+                    <select id="filter-type" class="filter-select w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-brand-500 focus:border-brand-500">
+                        <option value="">All Types</option>
+                        <?php foreach($types as $t) echo "<option value='".htmlspecialchars($t)."'>".htmlspecialchars($t)."</option>"; ?>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Year</label>
+                    <select id="filter-year" class="filter-select w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-brand-500 focus:border-brand-500">
+                        <option value="">Any Year</option>
+                        <?php foreach($years as $y) echo "<option value='".htmlspecialchars($y)."'>".htmlspecialchars($y)."</option>"; ?>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Category</label>
+                    <select id="filter-category" class="filter-select w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-brand-500 focus:border-brand-500">
+                        <option value="">All Categories</option>
+                        <?php foreach($categories as $c) echo "<option value='".htmlspecialchars($c)."'>".htmlspecialchars($c)."</option>"; ?>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-b-xl shadow-md border border-gray-100 overflow-hidden">
             <div class="p-6">
                 <table id="inventoryTable" class="w-full text-sm text-left text-gray-500 display responsive nowrap" style="width:100%">
                     <thead class="text-xs text-gray-700 uppercase bg-gray-50">
@@ -113,6 +170,7 @@ $total_records = ($result) ? $result->num_rows : 0;
                     <tbody>
                         <?php
                         if ($result && $result->num_rows > 0) {
+                            $result->data_seek(0); // Reset pointer
                             while ($row = $result->fetch_assoc()) {
                                 // Default placeholders
                                 $hdd = '<span class="text-gray-300">-</span>';
@@ -124,7 +182,6 @@ $total_records = ($result) ? $result->num_rows : 0;
                                 
                                 $raw_specs = !empty($row['specifications']) ? $row['specifications'] : $row['computer_specs'];
                                 
-                                // Intelligent Regex Parsing
                                 if (!empty($raw_specs)) {
                                     if (preg_match('/(\d+\s*(?:GB|TB)\s*(?:DDR\d|RAM)?)/i', $raw_specs, $m)) $ram = $m[1];
                                     if (preg_match('/(\d+\s*(?:GB|TB)\s*(?:SSD|NVMe|M\.2))/i', $raw_specs, $m)) $ssd = $m[1];
@@ -132,18 +189,13 @@ $total_records = ($result) ? $result->num_rows : 0;
                                     if (preg_match('/(?:Processor|CPU):\s*([^,;]+)/i', $raw_specs, $m) || preg_match('/(Intel\s+Core\s+i\d+[-\w]+|AMD\s+Ryzen\s+\d+[-\w]+)/i', $raw_specs, $m)) {
                                         $processor = $m[1];
                                     }
-                                    if (preg_match('/OS:\s*([^,;]+)/i', $raw_specs, $m)) {
-                                        $os = $m[1];
-                                    }
                                 }
 
-                                // Styling Elements
                                 $categoryBadge = "<span class='bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded border border-blue-400'>" . htmlspecialchars($row['rangeCategory']) . "</span>";
                                 $typeBadge = "<span class='bg-gray-100 text-gray-700 text-xs font-semibold px-2 py-1 rounded border border-gray-200'>" . $equipType . "</span>";
-                                $osBadge = "<span class='bg-gray-100 text-gray-800 text-xs font-semibold px-2 py-1 rounded'>" . htmlspecialchars(str_replace('<span class="text-gray-300">-</span>', '-', $os)) . "</span>";
+                                $osBadge = "<span class='bg-gray-100 text-gray-800 text-xs font-semibold px-2 py-1 rounded'>" . htmlspecialchars(strip_tags($os)) . "</span>";
                                 
                                 echo "<tr class='hover:bg-brand-50 transition-colors duration-200 border-b border-gray-50'>";
-                                // The first cell is left empty so JS can populate it dynamically
                                 echo "<td class='text-center font-medium text-gray-500'></td>"; 
                                 echo "<td class='font-medium text-gray-900'>" . htmlspecialchars($row['brand']) . "</td>";
                                 echo "<td>" . $typeBadge . "</td>";
@@ -176,31 +228,45 @@ $total_records = ($result) ? $result->num_rows : 0;
                 responsive: true,
                 pageLength: 15,
                 lengthMenu: [[10, 15, 25, 50, -1], [10, 15, 25, 50, "All"]],
+                dom: '<"flex flex-col md:flex-row justify-between items-center mb-4"lf>rtip',
                 language: {
                     search: "_INPUT_",
                     searchPlaceholder: "Search inventory...",
-                    info: "Showing _START_ to _END_ of _TOTAL_ entries"
                 },
                 columnDefs: [
-                    { 
-                        // Disable sorting on the index column
-                        "orderable": false, 
-                        "targets": 0 
-                    },
-                    { responsivePriority: 1, targets: 1 }, // Brand
-                    { responsivePriority: 2, targets: 7 }, // RAM
-                    { responsivePriority: 3, targets: 10 } // Amount
+                    { "orderable": false, "targets": 0 }
                 ],
-                order: [[ 3, "desc" ]] // Default sort by Year (Column index 3)
+                order: [[ 3, "desc" ]] 
             });
 
-            // Re-calculate the "No." sequence whenever the table is drawn (search/sort/page change)
+            // Re-calculate "No." sequence
             table.on('order.dt search.dt', function () {
                 let i = 1;
                 table.cells(null, 0, { search: 'applied', order: 'applied' }).every(function (cell) {
                     this.data(i++);
                 });
             }).draw();
+
+            // DROPDOWN FILTER LOGIC
+            // Brand is Column 1
+            $('#filter-brand').on('change', function() {
+                table.column(1).search(this.value).draw();
+            });
+
+            // Type is Column 2
+            $('#filter-type').on('change', function() {
+                table.column(2).search(this.value).draw();
+            });
+
+            // Year is Column 3
+            $('#filter-year').on('change', function() {
+                table.column(3).search(this.value).draw();
+            });
+
+            // Category is Column 4
+            $('#filter-category').on('change', function() {
+                table.column(4).search(this.value).draw();
+            });
         });
     </script>
 </body>

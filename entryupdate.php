@@ -270,9 +270,9 @@
             <button type="button" class="btn btn-success me-2" data-bs-toggle="modal" data-bs-target="#addRecordModal">
                 <i class="fas fa-plus-circle me-2"></i>Add New Record
             </button>
-<button type="button" class="btn btn-info" data-bs-toggle="modal" data-bs-target="#comprehensiveReportsModal">
-    <i class="fas fa-chart-pie me-2"></i>Comprehensive Reports
-</button>
+        <button type="button" class="btn btn-info" data-bs-toggle="modal" data-bs-target="#comprehensiveReportsModal">
+            <i class="fas fa-chart-pie me-2"></i>Comprehensive Reports
+        </button>
 
         </div>
     </div>
