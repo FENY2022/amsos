@@ -132,6 +132,7 @@ function getStarRating($feedback) {
         .table-custom tbody tr {
             transition: all 0.2s ease-in-out;
             border-bottom: 1px solid #dee2e6;
+            cursor: pointer; /* Indicates it is clickable */
         }
 
         .table-custom tbody tr:hover {
@@ -141,6 +142,12 @@ function getStarRating($feedback) {
         
         .table-custom tbody tr:last-child {
             border-bottom: none;
+        }
+
+        /* NEW: Last clicked row indicator style */
+        .table-custom tbody tr.last-clicked-row {
+            background-color: rgba(25, 135, 84, 0.1) !important;
+            border-left: 4px solid var(--success-color);
         }
 
         .table-custom .badge {
@@ -212,8 +219,6 @@ function getStarRating($feedback) {
             }
         }
     </style>
-
-    
 </head>
 <body>
     <div class="container py-4">
@@ -471,6 +476,7 @@ function getStarRating($feedback) {
         }
 
         document.addEventListener('DOMContentLoaded', function() {
+            // Existing mobile collapse icon toggle logic
             const tableBody = document.querySelector('.table-custom tbody');
             tableBody.addEventListener('show.bs.collapse', function (event) {
                 const button = event.target.closest('tr').querySelector('[data-bs-toggle="collapse"]');
@@ -486,6 +492,18 @@ function getStarRating($feedback) {
                     button.querySelector('i').classList.remove('bi-dash-circle');
                     button.querySelector('i').classList.add('bi-plus-circle');
                 }
+            });
+
+            // NEW: Last clicked row indicator logic
+            const mainRows = document.querySelectorAll('.table-custom tbody tr.align-middle');
+            
+            mainRows.forEach(row => {
+                row.addEventListener('click', function() {
+                    // Remove the highlight class from all main rows
+                    mainRows.forEach(r => r.classList.remove('last-clicked-row'));
+                    // Add the highlight class to the row just clicked
+                    this.classList.add('last-clicked-row');
+                });
             });
         });
     </script>
