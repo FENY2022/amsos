@@ -46,6 +46,11 @@ $result = $stmt->get_result();
         .form-label { font-weight: 500; }
         .dropdown-item i { width: 1.5rem; }
         .btn-close { font-size: 1rem; }
+        
+        /* Star Rating Styles */
+        .star-rating { display: inline-flex; align-items: center; margin-left: 10px; }
+        .star-rating i { cursor: pointer; color: #ccc; font-size: 1.1rem; margin-right: 2px; transition: color 0.2s; }
+        .star-rating i.hovered, .star-rating i.selected { color: #ffc107; /* Gold */ }
     </style>
 </head>
 <body>
@@ -107,7 +112,19 @@ $result = $stmt->get_result();
                             <p class="card-text mb-1"><strong>Division:</strong> <?php echo htmlspecialchars($row['divSecUnit']); ?></p>
                             <p class="card-text mb-1"><strong>Office:</strong> <?php echo htmlspecialchars($row['office']); ?></p>
                             <p class="card-text mb-1"><strong>Request Type:</strong> <?php echo htmlspecialchars($row['requestType']); ?></p>
-                            <p class="card-text mb-1"><strong>Description:</strong> <?php echo (strlen($row['description']) > 50 ? substr($row['description'], 0, 50) . "..." : $row['description']); ?></p>
+                            <p class="card-text mb-1 d-flex align-items-center">
+                                <strong>Description:</strong>&nbsp;<span><?php echo (strlen($row['description']) > 50 ? substr($row['description'], 0, 50) . "..." : $row['description']); ?></span>
+                                
+                                <?php if ($row['Notification_read'] != '1' && $row['tracking'] === '102'): ?>
+                                    <span class="star-rating" id="rating-container-<?php echo $srfId; ?>" data-srfid="<?php echo $srfId; ?>" data-name="<?php echo htmlspecialchars($row['name']); ?>">
+                                        <i class="far fa-star" data-rating="Poor" title="Poor"></i>
+                                        <i class="far fa-star" data-rating="Below Satisfactory" title="Below Satisfactory"></i>
+                                        <i class="far fa-star" data-rating="Satisfactory" title="Satisfactory"></i>
+                                        <i class="far fa-star" data-rating="Very Satisfactory" title="Very Satisfactory"></i>
+                                        <i class="far fa-star" data-rating="Excellent" title="Excellent"></i>
+                                    </span>
+                                <?php endif; ?>
+                            </p>
                             
                             <hr class="my-3">
 
@@ -134,7 +151,6 @@ $result = $stmt->get_result();
                                                 <i class="fas fa-cog me-1"></i> Action
                                             </button>
                                             <ul class="dropdown-menu">
-                                                <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#rate<?php echo $srfId; ?>"><i class="fas fa-star text-success me-2"></i> Rate</a></li>
                                                 <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#history<?php echo $srfId; ?>"><i class="fas fa-history text-info me-2"></i> History</a></li>
                                                 <li><a class="dropdown-item" href="#" onclick="toggleRemarks<?php echo $srfId; ?>()"><i class="fas fa-eye text-warning me-2"></i> Toggle Remarks</a></li>
                                             </ul>
@@ -276,60 +292,9 @@ echo "<div class='modal fade' id='readnotificationchat{$srfId}' tabindex='-1' ar
 </div>
 </div>";
 
-// Rate Modal
-echo "<div class='modal fade' id='rate{$srfId}' tabindex='-1' aria-hidden='true'>
-<div class='modal-dialog'>
-    <form method='POST' action='rate.php'>
-        <div class='modal-content'>
-            <div class='modal-header bg-secondary'>
-                <h5 class='modal-title text-white'>View Details</h5>
-                <button type='button' class='btn-close' data-bs-dismiss='modal' aria-label='Close'></button>
-            </div>
-            <div class='modal-body'>
-                <div class='form-group'>
-                    <label>FEEDBACK RATING:</label>
-                    <div class='form-check'>
-                        <input class='form-check-input' type='radio' name='feedback' value='Excellent' id='excellent{$srfId}' required>
-                        <label class='form-check-label' for='excellent{$srfId}'><i class='fas fa-smile text-success'></i> Excellent</label>
-                    </div>
-                    <div class='form-check'>
-                        <input class='form-check-input' type='radio' name='feedback' value='Very Satisfactory' id='verysat{$srfId}' required>
-                        <label class='form-check-label' for='verysat{$srfId}'><i class='fas fa-smile text-primary'></i> Very Satisfactory</label>
-                    </div>
-                    <div class='form-check'>
-                        <input class='form-check-input' type='radio' name='feedback' value='Satisfactory' id='sat{$srfId}' required>
-                        <label class='form-check-label' for='sat{$srfId}'><i class='fas fa-meh text-warning'></i> Satisfactory</label>
-                    </div>
-                    <div class='form-check'>
-                        <input class='form-check-input' type='radio' name='feedback' value='Below Satisfactory' id='belowSat{$srfId}' required>
-                        <label class='form-check-label' for='belowSat{$srfId}'><i class='fas fa-frown text-danger'></i> Below Satisfactory</label>
-                    </div>
-                    <div class='form-check'>
-                        <input class='form-check-input' type='radio' name='feedback' value='Poor' id='poor{$srfId}' required>
-                        <label class='form-check-label' for='poor{$srfId}'><i class='fas fa-sad-tear text-dark'></i> Poor</label>
-                    </div>
-                </div>
-                <div class='form-group'>
-                    <label for='acknowledgedBy{$srfId}'>Acknowledged by:</label>
-                    <input type='text' class='form-control' value='{$name}' name='acknowledged_by' id='acknowledgedBy{$srfId}' placeholder='Enter name' required>
-                </div>
-                <input type='hidden' name='srf_id' value='{$srfId}'>
-                <div class='table-responsive'>
-                    <div id='table-content1-{$srfId}'>
-                        <p>Loading...</p>
-                    </div>
-                </div>
-            </div>
-            <div class='modal-footer'>
-                <button type='submit' class='btn btn-primary'>Submit Rating</button>
-                <button type='button' class='btn btn-secondary' data-bs-dismiss='modal'>Close</button>
-            </div>
-        </div>
-    </form>
-</div>
-</div>";
+// Rate Modal HAS BEEN REMOVED
 
-// --- UPDATED HISTORY MODAL START ---
+// History Modal
 echo "
 <div class='modal fade' id='history{$srfId}' tabindex='-1' aria-hidden='true'>
     <div class='modal-dialog modal-xl modal-dialog-centered'>
@@ -353,9 +318,8 @@ echo "
         </div>
     </div>
 </div>";
-// --- UPDATED HISTORY MODAL END ---
 
-
+// Disapproved Modal
 echo "<div class='modal fade' id='disapproved{$srfId}' tabindex='-1' aria-hidden='true'>
     <div class='modal-dialog'>
         <form method='POST' action='disapproved.php'>
@@ -532,20 +496,65 @@ echo "<div class='modal fade' id='read{$srfId}' tabindex='-1' aria-hidden='true'
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script>
-// All your existing JavaScript functions remain here.
 document.addEventListener('DOMContentLoaded', function() {
-    // Note: The history modal is now handled by an iframe directly, 
-    // so the fetch_table_historymodal.php logic below might not be needed for that specific modal anymore.
-    // I left it here in case other modals still use it.
-    document.querySelectorAll('.modal').forEach(modal => {
-        modal.addEventListener('show.bs.modal', function(event) {
-            var modalId = modal.getAttribute('id');
-            var recordId = modalId.replace('history', '');
-            // This part might need adjustment depending on your other modals
-            var tableContentDiv = document.querySelector('#table-content-' + recordId);
-            if (tableContentDiv) {
-                // ... fetch logic ...
-            }
+    
+    // Automatic Star Rating logic
+    const ratingContainers = document.querySelectorAll('.star-rating');
+    
+    ratingContainers.forEach(container => {
+        const stars = container.querySelectorAll('i');
+        const srfId = container.dataset.srfid;
+        const userName = container.dataset.name;
+
+        stars.forEach((star, index) => {
+            // Hover effect to fill stars
+            star.addEventListener('mouseover', () => {
+                stars.forEach((s, i) => {
+                    if (i <= index) {
+                        s.classList.remove('far');
+                        s.classList.add('fas', 'hovered');
+                    } else {
+                        s.classList.remove('fas', 'hovered');
+                        s.classList.add('far');
+                    }
+                });
+            });
+
+            // Remove fill when mouse leaves the rating area
+            container.addEventListener('mouseout', () => {
+                stars.forEach(s => {
+                    s.classList.remove('fas', 'hovered');
+                    s.classList.add('far');
+                });
+            });
+
+            // Handle the click (submit the rating via AJAX)
+            star.addEventListener('click', () => {
+                const ratingValue = star.dataset.rating;
+                
+                // Construct form data exactly as the old modal did
+                const formData = new FormData();
+                formData.append('srf_id', srfId);
+                formData.append('feedback', ratingValue);
+                formData.append('acknowledged_by', userName);
+                
+                // Add an extra flag in case you want to adapt rate.php to handle AJAX without full page redirects
+                formData.append('ajax_request', '1');
+
+                // Send the background POST request to rate.php
+                fetch('rate.php', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => {
+                    // Assuming success, replace the stars with a confirmed badge to prevent duplicate submits
+                    container.innerHTML = `<span class="badge bg-success ms-2"><i class="fas fa-check me-1"></i>Rated: ${ratingValue}</span>`;
+                })
+                .catch(error => {
+                    console.error('Error submitting rating:', error);
+                    alert('There was a problem submitting your rating. Please try again.');
+                });
+            });
         });
     });
 
@@ -570,9 +579,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         });
                         chatContainer.scrollTop = chatContainer.scrollHeight;
                     })
-                    .catch(error => {
-                        console.error('Error fetching messages:', error);
-                    });
+                    .catch(error => console.error('Error fetching messages:', error));
             }
 
             fetchMessages();
@@ -589,9 +596,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     messageForm.reset();
                     fetchMessages();
                 })
-                .catch(error => {
-                    console.error('Error sending message:', error);
-                });
+                .catch(error => console.error('Error sending message:', error));
             });
         });
     });
@@ -611,6 +616,7 @@ function submitUploadForm(srfId) {
         alert('An error occurred while uploading the file.');
     });
 }
+
 window.addEventListener('beforeunload', function() {
     sessionStorage.setItem('scrollPosition', window.scrollY);
 });
