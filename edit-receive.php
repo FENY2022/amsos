@@ -93,6 +93,10 @@ $action_result = $stmt_action->get_result();
             <div class="flex gap-2">
                 <button onclick="autoAdjustReceiveDate()" class="btn btn-sm btn-outline btn-primary">Auto Adjust Date</button>
                 <button onclick="autoAdjustReceiveTime()" class="btn btn-sm btn-accent text-white">Auto Adjust Time</button>
+                <button id="saveAllReceiveBtn" onclick="saveAllReceive()" class="btn btn-sm btn-success text-white">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
+                    Save All
+                </button>
             </div>
         </div>
         <?php if ($history_result->num_rows > 0): ?>
@@ -151,12 +155,19 @@ $action_result = $stmt_action->get_result();
                 function cancelEdit(id) { toggleEdit(id); }
 
                 function saveChanges(id) {
+                    var btn = document.getElementById('save_btn_' + id);
+                    var originalHtml = btn.innerHTML;
+                    
+                    // Show Loading State
+                    btn.innerHTML = '<span class="loading loading-spinner loading-xs"></span> Saving...';
+                    btn.disabled = true;
+
                     var name = document.getElementById('name_input_' + id).value;
                     var date = document.getElementById('date_input_' + id).value;
                     var time = document.getElementById('time_input_' + id).value; 
                     var details = document.getElementById('details_input_' + id).value;
 
-                    fetch('update-receive.php', {
+                    return fetch('update-receive.php', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/x-www-form-urlencoded', },
                         body: `id=${id}&name=${name}&date=${date}&time=${time}&details=${details}`
@@ -170,6 +181,11 @@ $action_result = $stmt_action->get_result();
                             document.getElementById('details_' + id).textContent = details;
                             cancelEdit(id);
                         } else { alert('Update failed'); }
+                    })
+                    .finally(() => {
+                        // Restore Button State
+                        btn.innerHTML = originalHtml;
+                        btn.disabled = false;
                     });
                 }
             </script>
@@ -184,6 +200,10 @@ $action_result = $stmt_action->get_result();
             <div class="flex gap-2">
                 <button onclick="autoAdjustActionDate()" class="btn btn-sm btn-outline btn-primary">Auto Adjust Date</button>
                 <button onclick="autoAdjustActionTime()" class="btn btn-sm btn-accent text-white">Auto Adjust Time</button>
+                <button id="saveAllActionBtn" onclick="saveAllAction()" class="btn btn-sm btn-success text-white">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
+                    Save All
+                </button>
             </div>
         </div>
         <?php if ($action_result && $action_result->num_rows > 0): ?>
@@ -220,7 +240,7 @@ $action_result = $stmt_action->get_result();
                                 </td>
                                 <td class="p-3 flex flex-col gap-2 md:flex-row md:gap-1">
                                     <button onclick='editRow(<?= $id ?>)' class='btn btn-sm btn-info text-white edit-action-btn-<?= $id ?>'><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>Edit</button>
-                                    <button onclick='saveRow(<?= $id ?>)' class='btn btn-sm btn-success hidden save-action-btn-<?= $id ?>'><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>Save</button>
+                                    <button id="save_action_btn_<?= $id ?>" onclick='saveRow(<?= $id ?>)' class='btn btn-sm btn-success hidden save-action-btn-<?= $id ?>'><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>Save</button>
                                     <button onclick='cancelActionEdit(<?= $id ?>)' class='btn btn-sm btn-error hidden cancel-action-btn-<?= $id ?>'><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>Cancel</button>
                                     <button onclick='deleteActionRow(<?= $id ?>)' class='btn btn-sm btn-warning text-white'><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>Delete</button>
                                 </td>
@@ -242,12 +262,19 @@ $action_result = $stmt_action->get_result();
                 function cancelActionEdit(id) { editRow(id); }
 
                 function saveRow(id) {
+                    var btn = document.getElementById('save_action_btn_' + id);
+                    var originalHtml = btn.innerHTML;
+                    
+                    // Show Loading State
+                    btn.innerHTML = '<span class="loading loading-spinner loading-xs"></span> Saving...';
+                    btn.disabled = true;
+
                     var date = document.getElementById('date_input_' + id).value;
                     var time = document.getElementById('time_input_' + id).value;
                     var remarks = document.getElementById('remarks_input_' + id).value;
                     var name = document.getElementById('name_input_' + id).value;
 
-                    fetch('update_action.php', {
+                    return fetch('update_action.php', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json', },
                         body: JSON.stringify({ id, date, time, remarks, name })
@@ -263,6 +290,11 @@ $action_result = $stmt_action->get_result();
                             document.getElementById('name_' + id).textContent = name;
                             cancelActionEdit(id);
                         } else { alert('Update failed'); }
+                    })
+                    .finally(() => {
+                        // Restore Button State
+                        btn.innerHTML = originalHtml;
+                        btn.disabled = false;
                     });
                 }
 
@@ -304,6 +336,67 @@ $action_result = $stmt_action->get_result();
     </div>
 
     <script>
+        /**
+         * Global Save All Functions
+         */
+        async function saveAllReceive() {
+            const saveBtn = document.getElementById('saveAllReceiveBtn');
+            const originalText = saveBtn.innerHTML;
+            const activeRows = document.querySelectorAll('button[id^="save_btn_"]:not(.hidden)');
+            
+            if(activeRows.length === 0) {
+                alert("No rows are currently in edit mode.");
+                return;
+            }
+
+            saveBtn.innerHTML = '<span class="loading loading-spinner loading-xs"></span> Saving All...';
+            saveBtn.disabled = true;
+
+            const promises = Array.from(activeRows).map(btn => {
+                const id = btn.id.split('_').pop();
+                return saveChanges(id); // Re-uses our updated save logic
+            });
+
+            try {
+                await Promise.all(promises);
+            } catch (error) {
+                console.error("Error saving some rows:", error);
+                alert("Some rows failed to save. Please review them.");
+            } finally {
+                saveBtn.innerHTML = originalText;
+                saveBtn.disabled = false;
+            }
+        }
+
+        async function saveAllAction() {
+            const saveBtn = document.getElementById('saveAllActionBtn');
+            const originalText = saveBtn.innerHTML;
+            const activeRows = document.querySelectorAll('button[id^="save_action_btn_"]:not(.hidden)');
+            
+            if(activeRows.length === 0) {
+                alert("No rows are currently in edit mode.");
+                return;
+            }
+
+            saveBtn.innerHTML = '<span class="loading loading-spinner loading-xs"></span> Saving All...';
+            saveBtn.disabled = true;
+
+            const promises = Array.from(activeRows).map(btn => {
+                const id = btn.id.split('_').pop();
+                return saveRow(id); // Re-uses our updated save logic
+            });
+
+            try {
+                await Promise.all(promises);
+            } catch (error) {
+                console.error("Error saving some rows:", error);
+                alert("Some rows failed to save. Please review them.");
+            } finally {
+                saveBtn.innerHTML = originalText;
+                saveBtn.disabled = false;
+            }
+        }
+
         /**
          * Converts 24-hour time string (HH:MM) to 12-hour (hh:mm AM/PM).
          */
