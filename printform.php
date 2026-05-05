@@ -1,5 +1,3 @@
-
-
 <?php
 
 
@@ -290,7 +288,7 @@ $stmt->close();
             </div>
             <div class='div-3 div-margin'>
             <p><strong>Ticket No: <u><?php echo $ticketNumber; ?></u></strong></p>
-            <p><strong><p>Date(mm/dd/yyy): <u><?php echo $  $formattedDate = date("F j, Y", strtotime($date)); ?></u></p></u></strong></p>
+            <p><strong><p>Date(mm/dd/yyyy): <u><?php echo $formattedDate = date("F j, Y", strtotime($date)); ?></u></p></u></strong></p>
             </div>
             <div>
                 <table>
@@ -386,7 +384,6 @@ $stmt->close();
         background-color: #f4f4f4; /* Optional: Fallback background color */
         border: 1px solid #ddd; /* Optional: Border for structure */">
         
-        <!-- Date and Time String -->
         <div style="
             position: absolute;
             top: 50%; 
@@ -405,8 +402,7 @@ $stmt->close();
         
         </div>
         
-        <?php echo $description; ?> <!-- Main content description -->
-    </td>
+        <?php echo $description; ?> </td>
 </tr>
 
 
@@ -436,7 +432,6 @@ $stmt->close();
                 <tr>
                     <td colspan="2">
                         <div style="display: flex; justify-content: space-between; padding: 10px 15px 0 15px;">
-                            <!-- Signature Section -->
                             <div style="
                                 text-align: center; 
                                 position: relative; 
@@ -453,7 +448,6 @@ $stmt->close();
                                 Signature (Manager/Supervisor)
                             </div>
 
-                            <!-- Date Section -->
                             <div style="text-align: center; width: 35%; /* Adjust width to balance layout */">
                                 <b><u><?php echo $First_date . " " . $First_time ; ?></u></b><br/>
                                 Date (mm - dd - yyyy)
@@ -485,7 +479,6 @@ $stmt->close();
                                    <tr>
                     <td colspan="2">
                         <div style="display: flex; justify-content: space-between; padding: 10px 15px 0 15px;">
-                            <!-- Signature Section -->
                             <div style="
                                 text-align: center; 
                                 position: relative; 
@@ -502,7 +495,6 @@ $stmt->close();
                                 Signature (Manager/Supervisor)
                             </div>
 
-                            <!-- Date Section -->
                             <div style="text-align: center; width: 35%; /* Adjust width to balance layout */">
                             <b><u><?php echo $Second_date. " " . $Second_time ; ?></u></b><br/>
                                 Date (mm - dd - yyyy)
@@ -653,9 +645,13 @@ $stmt->close();
                 <div>
                     Ref: <strong><em>NIMD Service Request Form 22 March 2021</em></strong>
                 </div>
+                
+                <div style="text-align: center; margin-top: 20px; font-style: italic; font-size: 13px; color: #555;">
+                    "The original of this document is in digital format."
+                </div>
+                
             </div>
         </div>
     </div>
 </body>
 </html>
-
