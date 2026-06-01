@@ -1,3 +1,14 @@
+<?php
+if (
+    isset($_GET['dir'], $_GET['export']) &&
+    $_GET['dir'] === 'analysisandgraph_datafilter' &&
+    $_GET['export'] === 'excel'
+) {
+    require_once 'analysisandgraph_datafilter.php';
+    exit;
+}
+?>
+
 <!DOCTYPE html>
 <html lang="en">
 <head>

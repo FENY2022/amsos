@@ -1,4 +1,6 @@
 <?php
+ob_start();
+
 // connect.php (Assuming this file contains your database connection logic)
 // Example:
 // $servername = "localhost";
@@ -13,6 +15,7 @@
 // }
 
 require_once 'connect.php'; // Database connection
+require_once 'session_checker.php';
 
 // Fetch dropdown options dynamically
 function getDropdownOptions($column) {
@@ -32,6 +35,27 @@ function getDropdownOptions($column) {
         error_log("Error fetching dropdown options for column '$column': " . $conn->error);
     }
     return $options;
+}
+
+function getHealthStatus($yearAcquired, $specifications) {
+    $yearsInUse = (int)date('Y') - (int)$yearAcquired;
+    $healthStatus = $yearsInUse > 5 ? 'Poor' : 'Good Condition';
+
+    if (stripos((string)$specifications, 'HDD') !== false && $yearsInUse > 3) {
+        $healthStatus = 'Attention Required';
+    }
+
+    return $healthStatus;
+}
+
+function getExcelSafeValue($value) {
+    $value = (string)$value;
+
+    if (preg_match('/^[=+\-@]/', ltrim($value))) {
+        return "'" . $value;
+    }
+
+    return $value;
 }
 
 // Build the filtering query
@@ -85,6 +109,58 @@ if (!$results) {
     // Optionally, display a user-friendly error message
     $error_message = "An error occurred while fetching data. Please try again later.";
 }
+
+if (isset($_GET['export']) && $_GET['export'] === 'excel') {
+    if (!$results) {
+        http_response_code(500);
+        exit('Unable to export inventory data. Please try again later.');
+    }
+
+    $filename = 'equipment_inventory_filtered_' . date('Y-m-d_H-i-s') . '.csv';
+    ob_clean();
+    header('Content-Type: text/csv; charset=utf-8');
+    header('Content-Disposition: attachment; filename="' . $filename . '"');
+
+    $output = fopen('php://output', 'w');
+    fwrite($output, "\xEF\xBB\xBF");
+    fputcsv($output, [
+        'ID',
+        'Employee',
+        'Equipment Type',
+        'Year Acquired',
+        'Brand',
+        'Specifications',
+        'Office',
+        'Health Status',
+        'User',
+        'Amount'
+    ]);
+
+    while ($row = $results->fetch_assoc()) {
+        fputcsv($output, [
+            getExcelSafeValue($row['id']),
+            getExcelSafeValue($row['employeeName']),
+            getExcelSafeValue($row['equipmentType']),
+            getExcelSafeValue($row['yearAcquired']),
+            getExcelSafeValue($row['brand']),
+            getExcelSafeValue($row['specifications']),
+            getExcelSafeValue($row['office']),
+            getExcelSafeValue(getHealthStatus($row['yearAcquired'], $row['specifications'])),
+            getExcelSafeValue($row['actualUser']),
+            getExcelSafeValue($row['amount'])
+        ]);
+    }
+
+    fclose($output);
+    $results->free();
+    $conn->close();
+    exit;
+}
+
+$export_params = $_GET;
+unset($export_params['dir'], $export_params['export']);
+$export_params['export'] = 'excel';
+$export_url = 'mainmenu.php?dir=analysisandgraph_datafilter&' . http_build_query($export_params);
 
 ?>
 
@@ -180,6 +256,23 @@ if (!$results) {
         .btn-primary:hover {
             transform: translateY(-2px);
             box-shadow: 0 4px 12px rgba(67, 97, 238, 0.4);
+        }
+
+        .btn-success {
+            background: linear-gradient(to right, #198754, #20c997);
+            border: none;
+            border-radius: 8px;
+            padding: 0.65rem 1rem;
+            color: white;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.3s;
+        }
+
+        .btn-success:hover {
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(25, 135, 84, 0.3);
         }
         
         .btn-outline-secondary {
@@ -381,7 +474,7 @@ if (!$results) {
                                 <div class="col-md-4">
                                     <label class="form-label">Year Acquired</label>
                                     <select name="yearAcquired" class="form-select">
-                                        <option value="">Select Year</option>
+                                        <option value="">All Years</option>
                                         <?php foreach (getDropdownOptions('yearAcquired') as $year): ?>
                                             <option value="<?= htmlspecialchars($year) ?>" <?= (isset($_GET['yearAcquired']) && $_GET['yearAcquired'] === $year) ? 'selected' : '' ?>>
                                                 <?= htmlspecialchars($year) ?>
@@ -461,13 +554,20 @@ if (!$results) {
                     <div class="card-body">
                         <div class="results-header">
                             <h3>Equipment Inventory</h3>
-                            <div class="result-count">
-                                <i class="fas fa-chart-bar me-2"></i>
+                            <div class="d-flex align-items-center gap-2">
                                 <?php if (isset($results) && $results->num_rows > 0): ?>
-                                    <?= $results->num_rows ?> records found
-                                <?php else: ?>
-                                    No records found
+                                    <a href="<?= htmlspecialchars($export_url) ?>" class="btn btn-success">
+                                        <i class="fas fa-file-excel me-2"></i> Extract to Excel
+                                    </a>
                                 <?php endif; ?>
+                                <div class="result-count">
+                                    <i class="fas fa-chart-bar me-2"></i>
+                                    <?php if (isset($results) && $results->num_rows > 0): ?>
+                                        <?= $results->num_rows ?> records found
+                                    <?php else: ?>
+                                        No records found
+                                    <?php endif; ?>
+                                </div>
                             </div>
                         </div>
                         
@@ -490,20 +590,7 @@ if (!$results) {
                                     </thead>
                                     <tbody>
                                         <?php while ($row = $results->fetch_assoc()): 
-                                            $currentYear = date('Y');
-                                            $yearsInUse = $currentYear - (int)$row['yearAcquired'];
-                                            $healthStatus = '';
-                                            
-                                            if ($yearsInUse > 5) {
-                                                $healthStatus = 'Poor';
-                                            } else {
-                                                $healthStatus = 'Good Condition';
-                                            }
-                                            
-                                            // Adjust based on specifications
-                                            if (stripos($row['specifications'], 'HDD') !== false && $yearsInUse > 3) {
-                                                $healthStatus = 'Attention Required';
-                                            }
+                                            $healthStatus = getHealthStatus($row['yearAcquired'], $row['specifications']);
                                         ?>
                                             <tr>
                                                 <td><?= htmlspecialchars($row['id']) ?></td>
