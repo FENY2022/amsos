@@ -38,9 +38,9 @@ function determineShelfLife($yearAcquired) {
     return ($currentYear - (int)$yearAcquired) > 5 ? "Beyond 5 Years" : "Within 5 Years";
 }
 
-// Function to get color for shelf life
+// Function to get color for shelf life (Updated for BS5)
 function getShelfLifeColor($shelfLife) {
-    return $shelfLife === "Beyond 5 Years" ? '<span class="badge badge-danger">' . $shelfLife . '</span>' : '<span class="badge badge-success">' . $shelfLife . '</span>';
+    return $shelfLife === "Beyond 5 Years" ? '<span class="badge bg-danger rounded-pill px-3 py-2">' . $shelfLife . '</span>' : '<span class="badge bg-success rounded-pill px-3 py-2">' . $shelfLife . '</span>';
 }
 
 // Function to analyze specifications and suggest replacement
@@ -75,25 +75,24 @@ function analyzeSpecifications($specs, $equipmentType) {
     return empty($issues) ? "" : implode(", ", $issues);
 }
 
-// Function to get color for remarks
+// Function to get color for remarks (Updated for BS5)
 function getRemarksColor($remarks) {
-    return empty($remarks) ? '<span class="badge badge-success">No issues found</span>' : '<span class="badge badge-danger">' . htmlspecialchars($remarks) . '</span>';
+    return empty($remarks) ? '<span class="badge bg-success rounded-pill px-3">No issues found</span>' : '<span class="badge bg-danger rounded-pill px-3 text-wrap text-start" style="line-height: 1.5; max-width:200px;">' . htmlspecialchars($remarks) . '</span>';
 }
 
-// Function to apply color to range category
+// Function to apply color to range category (Updated for BS5)
 function getRangeCategoryColor($rangeCategory) {
     switch ($rangeCategory) {
         case 'ENTRY / BASIC LEVEL':
-            return '<span class="badge badge-success">' . htmlspecialchars($rangeCategory) . '</span>';
+            return '<span class="badge bg-success rounded-pill px-3">' . htmlspecialchars($rangeCategory) . '</span>';
         case 'MID LEVEL':
-            return '<span class="badge badge-warning">' . htmlspecialchars($rangeCategory) . '</span>';
+            return '<span class="badge bg-warning text-dark rounded-pill px-3">' . htmlspecialchars($rangeCategory) . '</span>';
         case 'HIGH END':
-            return '<span class="badge badge-danger">' . htmlspecialchars($rangeCategory) . '</span>';
+            return '<span class="badge bg-danger rounded-pill px-3">' . htmlspecialchars($rangeCategory) . '</span>';
         default:
-            return htmlspecialchars($rangeCategory);
+            return '<span class="badge bg-secondary rounded-pill px-3">' . htmlspecialchars($rangeCategory) . '</span>';
     }
 }
-
 ?>
 
 <!DOCTYPE html>
@@ -102,160 +101,244 @@ function getRangeCategoryColor($rangeCategory) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Equipment Replacement List</title>
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet"> -->
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
 
     <style>
-        /* Custom CSS to align the container to the left */
-        .container {
-            margin-left: 0;
-            max-width: 100%;
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f4f7f6;
+            color: #333;
+        }
+        .page-title {
+            font-weight: 700;
+            color: #2c3e50;
+            border-bottom: 2px solid #e2e8f0;
+            padding-bottom: 10px;
+        }
+        /* Card Styling */
+        .custom-card {
+            background: #fff;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            border: 1px solid #e9ecef;
+            margin-bottom: 25px;
+        }
+        /* Form Label Enhancements */
+        .form-label {
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: #555;
+        }
+        /* Table Styling */
+        .table {
+            margin-bottom: 0;
+            font-size: 0.95rem;
+        }
+        .table thead th {
+            background-color: #f8f9fa;
+            color: #495057;
+            font-weight: 600;
+            border-bottom: 2px solid #dee2e6;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        .table tbody tr:hover {
+            background-color: #f8fdff;
+            transition: 0.2s;
+        }
+        .table td, .table th {
+            vertical-align: middle;
+            padding: 15px 12px;
+        }
+        /* Action buttons alignment */
+        .action-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            flex-wrap: wrap;
+            gap: 15px;
         }
     </style>
 </head>
 <body>
-    <div class="container mt-5">
-        <h2 class="mb-4">Priority List of ICT Equiment for Replacement : Desktop Computers, Laptop Computers, and Printers</h2>
+    <div class="container-fluid py-4 px-lg-5">
+        
+        <h3 class="page-title mb-4">
+            <i class="fas fa-desktop text-primary me-2"></i> ICT Equipment Replacement Priority
+        </h3>
 
-        <form method="GET" action="mainmenu.php" class="mb-4">
-            <!-- Hidden input to retain the 'dir' parameter -->
-            <input type="hidden" name="dir" value="datarep">
+        <div class="custom-card p-4">
+            <form method="GET" action="mainmenu.php">
+                <input type="hidden" name="dir" value="datarep">
+                
+                <div class="row g-3">
+                    <div class="col-lg-3 col-md-6">
+                        <label for="prioritySelect" class="form-label"><i class="fas fa-sort-amount-up-alt me-1 text-secondary"></i> Prioritization:</label>
+                        <select id="prioritySelect" class="form-select">
+                            <option value="1">1st Priority</option>
+                            <option value="2">2nd Priority</option>
+                            <option value="3">3rd Priority</option>
+                            <option value="4">4th Priority</option>
+                            <option value="5">5th Priority</option>
+                        </select>
+                    </div>
+                    <div class="col-lg-3 col-md-6">
+                        <label for="officeDivision" class="form-label"><i class="fas fa-building me-1 text-secondary"></i> Office Division:</label>
+                        <select id="officeDivision" name="officeDivision" class="form-select">
+                            <option value="All">All Divisions</option>
+                            <?php foreach ($officeDivisions as $division): ?>
+                                <option value="<?php echo htmlspecialchars($division); ?>" <?php echo $selectedOfficeDivision == $division ? 'selected' : ''; ?>>
+                                    <?php echo htmlspecialchars($division); ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div class="col-lg-3 col-md-6">
+                        <label for="storageType" class="form-label"><i class="fas fa-hdd me-1 text-secondary"></i> Storage Type:</label>
+                        <select id="storageType" name="storageType" class="form-select">
+                            <option value="All">All Storage</option>
+                            <option value="HDD" <?php echo $selectedStorageType == 'HDD' ? 'selected' : ''; ?>>HDD</option>
+                            <option value="SSD" <?php echo $selectedStorageType == 'SSD' ? 'selected' : ''; ?>>SSD</option>
+                        </select>
+                    </div>
+                    <div class="col-lg-3 col-md-6">
+                        <label for="licensingModel" class="form-label"><i class="fas fa-key me-1 text-secondary"></i> Licensing Model:</label>
+                        <select id="licensingModel" name="licensingModel" class="form-select">
+                            <option value="All">All Models</option>
+                            <option value="PERPETUAL" <?php echo $selectedLicensingModel == 'PERPETUAL' ? 'selected' : ''; ?>>PERPETUAL</option>
+                            <option value="EVALUATION COPY" <?php echo $selectedLicensingModel == 'EVALUATION COPY' ? 'selected' : ''; ?>>EVALUATION COPY</option>
+                            <option value="GENUINE" <?php echo $selectedLicensingModel == 'GENUINE' ? 'selected' : ''; ?>>GENUINE</option>
+                        </select>
+                    </div>
+                </div>
 
-            <div class="form-row">
-                <div class="col-md-3">
-                    <label for="prioritySelect" class="form-label">Select Prioritization:</label>
-                    <select id="prioritySelect" class="form-control">
-                        <option value="1">1st Priority</option>
-                        <option value="2">2nd Priority</option>
-                        <option value="3">3rd Priority</option>
-                        <option value="4">4th Priority</option>
-                        <option value="5">5th Priority</option>
-                    </select>
+                <div class="action-bar mt-4">
+                    <button type="submit" class="btn btn-primary px-4">
+                        <i class="fas fa-filter me-1"></i> Apply Filter
+                    </button>
+                    
+                    <div class="dropdown">
+                        <button class="btn btn-outline-secondary dropdown-toggle px-4" type="button" id="dropdownMenuButton" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-cog me-1"></i> Actions
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end shadow-sm" aria-labelledby="dropdownMenuButton">
+                            <li>
+                                <a href="summary.php?officeDivision=<?php echo urlencode($selectedOfficeDivision); ?>&storageType=<?php echo urlencode($selectedStorageType); ?>&licensingModel=<?php echo urlencode($selectedLicensingModel); ?>" class="dropdown-item">
+                                    <i class="fas fa-file-alt text-secondary me-2"></i> Generate Summary
+                                </a>
+                            </li>
+                            <li>
+                                <a href="replacement_report.php?officeDivision=<?php echo urlencode($selectedOfficeDivision); ?>&storageType=<?php echo urlencode($selectedStorageType); ?>&licensingModel=<?php echo urlencode($selectedLicensingModel); ?>" class="dropdown-item">
+                                    <i class="fas fa-file-export text-secondary me-2"></i> Generate Report
+                                </a>
+                            </li>
+                            <li>
+                                <a href="depreciation_report.php?officeDivision=<?php echo urlencode($selectedOfficeDivision); ?>&storageType=<?php echo urlencode($selectedStorageType); ?>&licensingModel=<?php echo urlencode($selectedLicensingModel); ?>" class="dropdown-item">
+                                    <i class="fas fa-chart-line text-secondary me-2"></i> Depreciation Report
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
                 </div>
-                <div class="col-md-3">
-                    <label for="officeDivision" class="form-label">Select Office Division:</label>
-                    <select id="officeDivision" name="officeDivision" class="form-control">
-                        <option value="All">All</option>
-                        <?php foreach ($officeDivisions as $division): ?>
-                            <option value="<?php echo htmlspecialchars($division); ?>" <?php echo $selectedOfficeDivision == $division ? 'selected' : ''; ?>>
-                                <?php echo htmlspecialchars($division); ?>
-                            </option>
-                        <?php endforeach; ?>
-                    </select>
-                </div>
-                <div class="col-md-3">
-                    <label for="storageType" class="form-label">Select Storage Type:</label>
-                    <select id="storageType" name="storageType" class="form-control">
-                        <option value="All">All</option>
-                        <option value="HDD" <?php echo $selectedStorageType == 'HDD' ? 'selected' : ''; ?>>HDD</option>
-                        <option value="SSD" <?php echo $selectedStorageType == 'SSD' ? 'selected' : ''; ?>>SSD</option>
-                    </select>
-                </div>
-                <div class="col-md-3">
-                    <label for="licensingModel" class="form-label">Select Licensing Model:</label>
-                    <select id="licensingModel" name="licensingModel" class="form-control">
-                        <option value="All">All</option>
-                        <option value="PERPETUAL" <?php echo $selectedLicensingModel == 'PERPETUAL' ? 'selected' : ''; ?>>PERPETUAL</option>
-                        <option value="EVALUATION COPY" <?php echo $selectedLicensingModel == 'EVALUATION COPY' ? 'selected' : ''; ?>>EVALUATION COPY</option>
-                        <option value="GENUINE" <?php echo $selectedLicensingModel == 'GENUINE' ? 'selected' : ''; ?>>GENUINE</option>
-                    </select>
-                </div>
+            </form>
+        </div>
+
+        <div class="custom-card">
+            <div class="p-3 border-bottom d-flex justify-content-between align-items-center bg-light rounded-top">
+                <h5 class="mb-0 text-secondary"><i class="fas fa-list me-2"></i> Equipment List</h5>
+                <span class="badge bg-primary rounded-pill px-3 py-2" style="font-size: 0.9rem;">
+                    Total Records: <?php echo $result->num_rows; // Will update accurately below ?>
+                </span>
             </div>
-            <button type="submit" class="btn btn-primary mt-3">Filter</button>
-            <!-- <a href="summary.php?officeDivision=<?php echo urlencode($selectedOfficeDivision); ?>" class="btn btn-secondary mt-3">Generate Summary</a> -->
-          
-            <!-- <a href="summary.php?officeDivision=<?php echo urlencode($selectedOfficeDivision); ?>&storageType=<?php echo urlencode($selectedStorageType); ?>&licensingModel=<?php echo urlencode($selectedLicensingModel); ?>" class="btn btn-secondary mt-3">Generate Summary</a> -->
-            <!-- <a href="summary.php?officeDivision=<?php echo urlencode($selectedOfficeDivision); ?>&storageType=<?php echo urlencode($selectedStorageType); ?>&licensingModel=<?php echo urlencode($selectedLicensingModel); ?>" class="btn btn-secondary mt-3">Generate Report</a> -->
-        
-            <!-- <a href="mainmenu.php?dir=summary&officeDivision=<?php echo urlencode($selectedOfficeDivision); ?>" class="btn btn-secondary mt-3">Generate Summary</a> -->
-          
-        
-
-
-        </form>
-
-
-
-        <div class="dropdown">
-    <button class="btn btn-secondary dropdown-toggle" type="button" id="dropdownMenuButton" data-bs-toggle="dropdown" aria-expanded="false">
-        Action
-    </button>
-    <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton">
-            <li>
-                <a href="summary.php?officeDivision=<?php echo urlencode($selectedOfficeDivision); ?>&storageType=<?php echo urlencode($selectedStorageType); ?>&licensingModel=<?php echo urlencode($selectedLicensingModel); ?>" class="dropdown-item">Generate Summary</a>
-            </li>
-            <li>
-                <a href="replacement_report.php?officeDivision=<?php echo urlencode($selectedOfficeDivision); ?>&storageType=<?php echo urlencode($selectedStorageType); ?>&licensingModel=<?php echo urlencode($selectedLicensingModel); ?>" class="dropdown-item">Generate Report</a>
-            </li>
-            <li>
-                <a href="depreciation_report.php?officeDivision=<?php echo urlencode($selectedOfficeDivision); ?>&storageType=<?php echo urlencode($selectedStorageType); ?>&licensingModel=<?php echo urlencode($selectedLicensingModel); ?>" class="dropdown-item">Depreciation Report</a>
-            </li>
-
-        </ul>
-    </div><br>
-
-
-
-        <table class="table table-bordered table-hover">
-            <thead class="thead-dark">
-                <tr>
-                    <th>#</th>
-                    <th>Employee Name</th>
-                    <th>Equipment Type</th>
-                    <th>Year Acquired</th>
-                    <th>Shelf Life</th>
-                    <th>Brand</th>
-                    <th>Specifications</th>
-                    <th>Range Category</th>
-                    <th>Office</th>
-                    <th>Accountable Person</th>
-                    <th>Actual User</th>
-                    <th>Remarks</th>
-                </tr>
-            </thead>
-            <tbody>
-                <?php
-                $counter = 0;
-                if ($result->num_rows > 0): ?>
-                    <?php while ($row = $result->fetch_assoc()): ?>
-                        <?php
-                            $shelfLife = determineShelfLife($row['yearAcquired']);
-                            if ($shelfLife !== "Beyond 5 Years") continue;
-                            $counter++;
-                            $remarks = analyzeSpecifications($row['specifications'], $row['equipmentType']);
-                            $rangeCategoryColor = getRangeCategoryColor($row['rangeCategory']);
-                            $shelfLifeColor = getShelfLifeColor($shelfLife);
-                            $remarksColor = getRemarksColor($remarks);
-                        ?>
+            
+            <div class="table-responsive" style="max-height: 60vh;">
+                <table class="table table-hover table-bordered mb-0">
+                    <thead>
                         <tr>
-                            <td><?php echo $counter; ?></td>
-                            <td><?php echo htmlspecialchars($row['employeeName']); ?></td>
-                            <td><?php echo htmlspecialchars($row['equipmentType']); ?></td>
-                            <td><?php echo htmlspecialchars($row['yearAcquired']); ?></td>
-                            <td><?php echo $shelfLifeColor; ?></td>
-                            <td><?php echo htmlspecialchars($row['brand']); ?></td>
-                            <td><?php echo htmlspecialchars($row['specifications']); ?></td>
-                            <td><?php echo $rangeCategoryColor; ?></td>
-                            <td><?php echo htmlspecialchars($row['office']); ?></td>
-                            <td><?php echo htmlspecialchars($row['accountablePerson']); ?></td>
-                            <td><?php echo htmlspecialchars($row['actualUser']); ?></td>
-                            <td><?php echo $remarksColor; ?></td>
+                            <th class="text-center">#</th>
+                            <th>Employee Name</th>
+                            <th>Equipment Type</th>
+                            <th class="text-center">Year Acquired</th>
+                            <th class="text-center">Shelf Life</th>
+                            <th>Brand</th>
+                            <th style="min-width: 250px;">Specifications</th>
+                            <th class="text-center">Range Category</th>
+                            <th>Office</th>
+                            <th>Accountable Person</th>
+                            <th>Actual User</th>
+                            <th style="min-width: 200px;">Remarks</th>
                         </tr>
-                    <?php endwhile; ?>
-                <?php else: ?>
-                    <tr>
-                        <td colspan="12" class="text-center">No records found for replacement</td>
-                    </tr>
-                <?php endif; ?>
-            </tbody>
-        </table>
-        <p>Total Records: <?php echo $counter; ?></p>
+                    </thead>
+                    <tbody>
+                        <?php
+                        $counter = 0;
+                        if ($result->num_rows > 0): ?>
+                            <?php while ($row = $result->fetch_assoc()): ?>
+                                <?php
+                                    $shelfLife = determineShelfLife($row['yearAcquired']);
+                                    if ($shelfLife !== "Beyond 5 Years") continue;
+                                    $counter++;
+                                    $remarks = analyzeSpecifications($row['specifications'], $row['equipmentType']);
+                                    $rangeCategoryColor = getRangeCategoryColor($row['rangeCategory']);
+                                    $shelfLifeColor = getShelfLifeColor($shelfLife);
+                                    $remarksColor = getRemarksColor($remarks);
+                                ?>
+                                <tr>
+                                    <td class="text-center fw-bold text-secondary"><?php echo $counter; ?></td>
+                                    <td class="fw-medium"><?php echo htmlspecialchars($row['employeeName']); ?></td>
+                                    <td><?php echo htmlspecialchars($row['equipmentType']); ?></td>
+                                    <td class="text-center"><?php echo htmlspecialchars($row['yearAcquired']); ?></td>
+                                    <td class="text-center"><?php echo $shelfLifeColor; ?></td>
+                                    <td><?php echo htmlspecialchars($row['brand']); ?></td>
+                                    <td class="text-muted small"><?php echo htmlspecialchars($row['specifications']); ?></td>
+                                    <td class="text-center"><?php echo $rangeCategoryColor; ?></td>
+                                    <td><?php echo htmlspecialchars($row['office']); ?></td>
+                                    <td><?php echo htmlspecialchars($row['accountablePerson']); ?></td>
+                                    <td><?php echo htmlspecialchars($row['actualUser']); ?></td>
+                                    <td><?php echo $remarksColor; ?></td>
+                                </tr>
+                            <?php endwhile; ?>
+                            
+                            <?php if($counter == 0): ?>
+                                <tr>
+                                    <td colspan="12" class="text-center py-5 text-muted">
+                                        <i class="fas fa-inbox fa-3x mb-3 text-light"></i><br>
+                                        No equipment found beyond 5 years of shelf life.
+                                    </td>
+                                </tr>
+                            <?php endif; ?>
+
+                        <?php else: ?>
+                            <tr>
+                                <td colspan="12" class="text-center py-5 text-muted">
+                                    <i class="fas fa-search fa-3x mb-3 text-light"></i><br>
+                                    No records found matching your filters.
+                                </td>
+                            </tr>
+                        <?php endif; ?>
+                    </tbody>
+                </table>
+            </div>
+            
+            <script>
+                document.addEventListener("DOMContentLoaded", function() {
+                    const badge = document.querySelector('.bg-primary.rounded-pill');
+                    if(badge) {
+                        badge.innerHTML = "Total Records: <?php echo $counter; ?>";
+                    }
+                });
+            </script>
+        </div>
+        
     </div>
 
-
-
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
-    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
 
