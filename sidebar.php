@@ -1,8 +1,7 @@
 
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
 <style>
-
-.account-picture {
+        .account-picture {
             display: flex;
             align-items: center;
             justify-content: center;
@@ -10,11 +9,11 @@
         }
 
         .account-img {
-            width: 100px; /* Adjust the size as needed */
-            height: 100px; /* Adjust the size as needed */
+            width: 100px;
+            height: 100px;
             border-radius: 50%;
             object-fit: cover;
-            border: 3px solid #000; /* Adjust the border color and size as needed */
+            border: 3px solid #000;
         }
 
         .camera-icon {
@@ -28,10 +27,10 @@
 
         h4 {
             text-align: center;
-            }
+        }
 
-            /* SRF  __________________________________*/
-            .notification-badge {
+        /* SRF Notification */
+        .notification-badge {
             background-color: red;
             color: white;
             padding: 3px 7px;
@@ -39,11 +38,9 @@
             font-size: 12px;
             position: absolute;
             top: 0;
-            right: 5;
+            right: 5px;
             transform: translate(50%, 50%);
-         
         }
-
 
         .notification-badgeSRF {
             background-color: red;
@@ -53,58 +50,87 @@
             font-size: 12px;
             position: absolute;
             top: 0;
-            right: -20;
+            right: -20px;
             transform: translate(50%, 50%);
-          
         }
-
-
-
-
 
         li {
             position: relative;
- 
-
-
         }
 
+        /* Sidebar Links Base */
         a {
             position: relative;
-            display: inline-block;
-
+            display: block; /* Para lapad click area */
+            padding: 10px 15px; 
+            color: #d1d1d1; /* Slight gray/white para maklaro sa dark background IF dark ang imo main sidebar */
+            text-decoration: none;
         }
 
+        /* Hover sa Main Links */
+        a:hover {
+            color: #fff;
+            background-color: rgba(255, 255, 255, 0.1); /* Subtle highlight */
+            text-decoration: none;
+        }
+
+        /* Gi-ilisan ang color sa ARROW: 
+           Kaniadto 'white', gi-ilis nako to 'currentColor' para mu-sunod sa text color. 
+           Kung black ang imo text, ma black sad ni. 
+        */
         .arrow {
-                float: right;
-                display: inline-block;
-                margin-left: 50px;
-                border: solid white;
-                border-width: 0 2px 2px 0;
-                padding: 3px;
-                transform: rotate(45deg); /* Right arrow */
-                transition: transform 0.3s ease;
-            }
+            float: right;
+            display: inline-block;
+            margin-left: 20px;
+            border: solid currentColor; /* Musunod sa color sa font */
+            border-width: 0 2px 2px 0;
+            padding: 3px;
+            margin-top: 5px;
+            transform: rotate(45deg); /* Right arrow */
+            transition: transform 0.3s ease;
+        }
 
-            
-            a.active {
-                font-weight: bold;
-                color: #007bff; /* Highlight color */
-            }
+        a.active {
+            font-weight: bold;
+            color: #007bff; /* Active highlight color */
+            background-color: rgba(0, 123, 255, 0.1);
+        }
 
+        a[aria-expanded="true"] .arrow {
+            transform: rotate(135deg); /* Down arrow */
+        }
 
-            a[aria-expanded="true"] .arrow {
-                transform: rotate(135deg); /* Down arrow */
-            }
+        /* =========================================
+           CHILD MENU (SUBMENU) PLASTAR STYLES
+           ========================================= */
+        ul.collapse {
+            background-color: rgba(0, 0, 0, 0.2); /* Darken gamay ang child menu aron lahi sa main menu */
+            list-style-type: none;
+            padding: 5px 0;
+            margin: 0;
+        }
 
-  
-            .submenu-link.active {
-                font-weight: bold;
-                color: #007bff;
-}
+        ul.collapse li a {
+            padding: 8px 15px 8px 45px !important; /* Pasudlon ang text (indent) */
+            font-size: 0.9em;
+            color: #b8c7ce; /* Grayish blue para dili perting putia */
+            transition: all 0.3s ease;
+        }
 
+        /* Hover sa Child Links */
+        ul.collapse li a:hover {
+            color: #fff;
+            background-color: rgba(255, 255, 255, 0.1);
+            padding-left: 50px !important; /* Gamayng irog inig hover */
+        }
+
+        .submenu-link.active, ul.collapse li a.active {
+            font-weight: bold;
+            color: #fff; /* Puti inig active */
+            background-color: #007bff; /* Blue box para klaro ang gi-pili */
+            border-left: 4px solid #fff;
+        }
 </style>
-
 <?php
 
 $stationID = $_SESSION['idSRF'];

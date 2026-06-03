@@ -3,22 +3,200 @@
 require_once 'connect.php';
 
 // =========================================================================
-// AJAX HANDLER: Fetch repair history when the "View Comments" button is clicked
+// ACTION: EXPORT TO EXCEL - SUMMARY ONLY (UPDATED WITH SRF IDs)
+// =========================================================================
+if (isset($_GET['action']) && $_GET['action'] == 'export_summary') {
+    header('Content-Type: text/csv; charset=utf-8');
+    header('Content-Disposition: attachment; filename=Equipment_Repair_Summary.csv');
+    $output = fopen('php://output', 'w');
+    
+    // Output Column Headers
+    fputcsv($output, [
+        'Property No', 
+        'Actual User', 
+        'Equipment Type', 
+        'Brand', 
+        'Description', 
+        'Total Times Repaired',
+        'SRF Track IDs' // <-- Added column for SRF IDs
+    ]);
+    
+    // Main Query
+    $export_sql = "SELECT 
+                        i.propertyNumber, 
+                        i.actualUser, 
+                        i.equipmentType, 
+                        i.brand, 
+                        i.specifications,
+                        COUNT(DISTINCT s.trackid) as repair_count,
+                        GROUP_CONCAT(DISTINCT s.trackid SEPARATOR ', ') as srf_ids
+                    FROM inv_inventory i
+                    INNER JOIN srfhistory s ON i.id = s.equipment_id
+                    GROUP BY i.id
+                    ORDER BY repair_count DESC";
+                    
+    $export_res = $conn->query($export_sql);
+    
+    if ($export_res) {
+        while ($row = $export_res->fetch_assoc()) {
+            fputcsv($output, [
+                $row['propertyNumber'],
+                $row['actualUser'],
+                $row['equipmentType'],
+                $row['brand'],
+                $row['specifications'],
+                $row['repair_count'],
+                $row['srf_ids'] // <-- Output the concatenated SRF IDs
+            ]);
+        }
+    }
+    fclose($output);
+    exit;
+}
+
+// =========================================================================
+// ACTION: EXPORT TO EXCEL - REMARKS ONLY 
+// =========================================================================
+if (isset($_GET['action']) && $_GET['action'] == 'export_remarks_only') {
+    header('Content-Type: text/csv; charset=utf-8');
+    header('Content-Disposition: attachment; filename=Repair_Remarks_History.csv');
+    $output = fopen('php://output', 'w');
+    
+    // Output Column Headers
+    fputcsv($output, [
+        'Property No', 
+        'SRF Track ID', 
+        'Date Recorded', 
+        'Time Recorded', 
+        'Action Staff', 
+        'Remarks / Action Taken'
+    ]);
+    
+    // Query linking inventory (just for property number) and remarks
+    $export_sql = "
+        SELECT 
+            i.propertyNumber, 
+            DISTINCT_TRACKS.trackid,
+            r.date,
+            r.time,
+            r.actionstaff,
+            r.action_taken
+        FROM inv_inventory i
+        INNER JOIN (SELECT DISTINCT equipment_id, trackid FROM srfhistory) DISTINCT_TRACKS 
+            ON i.id = DISTINCT_TRACKS.equipment_id
+        INNER JOIN srfstaff_remarks r 
+            ON DISTINCT_TRACKS.trackid = r.track_id
+        ORDER BY i.propertyNumber ASC, DISTINCT_TRACKS.trackid DESC
+    ";
+    
+    $export_res = $conn->query($export_sql);
+    
+    if ($export_res) {
+        while ($row = $export_res->fetch_assoc()) {
+            $action_taken = $row['action_taken'] ? str_replace(array("\r", "\n"), " | ", $row['action_taken']) : 'No remarks recorded';
+            $staff = $row['actionstaff'] ? $row['actionstaff'] : 'N/A';
+            $date = $row['date'] ? $row['date'] : 'N/A';
+            $time = $row['time'] ? $row['time'] : 'N/A';
+            
+            fputcsv($output, [
+                $row['propertyNumber'],
+                $row['trackid'],
+                $date,
+                $time,
+                $staff,
+                $action_taken
+            ]);
+        }
+    }
+    fclose($output);
+    exit;
+}
+
+// =========================================================================
+// ACTION: EXPORT TO EXCEL - DETAILED WITH REMARKS (COMBINED)
+// =========================================================================
+if (isset($_GET['action']) && $_GET['action'] == 'export_remarks') {
+    header('Content-Type: text/csv; charset=utf-8');
+    header('Content-Disposition: attachment; filename=Equipment_Detailed_Remarks.csv');
+    $output = fopen('php://output', 'w');
+    
+    // Output Column Headers
+    fputcsv($output, [
+        'Property No', 
+        'Actual User', 
+        'Equipment Type', 
+        'Brand', 
+        'Total Times Repaired', 
+        'SRF Track ID', 
+        'Date Recorded', 
+        'Time Recorded', 
+        'Action Staff', 
+        'Remarks / Action Taken'
+    ]);
+    
+    // Query linking inventory, routing history, and remarks
+    $export_sql = "
+        SELECT 
+            i.propertyNumber, 
+            i.actualUser, 
+            i.equipmentType, 
+            i.brand, 
+            (SELECT COUNT(DISTINCT s_sub.trackid) FROM srfhistory s_sub WHERE s_sub.equipment_id = i.id) as repair_count,
+            DISTINCT_TRACKS.trackid,
+            r.date,
+            r.time,
+            r.actionstaff,
+            r.action_taken
+        FROM inv_inventory i
+        INNER JOIN (SELECT DISTINCT equipment_id, trackid FROM srfhistory) DISTINCT_TRACKS 
+            ON i.id = DISTINCT_TRACKS.equipment_id
+        LEFT JOIN srfstaff_remarks r 
+            ON DISTINCT_TRACKS.trackid = r.track_id
+        ORDER BY repair_count DESC, i.propertyNumber ASC, DISTINCT_TRACKS.trackid DESC
+    ";
+    
+    $export_res = $conn->query($export_sql);
+    
+    if ($export_res) {
+        while ($row = $export_res->fetch_assoc()) {
+            $action_taken = $row['action_taken'] ? str_replace(array("\r", "\n"), " | ", $row['action_taken']) : 'No remarks recorded';
+            $staff = $row['actionstaff'] ? $row['actionstaff'] : 'N/A';
+            $date = $row['date'] ? $row['date'] : 'N/A';
+            $time = $row['time'] ? $row['time'] : 'N/A';
+            
+            fputcsv($output, [
+                $row['propertyNumber'],
+                $row['actualUser'],
+                $row['equipmentType'],
+                $row['brand'],
+                $row['repair_count'],
+                $row['trackid'],
+                $date,
+                $time,
+                $staff,
+                $action_taken
+            ]);
+        }
+    }
+    fclose($output);
+    exit;
+}
+
+// =========================================================================
+// AJAX HANDLER: Fetch repair history when the "View Remarks" button is clicked
 // =========================================================================
 if (isset($_GET['action']) && $_GET['action'] == 'get_history' && isset($_GET['equip_id'])) {
     header('Content-Type: application/json');
     $equip_id = intval($_GET['equip_id']);
     
-    // ⚠️ CHANGE THESE COLUMN NAMES to match your actual columns in `srfhistory`
-    // Example: if your column is called `technician`, change `personnel` to `technician`
     $sql_history = "SELECT 
-                        trackid, 
-                        personnel, /* Update this if your personnel column is named differently */
-                        remarks,   /* Update this if your comments column is named 'comment', 'action_taken', etc. */
-                        date_added /* Update this to your actual date column */
-                    FROM srfhistory 
-                    WHERE equipment_id = $equip_id 
-                    ORDER BY trackid DESC";
+                        track_id, 
+                        action_taken,
+                        date,
+                        time
+                    FROM srfstaff_remarks 
+                    WHERE track_id IN (SELECT trackid FROM srfhistory WHERE equipment_id = $equip_id)
+                    ORDER BY id DESC";
                     
     $res_history = $conn->query($sql_history);
     $history_data = [];
@@ -29,11 +207,11 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_history' && isset($_GET['e
         }
     }
     echo json_encode($history_data);
-    exit; // Stop executing the rest of the page for AJAX requests
+    exit; 
 }
 // =========================================================================
 
-// SQL Query using INNER JOIN (Added i.id to select)
+// SQL Query for the main HTML table
 $sql = "SELECT 
             i.id,
             i.propertyNumber, 
@@ -56,13 +234,9 @@ $result = $conn->query($sql);
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Equipment Repair Frequency</title>
     
-    <!-- Google Fonts: Inter -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <!-- Bootstrap 5 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- FontAwesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- DataTables Bootstrap 5 CSS -->
     <link rel="stylesheet" href="https://cdn.datatables.net/1.13.5/css/dataTables.bootstrap5.min.css">
 
     <style>
@@ -98,12 +272,10 @@ $result = $conn->query($sql);
             border-radius: 6px !important;
             background: #f8f9fa;
         }
-        /* Customizing DataTable inputs */
         div.dataTables_wrapper div.dataTables_filter input {
             border-radius: 20px;
             padding: 5px 15px;
         }
-        /* Print Styles */
         @media print {
             body { background-color: #fff; }
             .card-custom { box-shadow: none; border: 1px solid #ddd; }
@@ -116,17 +288,40 @@ $result = $conn->query($sql);
 
 <div class="container-fluid py-5 px-md-5">
     <div class="card card-custom">
-        <!-- Header -->
         <div class="card-header-custom d-flex justify-content-between align-items-center">
             <h4 class="m-0 fw-bold">
                 <i class="fa-solid fa-screwdriver-wrench me-2"></i> Equipment Repair Frequency
             </h4>
-            <button class="btn btn-light btn-sm fw-semibold shadow-sm no-print" onclick="window.print()">
-                <i class="fa-solid fa-print me-1"></i> Print Report
-            </button>
+            <div class="no-print">
+                <div class="dropdown d-inline-block me-2">
+                    <button class="btn btn-success btn-sm fw-semibold shadow-sm dropdown-toggle" type="button" id="exportDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="fa-solid fa-file-excel me-1"></i> Export Excel
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="exportDropdown">
+                        <li>
+                            <a class="dropdown-item" href="?action=export_summary">
+                                <i class="fa-solid fa-table text-secondary me-2"></i> Equipment Summary Only
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item" href="?action=export_remarks_only">
+                                <i class="fa-solid fa-comment-dots text-secondary me-2"></i> Repair Remarks Only
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item" href="?action=export_remarks">
+                                <i class="fa-solid fa-list-check text-secondary me-2"></i> Detailed (Combined)
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+                
+                <button class="btn btn-light btn-sm fw-semibold shadow-sm" onclick="window.print()">
+                    <i class="fa-solid fa-print me-1"></i> Print
+                </button>
+            </div>
         </div>
         
-        <!-- Body -->
         <div class="card-body p-4">
             <div class="alert alert-light border-start border-4 border-info text-muted mb-4 shadow-sm" role="alert">
                 <i class="fa-solid fa-circle-info me-2"></i> 
@@ -134,7 +329,7 @@ $result = $conn->query($sql);
             </div>
             
             <div class="table-responsive">
-                <table id="repairTable" class="table table-hover align-middle border-top">
+                <table id="repairTable" class="table table-hover align-middle border-top w-100">
                     <thead class="table-light text-secondary">
                         <tr>
                             <th scope="col" width="5%">#</th>
@@ -155,7 +350,6 @@ $result = $conn->query($sql);
                                 $desc = htmlspecialchars($row['specifications']);
                                 $short_desc = strlen($desc) > 40 ? substr($desc, 0, 40) . "..." : $desc;
                                 
-                                // Enhanced Badge Logic
                                 $repairCount = $row['repair_count'];
                                 if ($repairCount <= 1) {
                                     $badgeClass = 'bg-success';
@@ -184,12 +378,11 @@ $result = $conn->query($sql);
                                         </span>
                                       </td>";
                                       
-                                // The new Action Button
                                 echo "<td class='text-center no-print'>
                                         <button class='btn btn-sm btn-outline-primary view-history-btn' 
                                                 data-id='{$row['id']}' 
                                                 data-prop='{$row['propertyNumber']}'>
-                                            <i class='fa-solid fa-comment-dots'></i> View Comments
+                                            <i class='fa-solid fa-comment-dots'></i> View Remarks
                                         </button>
                                       </td>";
                                 echo "</tr>";
@@ -203,21 +396,19 @@ $result = $conn->query($sql);
     </div>
 </div>
 
-<!-- History Modal -->
 <div class="modal fade" id="historyModal" tabindex="-1" aria-labelledby="historyModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
     <div class="modal-content">
       <div class="modal-header bg-light">
         <h5 class="modal-title fw-bold" id="historyModalLabel">
-            <i class="fa-solid fa-clock-rotate-left me-2 text-primary"></i> 
-            Repair History: <span id="modalPropNo" class="text-primary"></span>
+            <i class="fa-solid fa-clipboard-check me-2 text-primary"></i> 
+            Staff Remarks: <span id="modalPropNo" class="text-primary"></span>
         </h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       <div class="modal-body">
         <div id="historyContent" class="history-list">
-            <!-- AJAX content will load here -->
-        </div>
+            </div>
       </div>
       <div class="modal-footer bg-light">
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
@@ -226,47 +417,43 @@ $result = $conn->query($sql);
   </div>
 </div>
 
-<!-- jQuery (Required for DataTables & AJAX) -->
 <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
-<!-- Bootstrap 5 Bundle JS -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-<!-- DataTables Core & Bootstrap 5 Integration -->
 <script src="https://cdn.datatables.net/1.13.5/js/jquery.dataTables.min.js"></script>
 <script src="https://cdn.datatables.net/1.13.5/js/dataTables.bootstrap5.min.js"></script>
 
 <script>
     $(document).ready(function() {
-        // Initialize DataTable
-        $('#repairTable').DataTable({
+        var table = $('#repairTable').DataTable({
             "pageLength": 10,
             "language": {
                 "search": "_INPUT_",
                 "searchPlaceholder": "Search records..."
             },
-            "order": [[6, "desc"]] // Sort by Times Repaired
+            "order": [[6, "desc"]] 
         });
 
-        // Initialize Bootstrap Tooltips
-        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+        table.on('draw', function() {
+            var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl);
+            });
+        });
+        
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
         var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
-            return new bootstrap.Tooltip(tooltipTriggerEl)
+            return new bootstrap.Tooltip(tooltipTriggerEl);
         });
 
-        // Handle Click on View Comments Button
-        $('.view-history-btn').on('click', function() {
+        // Event Delegation for viewing modal history
+        $('#repairTable tbody').on('click', '.view-history-btn', function() {
             let equipId = $(this).data('id');
             let propNo = $(this).data('prop');
             
-            // Set Modal Title
             $('#modalPropNo').text(propNo);
-            
-            // Show loading spinner
-            $('#historyContent').html('<div class="text-center py-5"><div class="spinner-border text-primary" role="status"></div><p class="mt-2 text-muted">Loading comments...</p></div>');
-            
-            // Open Modal
+            $('#historyContent').html('<div class="text-center py-5"><div class="spinner-border text-primary" role="status"></div><p class="mt-2 text-muted">Loading remarks...</p></div>');
             $('#historyModal').modal('show');
             
-            // Fetch Data via AJAX
             $.ajax({
                 url: window.location.pathname,
                 type: 'GET',
@@ -277,22 +464,22 @@ $result = $conn->query($sql);
                         let html = '<div class="list-group list-group-flush">';
                         
                         response.forEach(function(item) {
-                            // Format the content. 
-                            // Make sure these match the keys in your PHP SELECT query at the top of the file!
-                            let personnel = item.personnel ? item.personnel : 'Unknown Personnel';
-                            let comments = item.remarks ? item.remarks : '<em class="text-muted">No comment recorded.</em>';
-                            let dateAdded = item.date_added ? item.date_added : '';
+                            let actionTaken = item.action_taken ? item.action_taken.replace(/\n/g, '<br>') : '<em class="text-muted">No action details recorded.</em>';
+                            let dateAdded = (item.date ? item.date : '') + ' ' + (item.time ? item.time : '');
+                            let trackId = item.track_id;
                             
                             html += `
                                 <div class="list-group-item p-3 shadow-sm">
                                     <div class="d-flex w-100 justify-content-between align-items-center mb-2">
-                                        <h6 class="mb-0 fw-bold"><i class="fa-solid fa-user-gear text-secondary me-2"></i> ${personnel}</h6>
+                                        <h6 class="mb-0 fw-bold text-primary"><i class="fa-solid fa-list-check text-secondary me-2"></i> Remark</h6>
                                         <small class="text-muted"><i class="fa-regular fa-calendar me-1"></i> ${dateAdded}</small>
                                     </div>
-                                    <p class="mb-1 text-dark" style="font-size: 0.95rem;">
-                                        <i class="fa-solid fa-quote-left text-primary opacity-50 me-2"></i> ${comments}
-                                    </p>
-                                    <small class="text-muted">SRF Track ID: ${item.trackid}</small>
+                                    <div class="p-2 mb-2 bg-white border rounded">
+                                        <p class="mb-0 text-dark" style="font-size: 0.95rem;">
+                                            ${actionTaken}
+                                        </p>
+                                    </div>
+                                    <small class="text-muted"><strong>SRF Track ID:</strong> ${trackId}</small>
                                 </div>
                             `;
                         });
@@ -300,11 +487,11 @@ $result = $conn->query($sql);
                         html += '</div>';
                         $('#historyContent').html(html);
                     } else {
-                        $('#historyContent').html('<div class="alert alert-warning text-center"><i class="fa-solid fa-circle-exclamation me-2"></i> Wala pay comments or history ani nga equipment.</div>');
+                        $('#historyContent').html('<div class="alert alert-warning text-center"><i class="fa-solid fa-circle-exclamation me-2"></i> Wala pay staff remarks para ani nga equipment.</div>');
                     }
                 },
                 error: function(xhr, status, error) {
-                    $('#historyContent').html('<div class="alert alert-danger"><strong>Error!</strong> Please check your database column names at the top of the PHP file. They might not match your database exactly.</div>');
+                    $('#historyContent').html('<div class="alert alert-danger"><strong>Error!</strong> Could not load data. Ensure database connection is active.</div>');
                 }
             });
         });
@@ -315,7 +502,6 @@ $result = $conn->query($sql);
 </html>
 
 <?php
-// Close the database connection safely
 if(isset($conn) && $conn) {
     $conn->close();
 }
