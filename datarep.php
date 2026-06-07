@@ -77,7 +77,7 @@ function analyzeSpecifications($specs, $equipmentType) {
 
 // Function to get color for remarks (Updated for BS5)
 function getRemarksColor($remarks) {
-    return empty($remarks) ? '<span class="badge bg-success rounded-pill px-3">No issues found</span>' : '<span class="badge bg-danger rounded-pill px-3 text-wrap text-start" style="line-height: 1.5; max-width:200px;">' . htmlspecialchars($remarks) . '</span>';
+    return empty($remarks) ? '<span class="badge bg-success rounded-pill px-3">No issues found</span>' : '<span class="badge bg-danger rounded-pill px-3 text-wrap text-start" style="line-height: 1.5;">' . htmlspecialchars($remarks) . '</span>';
 }
 
 // Function to apply color to range category (Updated for BS5)
@@ -102,9 +102,9 @@ function getRangeCategoryColor($rangeCategory) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Equipment Replacement List</title>
     
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     
-    <!-- <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet"> -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet"> -->
     
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
 
@@ -128,7 +128,6 @@ function getRangeCategoryColor($rangeCategory) {
             border: 1px solid #e9ecef;
             margin-bottom: 25px;
         }
-        /* Form Label Enhancements */
         .form-label {
             font-weight: 600;
             font-size: 0.9rem;
@@ -147,6 +146,7 @@ function getRangeCategoryColor($rangeCategory) {
             position: sticky;
             top: 0;
             z-index: 10;
+            white-space: nowrap;
         }
         .table tbody tr:hover {
             background-color: #f8fdff;
@@ -154,15 +154,53 @@ function getRangeCategoryColor($rangeCategory) {
         }
         .table td, .table th {
             vertical-align: middle;
-            padding: 15px 12px;
+            padding: 12px 10px;
         }
-        /* Action buttons alignment */
+        
+        .truncate-cell {
+            max-width: 200px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: inline-block;
+        }
+        
+        /* Child row styles */
+        .details-row td {
+            padding: 0 !important;
+            border-bottom: none;
+        }
+        .details-inner {
+            background-color: #fafbfc;
+            border-bottom: 2px solid #dee2e6;
+            padding: 20px 25px;
+            box-shadow: inset 0 3px 6px -3px rgba(0,0,0,0.1);
+        }
+
         .action-bar {
             display: flex;
             justify-content: space-between;
             align-items: flex-end;
             flex-wrap: wrap;
             gap: 15px;
+        }
+        
+        /* Grid layout for expanded details */
+        .details-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+        .detail-item strong {
+            display: block;
+            font-size: 0.85rem;
+            color: #6c757d;
+            text-transform: uppercase;
+            margin-bottom: 5px;
+        }
+        .detail-item span {
+            font-weight: 500;
+            color: #212529;
         }
     </style>
 </head>
@@ -253,27 +291,24 @@ function getRangeCategoryColor($rangeCategory) {
             <div class="p-3 border-bottom d-flex justify-content-between align-items-center bg-light rounded-top">
                 <h5 class="mb-0 text-secondary"><i class="fas fa-list me-2"></i> Equipment List</h5>
                 <span class="badge bg-primary rounded-pill px-3 py-2" style="font-size: 0.9rem;">
-                    Total Records: <?php echo $result->num_rows; // Will update accurately below ?>
+                    Total Records: <?php echo $result->num_rows; // Will update correctly later ?>
                 </span>
             </div>
             
-            <div class="table-responsive" style="max-height: 60vh;">
-                <table class="table table-hover table-bordered mb-0">
+            <div class="table-responsive" style="max-height: 65vh;">
+                <table class="table table-hover mb-0">
                     <thead>
                         <tr>
+                            <th class="text-center" style="width: 50px;"></th>
                             <th class="text-center">#</th>
                             <th>Employee Name</th>
                             <th>Equipment Type</th>
-                            <th class="text-center">Year Acquired</th>
+                            <th class="text-center">Year</th>
                             <th class="text-center">Shelf Life</th>
                             <th>Brand</th>
-                            <th style="min-width: 250px;">Specifications</th>
                             <th class="text-center">Range Category</th>
-                            <th>Office</th>
-                            <th>Accountable Person</th>
-                            <th>Actual User</th>
-                            <th style="min-width: 200px;">Remarks</th>
-                        </tr>
+                            
+                            </tr>
                     </thead>
                     <tbody>
                         <?php
@@ -284,30 +319,70 @@ function getRangeCategoryColor($rangeCategory) {
                                     $shelfLife = determineShelfLife($row['yearAcquired']);
                                     if ($shelfLife !== "Beyond 5 Years") continue;
                                     $counter++;
+                                    
+                                    // Process issues/remarks
                                     $remarks = analyzeSpecifications($row['specifications'], $row['equipmentType']);
                                     $rangeCategoryColor = getRangeCategoryColor($row['rangeCategory']);
                                     $shelfLifeColor = getShelfLifeColor($shelfLife);
                                     $remarksColor = getRemarksColor($remarks);
                                 ?>
+                                
                                 <tr>
+                                    <td class="text-center">
+                                        <button class="btn btn-sm btn-outline-secondary rounded-circle" type="button" data-bs-toggle="collapse" data-bs-target="#details-<?php echo $counter; ?>" aria-expanded="false" onclick="toggleIcon(this)">
+                                            <i class="fas fa-plus"></i>
+                                        </button>
+                                    </td>
                                     <td class="text-center fw-bold text-secondary"><?php echo $counter; ?></td>
-                                    <td class="fw-medium"><?php echo htmlspecialchars($row['employeeName']); ?></td>
-                                    <td><?php echo htmlspecialchars($row['equipmentType']); ?></td>
+                                    <td class="fw-medium text-nowrap"><?php echo htmlspecialchars($row['employeeName']); ?></td>
+                                    <td class="text-nowrap"><?php echo htmlspecialchars($row['equipmentType']); ?></td>
                                     <td class="text-center"><?php echo htmlspecialchars($row['yearAcquired']); ?></td>
                                     <td class="text-center"><?php echo $shelfLifeColor; ?></td>
-                                    <td><?php echo htmlspecialchars($row['brand']); ?></td>
-                                    <td class="text-muted small"><?php echo htmlspecialchars($row['specifications']); ?></td>
+                                    <td class="text-nowrap"><?php echo htmlspecialchars($row['brand']); ?></td>
                                     <td class="text-center"><?php echo $rangeCategoryColor; ?></td>
-                                    <td><?php echo htmlspecialchars($row['office']); ?></td>
-                                    <td><?php echo htmlspecialchars($row['accountablePerson']); ?></td>
-                                    <td><?php echo htmlspecialchars($row['actualUser']); ?></td>
-                                    <td><?php echo $remarksColor; ?></td>
+                                </tr>
+                                
+                                <tr id="details-<?php echo $counter; ?>" class="collapse details-row">
+                                    <td colspan="8"> <div class="details-inner">
+                                            
+                                            <div class="details-grid mb-3">
+                                                <div class="detail-item">
+                                                    <strong><i class="fas fa-building me-1"></i> Office / Division</strong>
+                                                    <span><?php echo htmlspecialchars($row['office']); ?></span>
+                                                </div>
+                                                <div class="detail-item">
+                                                    <strong><i class="fas fa-user-tie me-1"></i> Accountable Person</strong>
+                                                    <span><?php echo htmlspecialchars($row['accountablePerson']); ?></span>
+                                                </div>
+                                                <div class="detail-item">
+                                                    <strong><i class="fas fa-user me-1"></i> Actual User</strong>
+                                                    <span><?php echo htmlspecialchars($row['actualUser']); ?></span>
+                                                </div>
+                                            </div>
+
+                                            <hr class="text-muted">
+
+                                            <div class="row mt-3">
+                                                <div class="col-md-7 mb-3 mb-md-0">
+                                                    <h6 class="text-primary fw-bold"><i class="fas fa-microchip me-1"></i> Full Specifications</h6>
+                                                    <p class="mb-0 text-secondary" style="white-space: pre-wrap; font-size: 0.95rem;"><?php echo htmlspecialchars($row['specifications']); ?></p>
+                                                </div>
+                                                <div class="col-md-5">
+                                                    <h6 class="text-danger fw-bold"><i class="fas fa-exclamation-triangle me-1"></i> Remarks / Issues Found</h6>
+                                                    <div class="mt-2">
+                                                        <?php echo $remarksColor; ?>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            
+                                        </div>
+                                    </td>
                                 </tr>
                             <?php endwhile; ?>
                             
                             <?php if($counter == 0): ?>
                                 <tr>
-                                    <td colspan="12" class="text-center py-5 text-muted">
+                                    <td colspan="8" class="text-center py-5 text-muted">
                                         <i class="fas fa-inbox fa-3x mb-3 text-light"></i><br>
                                         No equipment found beyond 5 years of shelf life.
                                     </td>
@@ -316,7 +391,7 @@ function getRangeCategoryColor($rangeCategory) {
 
                         <?php else: ?>
                             <tr>
-                                <td colspan="12" class="text-center py-5 text-muted">
+                                <td colspan="8" class="text-center py-5 text-muted">
                                     <i class="fas fa-search fa-3x mb-3 text-light"></i><br>
                                     No records found matching your filters.
                                 </td>
@@ -327,12 +402,27 @@ function getRangeCategoryColor($rangeCategory) {
             </div>
             
             <script>
+                // Update badge counter top
                 document.addEventListener("DOMContentLoaded", function() {
                     const badge = document.querySelector('.bg-primary.rounded-pill');
                     if(badge) {
                         badge.innerHTML = "Total Records: <?php echo $counter; ?>";
                     }
                 });
+
+                // Function para mu-change ang Icon (Plus to Minus)
+                function toggleIcon(btn) {
+                    const icon = btn.querySelector('i');
+                    if(icon.classList.contains('fa-plus')) {
+                        icon.classList.remove('fa-plus');
+                        icon.classList.add('fa-minus');
+                        btn.classList.replace('btn-outline-secondary', 'btn-primary'); // mo-blue color inig open
+                    } else {
+                        icon.classList.remove('fa-minus');
+                        icon.classList.add('fa-plus');
+                        btn.classList.replace('btn-primary', 'btn-outline-secondary'); // balik gray inig close
+                    }
+                }
             </script>
         </div>
         

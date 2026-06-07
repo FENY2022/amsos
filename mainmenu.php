@@ -188,12 +188,18 @@ require_once 'sidebar.php';
             }elseif ($_dirlist == 'search_inventory') {
 
                 echo '<iframe src="search_inventory.php" style="width:100%; height:100vh; border:none;"></iframe>';
+                
+                            }elseif ($_dirlist == 'repair_frequency') {
+
+                echo '<iframe src="repair_frequency.php" style="width:100%; height:100vh; border:none;"></iframe>';
 
 
      
             }elseif ($_dirlist == 'analysisandgraph_datafilter') {
 
                 require_once 'analysisandgraph_datafilter.php' ;
+
+
       
                 
                 }else{

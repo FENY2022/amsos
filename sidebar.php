@@ -228,6 +228,10 @@ $tracking2 = $tracking2 ?? 0;
         <li>
             <a href="mainmenu.php?dir=datarep"><i class="fas fa-sync"></i> Equipment Replacement</a>
         </li>
+
+         <li>
+            <a href="mainmenu.php?dir=repair_frequency"><i class="fas fa-wrench"></i> Repair History</a>
+        </li>
     </ul>
 </li>
 
