@@ -504,10 +504,20 @@ $conn->close();
             <tbody>
                 <?php
                 if (!empty($inventory_data)) {
+                    $headers = array_keys($inventory_data[0]);
+                    $specIdx = array_search('specifications', $headers);
                     foreach ($inventory_data as $row) {
                         echo "<tr>";
-                        foreach ($row as $data) {
-                            echo "<td>" . htmlspecialchars((string)$data) . "</td>";
+                        $col = 0;
+                        foreach ($row as $key => $data) {
+                            $text = htmlspecialchars((string)$data);
+                            if ($col === $specIdx && strlen($data) > 60) {
+                                $short = htmlspecialchars(substr((string)$data, 0, 60)) . '...';
+                                echo '<td title="' . $text . '">' . $short . '</td>';
+                            } else {
+                                echo '<td>' . $text . '</td>';
+                            }
+                            $col++;
                         }
                         echo "</tr>";
                     }
@@ -524,7 +534,7 @@ $conn->close();
         $(document).ready(function() {
             $('#inventoryTable').DataTable({
                 "scrollX": true,       
-                "pageLength": 15,      
+                "pageLength": 8,      
                 "order": [[ 0, "desc" ]],
                 "language": {
                     "search": "<i class='material-icons' style='vertical-align: middle; font-size: 20px; color: #5f6368;'>search</i> Global Search:",
