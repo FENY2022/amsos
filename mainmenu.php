@@ -76,7 +76,7 @@ require_once 'sidebar.php';
 
             }elseif ($_dirlist == 'getinventory') {
 
-                require_once 'getinventory.php' ;
+                echo '<iframe src="getinventory.php" style="width:100%; height:100vh; border:none;"></iframe>';
 
                   
             }elseif ($_dirlist == 'analysisandgraph') {

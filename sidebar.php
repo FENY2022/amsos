@@ -196,12 +196,7 @@ $tracking2 = $tracking2 ?? 0;
                 <li>
                     <a href="mainmenu.php?dir=edupdate"><i class="fas fa-sync"></i> Regular Update</a>
                 </li>
-                    <a href="mainmenu.php?dir=ai"><i class="fas fa-robot"></i> AI </a>  </li>
                 <li>
-                </li>
-                   <a href="mainmenu.php?dir=search_inventory"><i class="fas fa-search"></i> Search Inventory </a>  </li>  <li>
-                </li>
-                <a href="mainmenu.php?dir=tablesummary"><i class="fas fa-table"></i> Summary </a>  </li>  <li>
                     <a href="mainmenu.php?dir=scanQR"><i class="fas fa-qrcode"></i> Scan QR</a>
                 </li>
             </ul>
@@ -231,6 +226,15 @@ $tracking2 = $tracking2 ?? 0;
 
          <li>
             <a href="mainmenu.php?dir=repair_frequency"><i class="fas fa-wrench"></i> Repair History</a>
+        </li>
+        <li>
+            <a href="mainmenu.php?dir=ai"><i class="fas fa-robot"></i> AI</a>
+        </li>
+        <li>
+            <a href="mainmenu.php?dir=search_inventory"><i class="fas fa-search"></i> Search Inventory</a>
+        </li>
+        <li>
+            <a href="mainmenu.php?dir=tablesummary"><i class="fas fa-table"></i> Summary</a>
         </li>
     </ul>
 </li>
