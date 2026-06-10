@@ -1,6 +1,78 @@
 <?php
 require 'connect.php';
 
+// Specification columns to add after 'specifications'
+$specColumns = ['HDD', 'SSD', 'RAM', 'Display', 'Processor', 'Battery', 'Operating System'];
+
+function parseSpecifications($specs) {
+    $out = array_fill_keys(['HDD','SSD','RAM','Display','Processor','Battery','Operating System'], '');
+    if (empty($specs)) return $out;
+
+    $s = $specs;
+
+    // HDD
+    if (preg_match('/\d+\s*(?:GB|TB)\s*(?:SATA\s*)?HDD/i', $s, $m)) {
+        $out['HDD'] = trim($m[0]);
+    } elseif (stripos($s, 'HDD') !== false) {
+        $out['HDD'] = 'HDD';
+    }
+
+    // SSD
+    if (preg_match('/\d+\s*(?:GB|TB)\s*(?:NVMe\s*)?SSD/i', $s, $m)) {
+        $out['SSD'] = trim($m[0]);
+    } elseif (stripos($s, 'SSD') !== false) {
+        $out['SSD'] = 'SSD';
+    }
+
+    // RAM
+    if (preg_match('/(?:\d+\s*[xX]\s*)?\d+\s*GB\s*(?:RAM|DDR[2345]|memory|Memory)\b/i', $s, $m)) {
+        $out['RAM'] = trim($m[0]);
+    } elseif (preg_match('/\d+\s*GB/i', $s, $m)) {
+        $out['RAM'] = trim($m[0]) . ' RAM';
+    }
+
+    // Display
+    if (preg_match('/\d+[\.\d]*["\x{0022}\x{201d}\x{201d}]?\s*(?:[^,]*?(?:monitor|Monitor|LED|FHD|HD|display|Display))[^,]*/u', $s, $m)) {
+        $out['Display'] = trim($m[0]);
+    } elseif (preg_match('/\d+[\.\d]*["\x{0022}]\s*[^,]*/u', $s, $m)) {
+        $out['Display'] = trim($m[0]);
+    }
+
+    // Processor
+    if (preg_match('/(?:Intel\s*Core\s*i[3579][-\s]\d+[A-Za-z0-9]*|AMD\s*Ryzen\s*\d+[A-Za-z0-9]*|RYZEN\s*\d+)/i', $s, $m)) {
+        $out['Processor'] = trim($m[0]);
+    } elseif (preg_match('/Intel\s*Core\s*i[3579]/i', $s, $m)) {
+        $out['Processor'] = trim($m[0]);
+    } elseif (preg_match('/Celeron|Pentium|Athlon/i', $s, $m)) {
+        $out['Processor'] = trim($m[0]);
+    }
+
+    // Battery
+    if (preg_match('/\d+\s*(?:cell|Wh|mAh)[^,]*/i', $s, $m)) {
+        $out['Battery'] = trim($m[0]);
+    } elseif (stripos($s, 'battery') !== false) {
+        $out['Battery'] = 'with battery';
+    }
+
+    // Operating System
+    if (preg_match('/(?:Windows\s*(?:1[01]|[789]|Vista|XP|Server)|W\s*(?:1[01]|[789]))/i', $s, $m)) {
+        $out['Operating System'] = trim($m[0]);
+    } elseif (preg_match('/W10|W11|Windows/i', $s, $m)) {
+        $out['Operating System'] = trim($m[0]);
+    }
+
+    return $out;
+}
+
+// Insert spec columns after 'specifications' in the headers array
+function addSpecColumns($headers) {
+    global $specColumns;
+    $idx = array_search('specifications', $headers);
+    if ($idx === false) return $headers;
+    array_splice($headers, $idx + 1, 0, $specColumns);
+    return $headers;
+}
+
 // --- Export to Excel (HTML format with proper styling) ---
 if (isset($_GET['export']) && $_GET['export'] === 'excel') {
     $sql = "SELECT * FROM inv_inventory ORDER BY id DESC";
@@ -29,21 +101,31 @@ if (isset($_GET['export']) && $_GET['export'] === 'excel') {
 
     echo '<table>';
     if (!empty($rows)) {
-        $headers = array_keys($rows[0]);
+        $headers = addSpecColumns(array_keys($rows[0]));
         // Header row
         echo '<tr>';
         foreach ($headers as $h) {
             $label = ucwords(str_replace('_', ' ', $h));
-            $style = 'white-space:normal;';
-            echo '<th style="' . $style . '">' . htmlspecialchars($label) . '</th>';
+            echo '<th style="white-space:normal;">' . htmlspecialchars($label) . '</th>';
         }
         echo '</tr>';
 
         // Data rows
         foreach ($rows as $row) {
+            $parsed = parseSpecifications($row['specifications'] ?? '');
+            $rowWithSpecs = $row;
+            // Insert parsed values after 'specifications'
+            $idx = array_search('specifications', array_keys($rowWithSpecs));
+            if ($idx !== false) {
+                $pos = $idx + 1;
+                $rowWithSpecs = array_slice($rowWithSpecs, 0, $pos, true)
+                    + $parsed
+                    + array_slice($rowWithSpecs, $pos, null, true);
+            }
+
             echo '<tr>';
             foreach ($headers as $h) {
-                $cell = $row[$h] ?? '';
+                $cell = $rowWithSpecs[$h] ?? '';
                 $text = htmlspecialchars((string)$cell);
                 $style = 'white-space:pre-wrap;';
                 if (in_array($h, $boldCols)) {
@@ -99,7 +181,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'excel_color') {
 
     echo '<table>';
     if (!empty($rows)) {
-        $headers = array_keys($rows[0]);
+        $headers = addSpecColumns(array_keys($rows[0]));
         // Header row
         echo '<tr>';
         foreach ($headers as $h) {
@@ -109,6 +191,16 @@ if (isset($_GET['export']) && $_GET['export'] === 'excel_color') {
         echo '</tr>';
 
         foreach ($rows as $row) {
+            $parsed = parseSpecifications($row['specifications'] ?? '');
+            $rowWithSpecs = $row;
+            $idx = array_search('specifications', array_keys($rowWithSpecs));
+            if ($idx !== false) {
+                $pos = $idx + 1;
+                $rowWithSpecs = array_slice($rowWithSpecs, 0, $pos, true)
+                    + $parsed
+                    + array_slice($rowWithSpecs, $pos, null, true);
+            }
+
             echo '<tr>';
             $eqType = $row['equipmentType'] ?? '';
             if (!isset($eqColors[$eqType])) {
@@ -117,7 +209,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'excel_color') {
             $rowColor = $eqColors[$eqType];
 
             foreach ($headers as $h) {
-                $cell = $row[$h] ?? '';
+                $cell = $rowWithSpecs[$h] ?? '';
                 $text = htmlspecialchars((string)$cell);
                 $style = "white-space:pre-wrap;background-color:$rowColor;";
                 if (in_array($h, $boldCols)) {
