@@ -43,7 +43,7 @@ if (isset($_POST['action'])) {
 
             // Validate file type
             if (!in_array($file_type, $allowed_types)) {
-                echo '<script>alert("Sorry, only JPG, JPEG, PNG & PDF files are allowed."); window.location.href = "mainmenu.php?dir=requestlist";</script>';
+                echo '<script>window.location.href = "mainmenu.php?dir=requestlist&toast_msg=Sorry%2C%20only%20JPG%2C%20JPEG%2C%20PNG%20%26%20PDF%20files%20are%20allowed.&toast_type=warning";</script>';
                 $uploadOk = 0;
             }
 
@@ -56,7 +56,7 @@ if (isset($_POST['action'])) {
                 echo "The file " . htmlspecialchars($file_name) . " has been uploaded.";
                 $file_path = $target_file;  // Save the file path
             } else {
-                echo '<script>alert("Sorry, there was an error uploading your file."); window.location.href = "mainmenu.php?dir=requestlist";</script>';
+                echo '<script>window.location.href = "mainmenu.php?dir=requestlist&toast_msg=Sorry%2C%20there%20was%20an%20error%20uploading%20your%20file.&toast_type=error";</script>';
             }
         }
 
@@ -66,7 +66,7 @@ if (isset($_POST['action'])) {
         $stmt->bind_param("isss", $srfId, $userId, $remarks, $file_path);
 
         if ($stmt->execute()) {
-            echo '<script>alert("Documents uploaded successfully."); window.location.href = "mainmenu.php?dir=requestlist";</script>';
+            echo '<script>window.location.href = "mainmenu.php?dir=requestlist&toast_msg=Documents%20uploaded%20successfully.&toast_type=success";</script>';
         } else {
             echo "Error: " . $stmt->error;
         }

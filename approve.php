@@ -137,11 +137,11 @@ $details = "Received By: " .  $_SESSION['Full_NameSRF'] . "";
         
         $stmt->close();
 
-        echo '<script>alert("Record Successfully Approved."); window.location.href = "mainmenu.php?dir=requestlist";</script>';
+        echo '<script>window.location.href = "mainmenu.php?dir=requestlist&toast_msg=Record%20Successfully%20Approved.&toast_type=success";</script>';
         exit();
     } else {
         // Failure: redirect to the request list page with error status
-        echo '<script>alert("Error Approving Record."); window.location.href = "mainmenu.php?dir=requestlist";</script>';
+        echo '<script>window.location.href = "mainmenu.php?dir=requestlist&toast_msg=Error%20Approving%20Record.&toast_type=error";</script>';
         exit();
     }
 

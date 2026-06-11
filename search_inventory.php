@@ -1,3 +1,4 @@
+<?php require_once 'connect.php'; ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -361,8 +362,6 @@
         </div>
         
         <?php
-        // Database connection details
-        require_once 'connect.php';
         // Check if a search query was submitted
         if (isset($_GET['query'])) {
             $search_query = $_GET['query'];
@@ -466,7 +465,7 @@
         ?>
 
         <footer>
-            <p>Inventory Search System &copy; 2023 | AMSOS Department</p>
+            <p>Asset Management and Service Optimization System &copy; 2023 | ICT AMSOS</p>
         </footer>
     </div>
     

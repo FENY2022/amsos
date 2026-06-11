@@ -1,3 +1,31 @@
+<?php
+$page = isset($_GET['p']) ? $_GET['p'] : '';
+$allowed = ['about','acknowlege_notification','add_event','add_signature','addequipmenthandler','ai_suggestion','amsos-requestdata','analysis_of_device','analysis','analysisandgraph_datafilter','analysisandgraph','approve','assign','assignactionstaff','assigntracking','backend_analysis','backup','button','calendarScheduler','calendarSchedulerdb','chatbot','comprehensive_reports','connect_otos','connect','data','datarep','default','delete_action','delete_event','delete-receive','deleteEnventory','deletesrfsigner','depreciation_report','details','disapproved','division_employee_inventory','echo','edit_password','edit-feedback','edit-history','edit-receive','editEnventory','editequipmenthandler','editsrfsigner','entrydata','entrydatahandler','entryupdate','equipment_page','fetch_assigactionstaff','fetch_assigntracking','fetch_events','fetch_rictuactionstaff','fetch_station','fetch_table_historymodal','fetch_tracking','fetchdate','fetchdateSRFT','fetchdateSRFTrecent','flash','get_employees','get_filtered_data','get_stations_2','get_stations','getinventory','getMessages','getMessagesUser','history','icteq_chatboot','imageviewer_2','imageviewer','inventory','lifecyclewarrantymonitoring','load_chat','login','loginhandler','logout','mainmenu','maintenance_report','manage_equipment','na_equipment_report','navbar','notification','notify_action','office_employee','options','pnumberscreen','ppc','preventive_maintenance_form','preventive_maintenance_timeline','preventive_maintenance','print-all','printform_1','printform-request','printform','printformdummy','prioritynumber','propertytable','qr','rate','receive_action','recent','reference_generator','repair_frequency','replacement_data','replacement_report','requestlist_1','requestlist','returnedequipment','save_checklist','save_checklist1','save_repairdetails','scanQR','search_inventory','search_inventoryhandler','search_preventive_inventory','sendMessage','services','session_checker','sidebar_1','sidebar','signersactionstaffrfhandler','signersrfhandler','srf-actionedit','srf','srfactionstaffdelete','srfactiontaken','srfdatagraph','srfhistory','srfrequestform','srfwaitingnumber_1','srfwaitingnumber','submit_srfhandler','summary','summaryAI','tablesummary','toast','update_action','update_action3','update_description','update_event','update_inventory','update_notification','update_user','update-receive','updateEnventory','upload_signature','upload','user_data','view_inventory_specs','viewassigntracking','viewuploaded'];
+
+if ($page !== '' && in_array($page, $allowed)) {
+    $file = $page . '.php';
+    if (file_exists($file)) {
+        ?><!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ICT-AMSOS</title>
+    <link rel="icon" href="icon/amsos.ico" type="image/x-icon">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { overflow: hidden; }
+        iframe { width: 100%; height: 100vh; border: none; display: block; }
+    </style>
+</head>
+<body>
+    <iframe src="<?= htmlspecialchars($file) ?>"></iframe>
+</body>
+</html><?php
+        exit;
+    }
+}
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -656,7 +684,9 @@
                 <ul class="navbar-nav ml-auto">
                     <li class="nav-item"><a class="nav-link" href="#">Home</a></li>
                     <li class="nav-item"><a class="nav-link" href="#features">Features</a></li>
-                    <li class="nav-item"><a class="nav-link btn-login" href="login.php">Log In</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#" data-toggle="modal" data-target="#aboutModal">About</a></li>
+                    <li class="nav-item"><a class="nav-link" href="?p=services">Services</a></li>
+                    <li class="nav-item"><a class="nav-link btn-login" href="?p=login">Log In</a></li>
                 </ul>
             </div>
         </div>
@@ -667,11 +697,11 @@
         <div class="container">
             <div class="row">
                 <div class="col-12 text-center hero-content">
-                    <h1 class="fadeInUp">Streamline Your ICT Inventory</h1>
+                    <h1 class="fadeInUp">Asset Management and Service Optimization System<br><span style="font-size:0.6em; opacity:0.9;">ICT-AMSOS</span></h1>
                     <p class="fadeInUp delay-1">Powerful asset management solution for tracking hardware, software, and network components with precision and ease.</p>
                     <div class="hero-btns">
                         <a href="#features" class="btn btn-primary-custom fadeInUp delay-2">Explore Features</a>
-                        <a href="login.php" class="btn btn-outline-custom fadeInUp delay-3">Get Started</a>
+                        <a href="?p=login" class="btn btn-outline-custom fadeInUp delay-3">Get Started</a>
                     </div>
                 </div>
             </div>
@@ -740,7 +770,7 @@
                         <div class="feature-content">
                             <h3>Asset Tracking</h3>
                             <p>Efficiently track and manage all ICT assets, including hardware, software, and network components with real-time updates and comprehensive reporting.</p>
-                            <a href="#" class="feature-link">Learn more <i class="fas fa-arrow-right"></i></a>
+                            <a href="?p=services" class="feature-link">Learn more <i class="fas fa-arrow-right"></i></a>
                         </div>
                     </div>
                 </div>
@@ -752,7 +782,7 @@
                         <div class="feature-content">
                             <h3>Informed Decisions</h3>
                             <p>Access powerful analytics and reporting tools to make informed decisions regarding asset allocation, maintenance, and future investments.</p>
-                            <a href="#" class="feature-link">Learn more <i class="fas fa-arrow-right"></i></a>
+                            <a href="?p=analysisandgraph" class="feature-link">Learn more <i class="fas fa-arrow-right"></i></a>
                         </div>
                     </div>
                 </div>
@@ -764,7 +794,7 @@
                         <div class="feature-content">
                             <h3>Up-to-Date Inventory</h3>
                             <p>Maintain an accurate and current inventory database with automated updates, reducing errors and ensuring compliance with industry standards.</p>
-                            <a href="#" class="feature-link">Learn more <i class="fas fa-arrow-right"></i></a>
+                            <a href="?p=inventory" class="feature-link">Learn more <i class="fas fa-arrow-right"></i></a>
                         </div>
                     </div>
                 </div>
@@ -834,7 +864,7 @@
             <div class="cta-content">
                 <h2>Ready to Transform Your Inventory Management?</h2>
                 <p>Join organizations that have streamlined their ICT asset tracking with ICT-AMSOS</p>
-                <a href="login.php" class="btn btn-primary-custom">Get Started Now</a>
+                <a href="?p=login" class="btn btn-primary-custom">Get Started Now</a>
             </div>
         </div>
     </section>
@@ -890,8 +920,25 @@
         </div>
     </footer>
 
+    <!-- About Modal -->
+    <div class="modal fade" id="aboutModal" tabindex="-1" role="dialog" aria-labelledby="aboutModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
+            <div class="modal-content">
+                <div class="modal-header" style="background: linear-gradient(135deg, #4361ee, #3a0ca3); color: white;">
+                    <h5 class="modal-title" id="aboutModalLabel"><i class="fas fa-info-circle"></i> About ICT-AMSOS</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close" style="color: white;">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body" style="padding: 0;">
+                    <iframe src="about.php" style="width: 100%; height: 70vh; border: none;"></iframe>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Bootstrap JS and dependencies -->
-    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
     
@@ -907,16 +954,19 @@
             }
         });
         
-        // Smooth scrolling for anchor links
-        $('a[href*="#"]').on('click', function(e) {
-            e.preventDefault();
-            $('html, body').animate({
-                scrollTop: $($(this).attr('href')).offset().top - 70
-            }, 500);
-        });
-        
         // Initialize animations
         $(document).ready(function() {
+            // Smooth scrolling for anchor links
+            $(document).on('click', 'a[href*="#"]', function(e) {
+                var target = $(this).attr('href');
+                if (target !== '#' && $(target).length) {
+                    e.preventDefault();
+                    $('html, body').animate({
+                        scrollTop: $(target).offset().top - 70
+                    }, 600);
+                }
+            });
+            
             // Add animation class to elements when they come into view
             $(window).scroll(function() {
                 $('.fadeInUp').each(function() {

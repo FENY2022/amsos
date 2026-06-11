@@ -32,16 +32,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmth->close();
 
 
-        // Alert and redirect
+        // Redirect with toast
         echo "<script>
-            alert('Successfully received!');
-            window.location.href = 'mainmenu.php?dir=requestlist'; // Replace 'previous_page.php' with the actual page
+            window.location.href = 'mainmenu.php?dir=requestlist&toast_msg=Successfully%20received!&toast_type=success';
         </script>";
     } else {
         // Handle error
+        $errorMsg = urlencode(mysqli_error($conn));
         echo "<script>
-            alert('Error: " . mysqli_error($conn) . "');
-            window.location.href = 'mainmenu.php?dir=requestlist'; // Replace 'previous_page.php' with the actual page
+            window.location.href = 'mainmenu.php?dir=requestlist&toast_msg=Error%3A%20" . $errorMsg . "&toast_type=error';
         </script>";
     }
 

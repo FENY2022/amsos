@@ -172,7 +172,7 @@ if ($_SERVER["REQUEST_METHOD"] == "GET" && isset($_GET['assign'])) {
 
         } else {
             // Handle error if the prepared statement fails
-            echo '<script>alert("Error preparing statement for history."); window.location.href = "mainmenu.php?dir=requestlist";</script>';
+            echo '<script>window.location.href = "mainmenu.php?dir=requestlist&toast_msg=Error%20preparing%20statement%20for%20history.&toast_type=error";</script>';
             exit();
         }
 
@@ -297,11 +297,11 @@ if ($_SERVER["REQUEST_METHOD"] == "GET" && isset($_GET['assign'])) {
         if ($stmt->execute()) {
         
             // Success: redirect to the request list page with a success message
-            echo '<script>alert("Record Successfully Assigned."); window.location.href = "mainmenu.php?dir=requestlist";</script>';
+            echo '<script>window.location.href = "mainmenu.php?dir=requestlist&toast_msg=Record%20Successfully%20Assigned.&toast_type=success";</script>';
             exit();
         } else {
             // Failure: redirect to the request list page with an error message
-            echo '<script>alert("Error Approving Record."); window.location.href = "mainmenu.php?dir=requestlist";</script>';
+            echo '<script>window.location.href = "mainmenu.php?dir=requestlist&toast_msg=Error%20Approving%20Record.&toast_type=error";</script>';
             exit();
         }
 
@@ -309,7 +309,7 @@ if ($_SERVER["REQUEST_METHOD"] == "GET" && isset($_GET['assign'])) {
         $stmt->close();
     } else {
         // Handle error if the prepared statement fails
-        echo '<script>alert("Error preparing update statement."); window.location.href = "mainmenu.php?dir=requestlist";</script>';
+        echo '<script>window.location.href = "mainmenu.php?dir=requestlist&toast_msg=Error%20preparing%20update%20statement.&toast_type=error";</script>';
         exit();
     }
 
