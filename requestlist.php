@@ -510,14 +510,79 @@ ini_set('display_errors', 1);
     }
 
     /* ── Responsive ── */
+    @media (max-width: 991px) {
+        .modal-dialog { margin: 0.5rem; }
+        .modal-dialog.modal-xl { max-width: calc(100% - 1rem); }
+        .modal-dialog.modal-xl .modal-body iframe { height: 60vh; }
+        .modal-header { padding: 1rem 1.25rem; }
+        .modal-body { padding: 1.25rem; }
+        .modal-footer { padding: 0.75rem 1.25rem; flex-wrap: wrap; gap: 0.5rem; }
+        .modal-footer .btn { font-size: 0.82rem; padding: 0.4rem 0.75rem; }
+        .modal-footer .d-inline-block { flex: 1 1 auto; }
+        .modal-footer .d-inline-block .btn { width: 100%; }
+        .sr-dropdown-menu { min-width: 160px !important; }
+    }
+
     @media (max-width: 768px) {
         .sr-container { padding: 0.75rem; }
         .sr-header { flex-direction: column; align-items: stretch; }
         .sr-header-left h1 { font-size: 1.35rem; }
-        .sr-stats { grid-template-columns: repeat(2, 1fr); }
-        .sr-grid { grid-template-columns: 1fr; }
-        .sr-toolbar { flex-direction: column; align-items: stretch; }
-        .sr-filter-tabs { overflow-x: auto; flex-wrap: nowrap; }
+        .sr-header-left p { font-size: 0.8rem; }
+        .sr-stats { grid-template-columns: repeat(2, 1fr); gap: 0.75rem; }
+        .sr-stat-card { padding: 1rem; gap: 0.75rem; }
+        .sr-stat-icon { width: 38px; height: 38px; }
+        .sr-stat-info h3 { font-size: 1.25rem; }
+        .sr-stat-info p { font-size: 0.7rem; }
+        .sr-grid { grid-template-columns: 1fr; gap: 1rem; }
+        .sr-card-body { padding: 1rem 1.25rem 0.75rem; }
+        .sr-card-footer { padding: 0.6rem 1.25rem 1rem; }
+        .sr-toolbar { flex-direction: column; align-items: stretch; padding: 0.6rem 0.75rem; }
+        .sr-filter-tabs { overflow-x: auto; flex-wrap: nowrap; -webkit-overflow-scrolling: touch; }
+        .sr-filter-tab { font-size: 0.75rem; padding: 0.35rem 0.65rem; flex-shrink: 0; }
+        .sr-search-wrap input { font-size: 0.85rem; }
+        .sr-refresh-btn { font-size: 0.8rem; padding: 0.4rem 0.75rem; }
+        .sr-toast-container { top: 0.75rem; right: 0.75rem; left: 0.75rem; }
+        .sr-toast { min-width: 0; max-width: 100%; padding: 0.75rem 1rem; font-size: 0.85rem; }
+        .modal-dialog { margin: 0.5rem; }
+        .modal-dialog.modal-xl { max-width: calc(100% - 1rem); }
+        .modal-dialog.modal-xl .modal-body iframe { height: 50vh; }
+        .modal-header { padding: 0.75rem 1rem; }
+        .modal-header .modal-title { font-size: 0.95rem; }
+        .modal-body { padding: 1rem; }
+        .modal-footer { padding: 0.75rem 1rem; flex-wrap: wrap; gap: 0.5rem; }
+        .modal-footer .btn { font-size: 0.8rem; padding: 0.35rem 0.6rem; }
+        .modal-footer .d-inline-block { flex: 1 1 auto; }
+        .modal-footer .d-inline-block .btn { width: 100%; }
+        .sr-dropdown-menu { min-width: 150px !important; }
+        .sr-empty { padding: 2rem 1rem; }
+        .sr-empty-icon { font-size: 3rem; }
+        .sr-empty h3 { font-size: 1.1rem; }
+        .sr-loading { padding: 2rem 1rem; }
+        .sr-card-details .sr-detail-row { font-size: 0.78rem; }
+        .sr-card-title { font-size: 0.92rem; }
+        .sr-card-desc { font-size: 0.78rem; }
+        .modal-body .row.g-3 > [class*="col-"] { flex: 0 0 100%; max-width: 100%; }
+    }
+
+    @media (max-width: 480px) {
+        .sr-container { padding: 0.5rem; }
+        .sr-stats { grid-template-columns: 1fr 1fr; gap: 0.5rem; }
+        .sr-stat-card { padding: 0.75rem; }
+        .sr-stat-icon { width: 32px; height: 32px; }
+        .sr-stat-icon .material-icons-outlined { font-size: 1.1rem; }
+        .sr-stat-info h3 { font-size: 1.1rem; }
+        .sr-card { border-radius: var(--radius); }
+        .sr-card-body { padding: 0.75rem 1rem 0.5rem; }
+        .sr-card-footer { padding: 0.5rem 1rem 0.75rem; }
+        .sr-card-top { flex-direction: column; gap: 0.4rem; }
+        .sr-action-btn { font-size: 0.78rem; padding: 0.4rem 0.75rem; }
+        .sr-dropdown-menu { min-width: 140px !important; }
+        .sr-dropdown-menu .dropdown-item { font-size: 0.78rem; padding: 0.4rem 0.6rem; }
+        .sr-header-left h1 { font-size: 1.2rem; }
+        .sr-toast { padding: 0.65rem 0.85rem; font-size: 0.82rem; }
+        .modal-header .modal-title { font-size: 0.9rem; }
+        .modal-footer { flex-direction: column; }
+        .modal-footer .btn { width: 100%; margin: 0 !important; }
     }
 
     /* ── Fix card z-index stacking ── */
