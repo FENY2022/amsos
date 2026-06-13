@@ -104,7 +104,8 @@
         }
 
         .logo img {
-            max-width: 120px;
+            max-width: 180px;
+            width: 80%;
             margin-bottom: 25px;
             display: block;
             margin-left: auto;
@@ -284,7 +285,7 @@
                 padding: 20px;
             }
             .logo img {
-                max-width: 100px;
+                max-width: 140px;
                 margin-bottom: 15px;
             }
             .login-title {
