@@ -220,19 +220,13 @@
 
             <form action="mainmenu.php?dir=edupdate" method="POST" class="search-form" style="margin-bottom: 1rem;">
                 <div class="row">
-                <div class="col-md-3 mb-3">
-                    <label for="officeDivision" class="form-label">Office Division:</label>
-                    <select id="officeDivision" name="officeDivision" class="form-select" required
-                        style="padding: 0.375rem 0.75rem; border: 1px solid #ced4da; border-radius: 0.25rem;">
-                        
-                        <option value="">-- Select Office --</option>
-                        
-                        <?php echo $office_division_options; ?>
-
-                        
-                    </select>
-                </div>
-
+                    <div class="col-md-3 mb-3">
+                        <label for="officeDivision" class="form-label">Office Division:</label>
+                        <select id="officeDivision" name="officeDivision" class="form-select" required style="padding: 0.375rem 0.75rem; border: 1px solid #ced4da; border-radius: 0.25rem;">
+                            <option value="">-- Select Office --</option>
+                            <?php echo $office_division_options; ?>
+                        </select>
+                    </div>
                     <div class="col-md-3 mb-3">
                         <label for="employeeName" class="form-label">Employee Name:</label>
                         <select id="employeeName" name="employeeName" class="form-select" style="padding: 0.375rem 0.75rem; border: 1px solid #ced4da; border-radius: 0.25rem;">
@@ -270,9 +264,9 @@
             <button type="button" class="btn btn-success me-2" data-bs-toggle="modal" data-bs-target="#addRecordModal">
                 <i class="fas fa-plus-circle me-2"></i>Add New Record
             </button>
-        <button type="button" class="btn btn-info" data-bs-toggle="modal" data-bs-target="#comprehensiveReportsModal">
-            <i class="fas fa-chart-pie me-2"></i>Comprehensive Reports
-        </button>
+<button type="button" class="btn btn-info" data-bs-toggle="modal" data-bs-target="#comprehensiveReportsModal">
+    <i class="fas fa-chart-pie me-2"></i>Comprehensive Reports
+</button>
 
         </div>
     </div>

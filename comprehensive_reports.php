@@ -1,7 +1,4 @@
 <?php
-
-require_once 'session_checker.php'; // Ensure user is authenticated
-
 // Include database connection
 require_once 'connect.php'; 
 

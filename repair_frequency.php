@@ -3,7 +3,7 @@
 require_once 'connect.php';
 
 // =========================================================================
-// ACTION: EXPORT TO EXCEL - SUMMARY ONLY (UPDATED WITH SRF IDs PER ROW)
+// ACTION: EXPORT TO EXCEL - SUMMARY ONLY (UPDATED WITH SRF IDs)
 // =========================================================================
 if (isset($_GET['action']) && $_GET['action'] == 'export_summary') {
     header('Content-Type: text/csv; charset=utf-8');
@@ -18,24 +18,22 @@ if (isset($_GET['action']) && $_GET['action'] == 'export_summary') {
         'Brand', 
         'Description', 
         'Total Times Repaired',
-        'SRF Track ID' // <-- Changed to singular, as it will be one ID per row
+        'SRF Track IDs' // <-- Added column for SRF IDs
     ]);
     
-    // Main Query: Generates one row per distinct track ID
-    $export_sql = "
-        SELECT 
-            i.propertyNumber, 
-            i.actualUser, 
-            i.equipmentType, 
-            i.brand, 
-            i.specifications,
-            (SELECT COUNT(DISTINCT s_sub.trackid) FROM srfhistory s_sub WHERE s_sub.equipment_id = i.id) as repair_count,
-            DISTINCT_TRACKS.trackid as srf_id
-        FROM inv_inventory i
-        INNER JOIN (SELECT DISTINCT equipment_id, trackid FROM srfhistory) DISTINCT_TRACKS 
-            ON i.id = DISTINCT_TRACKS.equipment_id
-        ORDER BY repair_count DESC, i.propertyNumber ASC, srf_id DESC
-    ";
+    // Main Query
+    $export_sql = "SELECT 
+                        i.propertyNumber, 
+                        i.actualUser, 
+                        i.equipmentType, 
+                        i.brand, 
+                        i.specifications,
+                        COUNT(DISTINCT s.trackid) as repair_count,
+                        GROUP_CONCAT(DISTINCT s.trackid SEPARATOR ', ') as srf_ids
+                    FROM inv_inventory i
+                    INNER JOIN srfhistory s ON i.id = s.equipment_id
+                    GROUP BY i.id
+                    ORDER BY repair_count DESC";
                     
     $export_res = $conn->query($export_sql);
     
@@ -48,7 +46,7 @@ if (isset($_GET['action']) && $_GET['action'] == 'export_summary') {
                 $row['brand'],
                 $row['specifications'],
                 $row['repair_count'],
-                $row['srf_id'] // <-- Output the single SRF ID for this specific row
+                $row['srf_ids'] // <-- Output the concatenated SRF IDs
             ]);
         }
     }
