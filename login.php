@@ -418,47 +418,46 @@
             $('#loginForm').on('submit', function(e) {
                 e.preventDefault();
                 
-                // Basic client-side validation (can be more robust)
                 const username = $('#username').val().trim();
-                const password = $('#password').val().trim(); // Corrected: Use $('#password')
+                const password = $('#password').val().trim();
 
                 if (!username || !password) {
                     toastr.warning('Please enter both username and password.');
                     return;
                 }
 
-                // Show a loading state on the button
                 const loginButton = $('.login-button');
                 loginButton.text('Logging in...').prop('disabled', true).addClass('loading');
 
                 $.ajax({
-                    url: 'loginhandler.php', // Ensure this path is correct
+                    url: 'loginhandler.php',
                     type: 'POST',
+                    dataType: 'json',
                     data: { username: username, password: password },
-                    success: function(response) {
-                        // Remove loading state
+                    success: function(result) {
                         loginButton.text('Login').prop('disabled', false).removeClass('loading');
-                        
-                        try {
-                            var result = JSON.parse(response);
-                            if (result.success) {
-                                toastr.success(result.message + ' Redirecting...');
-                                setTimeout(function() {
-                                    window.location.href = 'mainmenu.php'; // Correct redirect URL
-                                }, 1500); // Redirect slightly faster
-                            } else {
-                                toastr.error(result.message || 'Login failed. Please try again.');
-                            }
-                        } catch (e) {
-                            toastr.error('Error parsing server response.');
-                            console.error('Server response parsing error:', response);
+
+                        if (result.success) {
+                            toastr.success(result.message);
+                            setTimeout(function() {
+                                window.location.href = 'mainmenu.php';
+                            }, 1500);
+                        } else {
+                            toastr.error(result.message || 'Login failed. Please try again.');
                         }
                     },
                     error: function(jqXHR, textStatus, errorThrown) {
-                        // Remove loading state
                         loginButton.text('Login').prop('disabled', false).removeClass('loading');
-                        toastr.error('An unexpected error occurred. Please try again later.');
-                        console.error('AJAX error:', textStatus, errorThrown, jqXHR.responseText);
+
+                        var msg = 'Connection error. Please try again.';
+                        try {
+                            var resp = JSON.parse(jqXHR.responseText);
+                            if (resp.message) msg = resp.message;
+                        } catch(e) {
+                            if (jqXHR.responseText) msg = jqXHR.responseText;
+                        }
+                        toastr.error(msg);
+                        console.error('AJAX error:', textStatus, errorThrown);
                     }
                 });
             });
