@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ICT-AMOS</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
         * {
             margin: 0;
@@ -125,11 +126,20 @@
             margin-bottom: 10px;
         }
 
-        .feature h3::before {
-            content: '>";
+        .feature i {
+            color: #006400;
+            margin-right: 10px;
+            font-size: 1.2em;
+        }
+
+        .logo-details i {
             color: #006400;
             margin-right: 8px;
-            font-weight: 700;
+        }
+
+        h2 i {
+            color: #006400;
+            margin-right: 10px;
         }
 
         .feature p {
@@ -370,42 +380,42 @@
     <div class="container">
         <header>
             <img src="logo/amsos.png" alt="ICT-AMOS Logo" class="logo">
-            <h1>ICT-AMOS</h1>
-            <p>Serving as the backbone for DENR's ICT infrastructure.</p>
+            <h1><i class="fas fa-cogs"></i> ICT-AMOS</h1>
+            <p><i class="fas fa-server"></i> Serving as the backbone for DENR's ICT infrastructure.</p>
         </header>
 
         <section id="overview">
-            <h2>Overview</h2>
+            <h2><i class="fas fa-info-circle"></i> Overview</h2>
             <p>ICT-AMOS (Information and Communication Technology - Asset Management and Service Optimization System) plays a pivotal role within the Department of Environment and Natural Resources (DENR). Here's a more detailed explanation:</p>
         </section>
 
         <section id="features">
-            <h2>Key Features</h2>
+            <h2><i class="fas fa-star"></i> Key Features</h2>
             <div class="features-grid">
                 <div class="feature">
-                    <h3>Inventory Enhancement</h3>
+                    <h3><i class="fas fa-boxes"></i> Inventory Enhancement</h3>
                     <p>ICT-AMOS streamlines the inventory process for ICT properties. It efficiently tracks and manages all ICT assets, including hardware, software, and network components. By maintaining an accurate and up-to-date inventory, DENR can make informed decisions regarding asset allocation, maintenance, and upgrades.</p>
                 </div>
                 <div class="feature">
-                    <h3>Faster Inventory</h3>
+                    <h3><i class="fas fa-rocket"></i> Faster Inventory</h3>
                     <p>Traditional manual inventory processes can be time-consuming and prone to errors. ICT-AMOS automates this task, significantly reducing the time required to catalog and verify assets. Through automated scans, data synchronization, and real-time updates, DENR gains a comprehensive view of its ICT resources without delays.</p>
                 </div>
                 <div class="feature">
-                    <h3>Service Optimization</h3>
+                    <h3><i class="fas fa-wrench"></i> Service Optimization</h3>
                     <p>ICT-AMOS goes beyond inventory management. It also optimizes service delivery and support. When issues arise (such as equipment malfunction or software glitches), ICT-AMOS facilitates efficient troubleshooting, timely repairs, and preventive maintenance. Service requests are logged, tracked, and resolved promptly.</p>
                 </div>
                 <div class="feature">
-                    <h3>Work Optimization</h3>
+                    <h3><i class="fas fa-tasks"></i> Work Optimization</h3>
                     <p>DENR staff benefit from ICT-AMOS by having streamlined workflows. Routine tasks, such as equipment checkouts, software installations, and license renewals, are automated. Workflows are optimized based on predefined rules, ensuring that resources are allocated effectively and tasks are prioritized.</p>
                 </div>
             </div>
         </section>
 
         <section id="logo">
-            <h2>About the Logo</h2>
+            <h2><i class="fas fa-palette"></i> About the Logo</h2>
             <div class="logo-section">
                 <div class="logo-details">
-                    <h3>Color Scheme</h3>
+                    <h3><i class="fas fa-paint-brush"></i> Color Scheme</h3>
                     <ul>
                         <li><strong>Blue:</strong> Represents trust, technology, and professionalism, which are crucial for ICT systems.</li>
                         <li><strong>Green:</strong> Symbolizes growth, innovation, and sustainability, aligning with the environmental aspect of DENR.</li>
@@ -413,7 +423,7 @@
                     </ul>
                 </div>
                 <div class="logo-details">
-                    <h3>Shapes and Symbols</h3>
+                    <h3><i class="fas fa-shapes"></i> Shapes and Symbols</h3>
                     <ul>
                         <li>The square with rounded corners symbol on the right is a universal representation of machinery and systems, indicating the optimization and service aspect.</li>
                         <li>The circuitry lines extending from the gear can symbolize connectivity and ICT, highlighting the technological focus.</li>
@@ -421,11 +431,11 @@
                     </ul>
                 </div>
                 <div class="logo-details">
-                    <h3>Text and Font</h3>
+                    <h3><i class="fas fa-font"></i> Text and Font</h3>
                     <p>The font choice and arrangement of the text are clear and professional, suitable for a formal and technical system. Emphasizing "ICT" in green and "AMOS" in gray differentiates the key components of the system.</p>
                 </div>
                 <div class="logo-details">
-                    <h3>Logo Composition</h3>
+                    <h3><i class="fas fa-images"></i> Logo Composition</h3>
                     <p>The combination of text and symbols effectively conveys a modern and integrated system. The inclusion of the DENR emblem within the gear signifies the connection to the Department of Environment and Natural Resources, grounding the technological aspects in environmental management.</p>
                 </div>
             </div>
