@@ -8,7 +8,7 @@ error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
 // Security headers
-header("Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; object-src 'none'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; frame-ancestors 'none';");
+header("Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.google.com https://www.gstatic.com; object-src 'none'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; frame-src 'self' https://www.google.com; frame-ancestors 'none';");
 header("X-Content-Type-Options: nosniff");
 header("X-Frame-Options: DENY");
 header("X-XSS-Protection: 1; mode=block");
@@ -23,7 +23,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (empty($username) || empty($password)) {
         echo json_encode(['success' => false, 'message' => 'Please fill in both fields.']);
         exit;
-    } else {
+    }
+
+    // Verify reCAPTCHA
+    $recaptcha_secret = '6Lcx-IwsAAAAAEezkY69hupc3IwR4bw3WlEWUd38';
+    $recaptcha_response = $_POST['g-recaptcha-response'] ?? '';
+    if (empty($recaptcha_response)) {
+        echo json_encode(['success' => false, 'message' => 'Please complete the reCAPTCHA.']);
+        exit;
+    }
+    $recaptcha_verify = file_get_contents("https://www.google.com/recaptcha/api/siteverify?secret=$recaptcha_secret&response=$recaptcha_response");
+    $recaptcha_data = json_decode($recaptcha_verify);
+    if (!$recaptcha_data->success) {
+        echo json_encode(['success' => false, 'message' => 'reCAPTCHA verification failed. Please try again.']);
+        exit;
+    }
+
+    else {
         // Create a prepared statement
         if ($stmt = $conn_otos->prepare('SELECT id, Full_Name, Office, Station, Profile_Link, User_Role, username, password FROM useremployee WHERE username = ?')) {
             $stmt->bind_param('s', $username);

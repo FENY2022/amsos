@@ -9,6 +9,7 @@
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css" rel="stylesheet">
+    <script src="https://www.google.com/recaptcha/api.js" async defer></script>
 
     <style>
         /* CSS from styles.css */
@@ -342,6 +343,7 @@
                             <i class="fas fa-eye" aria-hidden="true"></i>
                         </span>
                     </div>
+                    <div class="g-recaptcha" data-sitekey="6Lcx-IwsAAAAABdHfpiwf9fIC4KDeXur7mpxLCxm" style="margin-bottom: 15px; display: flex; justify-content: center;"></div>
                     <button type="submit" class="login-button">Login</button>
                     <div class="forgot-password">
                         <a href="#" aria-label="Forgot your password? Click here.">Forgot Password?</a>
@@ -434,7 +436,7 @@
                 $.ajax({
                     url: 'loginhandler.php', // Ensure this path is correct
                     type: 'POST',
-                    data: { username: username, password: password },
+                    data: { username: username, password: password, 'g-recaptcha-response': grecaptcha.getResponse() },
                     success: function(response) {
                         // Remove loading state
                         loginButton.text('Login').prop('disabled', false).removeClass('loading');
