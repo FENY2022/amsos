@@ -226,6 +226,92 @@ if (isset($_GET['export']) && $_GET['export'] === 'excel_color') {
     echo '</table></body></html>';
     exit;
 }
+
+// --- Export to Excel (Summary per Division) ---
+if (isset($_GET['export']) && $_GET['export'] === 'excel_division') {
+    $sql = "SELECT officeDivision, equipmentType, COUNT(*) as cnt FROM inv_inventory GROUP BY officeDivision, equipmentType ORDER BY officeDivision, equipmentType";
+    $result = $conn->query($sql);
+    $data = [];
+    $divisions = [];
+    $eqTypes = [];
+    if ($result && $result->num_rows > 0) {
+        while ($row = $result->fetch_assoc()) {
+            $div = $row['officeDivision'];
+            $eq = $row['equipmentType'];
+            $data[$div][$eq] = (int)$row['cnt'];
+            $divisions[$div] = true;
+            $eqTypes[$eq] = true;
+        }
+    }
+
+    // Personnel count per division
+    $personnel = [];
+    $perSql = "SELECT officeDivision, COUNT(DISTINCT employeeName) as personnel_count FROM inv_inventory GROUP BY officeDivision";
+    $perResult = $conn->query($perSql);
+    if ($perResult && $perResult->num_rows > 0) {
+        while ($row = $perResult->fetch_assoc()) {
+            $personnel[$row['officeDivision']] = (int)$row['personnel_count'];
+        }
+    }
+
+    $divisions = array_keys($divisions);
+    $eqTypes = array_keys($eqTypes);
+    sort($divisions);
+    sort($eqTypes);
+    $conn->close();
+
+    $filename = 'AMSOS_Inventory_ByDivision_' . date('Y-m-d_H-i-s') . '.xls';
+    header('Content-Type: application/vnd.ms-excel');
+    header('Content-Disposition: attachment; filename="' . $filename . '"');
+
+    echo '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">';
+    echo '<head><meta charset="UTF-8">';
+    echo '<!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet><x:Name>Summary</x:Name><x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions></x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]-->';
+    echo '<style>td,th{mso-number-format:"\@";font-size:12pt;vertical-align:middle;text-align:center;} th{font-weight:bold;background:#1a73e8;color:#fff;} td,th{border:1px solid #ccc;padding:6px 10px;} tr{height:28.6pt;} .div-label{font-weight:bold;text-align:left;background:#e8f0fe;} .grand-total{font-weight:bold;background:#d4edda;} .sub-total{font-weight:bold;background:#fff3cd;} .personnel{font-weight:bold;background:#fce8e6;}</style>';
+    echo '</head><body>';
+    echo '<h2 style="font-family:Roboto,sans-serif;color:#1a73e8;">AMSOS Inventory Summary per Division</h2>';
+    echo '<p style="font-family:Roboto,sans-serif;color:#5f6368;">Generated: ' . date('F j, Y h:i A') . '</p>';
+    echo '<table>';
+
+    // Header row
+    echo '<tr><th style="text-align:left;">Office Division</th>';
+    echo '<th style="background:#e3746b;color:#fff;">No. of Personnel</th>';
+    foreach ($eqTypes as $eq) {
+        echo '<th>' . htmlspecialchars($eq) . '</th>';
+    }
+    echo '<th>Total Equipment</th></tr>';
+
+    // Data rows
+    $grandTotalEq = 0;
+    $grandTotalPersonnel = 0;
+    $colTotals = array_fill_keys($eqTypes, 0);
+    foreach ($divisions as $div) {
+        echo '<tr><td class="div-label">' . htmlspecialchars($div) . '</td>';
+        $pCount = $personnel[$div] ?? 0;
+        $grandTotalPersonnel += $pCount;
+        echo '<td class="personnel">' . $pCount . '</td>';
+        $rowTotal = 0;
+        foreach ($eqTypes as $eq) {
+            $cnt = $data[$div][$eq] ?? 0;
+            $rowTotal += $cnt;
+            $colTotals[$eq] += $cnt;
+            echo '<td>' . $cnt . '</td>';
+        }
+        $grandTotalEq += $rowTotal;
+        echo '<td class="sub-total">' . $rowTotal . '</td></tr>';
+    }
+
+    // Grand total row
+    echo '<tr><td class="grand-total" style="text-align:left;">GRAND TOTAL</td>';
+    echo '<td class="grand-total">' . $grandTotalPersonnel . '</td>';
+    foreach ($eqTypes as $eq) {
+        echo '<td class="grand-total">' . $colTotals[$eq] . '</td>';
+    }
+    echo '<td class="grand-total">' . $grandTotalEq . '</td></tr>';
+
+    echo '</table></body></html>';
+    exit;
+}
 // --- End Export ---
 
 $sql = "SELECT * FROM inv_inventory ORDER BY id DESC";
@@ -468,6 +554,13 @@ $conn->close();
                         <span class="label">
                             Export to Excel (Color Coded)
                             <small>Color coded by Equipment Type</small>
+                        </span>
+                    </a>
+                    <a href="?export=excel_division">
+                        <i class="material-icons" style="font-size: 20px; color:#34a853;">bar_chart</i>
+                        <span class="label">
+                            Summary per Division
+                            <small>Equipment count grouped by office division</small>
                         </span>
                     </a>
                 </div>
