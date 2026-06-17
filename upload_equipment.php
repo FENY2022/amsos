@@ -84,6 +84,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <div class="container">
     <div class="card">
         <div class="card-header">
+            <img src="logopng.png" alt="Logo" style="width: 60px; height: auto; margin-bottom: 8px;">
             <h4 class="mb-0">Upload Equipment</h4>
         </div>
         <div class="card-body">
