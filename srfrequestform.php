@@ -729,7 +729,7 @@ $date = date('Y-m-d');
                 <div class="form-group mb-3 text-center">
                     <label class="form-label">Scan QR to upload equipment image</label>
                     <div class="d-flex justify-content-center">
-                        <img id="otherQRCode" src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=<?php echo urlencode('http://' . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI']); ?>" alt="QR Code" class="img-fluid" style="max-width: 200px;">
+                        <img id="otherQRCode" src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=<?php echo urlencode('http://' . $_SERVER['HTTP_HOST'] . '/amsos/upload_equipment.php'); ?>" alt="QR Code" class="img-fluid" style="max-width: 200px;">
                     </div>
                     <small class="text-muted d-block mt-2">Scan with your mobile device to upload equipment images</small>
                 </div>
