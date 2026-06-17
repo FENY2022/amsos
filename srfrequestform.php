@@ -2,7 +2,6 @@
 
 require_once "session_checker.php";
 
-
 ?>
 
 <!DOCTYPE html>
@@ -379,7 +378,6 @@ require_once "session_checker.php";
 
 <?php
 
-
 function generateTicketNumber() {
     if (!isset($_SESSION['ticket_number'])) {
         $_SESSION['ticket_number'] = 1;
@@ -602,7 +600,6 @@ $date = date('Y-m-d');
     </div>
 </div>
 
-<!-- Zoom Meeting Details Modal -->
 <div class="modal fade" id="zoomModal" tabindex="-1" aria-labelledby="zoomModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
@@ -647,7 +644,6 @@ $date = date('Y-m-d');
     </div>
 </div>
 
-<!-- Email Details Modal -->
 <div class="modal fade" id="emailModal" tabindex="-1" aria-labelledby="emailModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
@@ -677,7 +673,6 @@ $date = date('Y-m-d');
     </div>
 </div>
 
-<!-- In House Software Modal -->
 <div class="modal fade" id="softwareModal" tabindex="-1" aria-labelledby="softwareModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
@@ -709,7 +704,6 @@ $date = date('Y-m-d');
     </div>
 </div>
 
-<!-- Other Request Modal -->
 <div class="modal fade" id="otherModal" tabindex="-1" aria-labelledby="otherModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
@@ -729,7 +723,7 @@ $date = date('Y-m-d');
                 <div class="form-group mb-3 text-center">
                     <label class="form-label">Scan QR to upload equipment image</label>
                     <div class="d-flex justify-content-center">
-                        <img id="otherQRCode" src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=<?php echo urlencode((isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http') . '://' . $_SERVER['HTTP_HOST'] . rtrim(dirname($_SERVER['SCRIPT_NAME']), '/') . '/upload_equipment.php'); ?>" alt="QR Code" class="img-fluid" style="max-width: 200px;">
+                        <img id="otherQRCode" src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=<?php echo urlencode((isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http') . '://' . $_SERVER['HTTP_HOST'] . rtrim(dirname($_SERVER['SCRIPT_NAME']), '/') . '/upload_equipment.php?ticket=' . urlencode($ticketNumber)); ?>" alt="QR Code" class="img-fluid" style="max-width: 200px;">
                     </div>
                     <small class="text-muted d-block mt-2">Scan with your mobile device to upload equipment images</small>
                 </div>
@@ -1221,6 +1215,112 @@ $date = date('Y-m-d');
         </div>  
     </div>
 </div>
+
+<div class="modal fade" id="uploadReceivedModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Upload Received</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p><strong>Ticket:</strong> <span id="uploadTicket"></span></p>
+                <p><strong>File:</strong> <span id="uploadFilename"></span></p>
+                <div id="uploadPreview" class="text-center mt-2"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-success" data-bs-dismiss="modal">Keep Upload</button>
+                <button type="button" class="btn btn-danger" id="deleteUploadBtn">Delete</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="confirmDeleteModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Confirm Delete</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete this upload?</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" id="confirmDeleteBtn">Delete</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://js.pusher.com/8.2.0/pusher.min.js"></script>
+<script>
+    var pusher = new Pusher('98d5a35431a9fefb0370', {
+      cluster: 'ap3',
+      forceTLS: true
+    });
+
+    var pendingUpload = null;
+
+    function showDeleteConfirm() {
+        var confirmModal = new bootstrap.Modal(document.getElementById('confirmDeleteModal'));
+        confirmModal.show();
+    }
+
+    function deleteUpload() {
+        if (!pendingUpload) return;
+        var xhr = new XMLHttpRequest();
+        xhr.open('POST', 'delete_upload.php', true);
+        xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+        xhr.onload = function() {
+            var resp = JSON.parse(xhr.responseText);
+            if (resp.success) {
+                var toastEl = document.getElementById('errorToast');
+                toastEl.classList.remove('bg-danger');
+                toastEl.classList.add('bg-success');
+                toastEl.querySelector('.toast-body').textContent = 'Upload deleted.';
+                var toast = new bootstrap.Toast(toastEl, { autohide: true, delay: 3000 });
+                toast.show();
+            } else {
+                var toastEl = document.getElementById('errorToast');
+                toastEl.classList.remove('bg-success');
+                toastEl.classList.add('bg-danger');
+                toastEl.querySelector('.toast-body').textContent = 'Failed to delete upload.';
+                var toast = new bootstrap.Toast(toastEl, { autohide: true, delay: 3000 });
+                toast.show();
+            }
+        };
+        xhr.send('filename=' + encodeURIComponent(pendingUpload.filename));
+        pendingUpload = null;
+    }
+
+    document.getElementById('deleteUploadBtn').addEventListener('click', showDeleteConfirm);
+    document.getElementById('confirmDeleteBtn').addEventListener('click', function() {
+        bootstrap.Modal.getInstance(document.getElementById('confirmDeleteModal')).hide();
+        deleteUpload();
+        bootstrap.Modal.getInstance(document.getElementById('uploadReceivedModal')).hide();
+    });
+
+    var channel = pusher.subscribe('upload-channel');
+
+    channel.bind('file-uploaded', function(data) {
+        pendingUpload = data;
+        document.getElementById('uploadTicket').textContent = data.ticket || 'N/A';
+        document.getElementById('uploadFilename').textContent = data.filename || 'N/A';
+
+        var ext = (data.filename || '').split('.').pop().toLowerCase();
+        var preview = document.getElementById('uploadPreview');
+        if (['jpg', 'jpeg', 'png', 'gif'].indexOf(ext) !== -1) {
+            preview.innerHTML = '<img src="uploads/' + data.filename + '" class="img-fluid rounded" style="max-height: 200px;">';
+        } else {
+            preview.innerHTML = '<i class="bi bi-file-earmark fs-1 text-muted"></i><p class="text-muted small">No preview available</p>';
+        }
+
+        var modal = new bootstrap.Modal(document.getElementById('uploadReceivedModal'));
+        modal.show();
+    });
+</script>
 
 </body>
 </html>

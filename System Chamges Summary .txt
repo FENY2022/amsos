@@ -1,0 +1,32 @@
+Sure! Summary sa atong nahimo karon (Cebuano/Bisaya):
+
+1. Gibalhin ang Request Type
+
+Gikuha ang "Request Type" dropdown gikan sa Section 2 ug gibutang sa Section 1 — second to the last, bag-o sa "Selected Equipment"
+2. Naghimo ug mga modal para sa lain-laing Request Type
+
+Zoom — modal nga naay Meeting Title, Date & Time (formatted like "June 27, 2026 at 9:00 am"), Meeting ID, Password, Meeting Type (Online/Blended), Remarks
+Email — modal nga naay Recipient Email, Subject, Remarks (required)
+In House Software — modal nga naay dropdown (OTOS WEB+, EDATS, OLDPMS, D-SIGN) ug required Remarks
+Other — modal nga naay Title of Issue, Remarks, QR code (para ma-scan sa mobile), ug image upload
+3. Technical Assistance & Asset/Borrow
+
+Kung mapili ang "Technical Assistance" or "Asset/Borrow", automatic mo-open ang Search Equipment modal
+4. Validation
+
+Dili ka maka-proceed sa next section kung wala pa ma-fill ang modal (Zoom, Email, In House Software, Other)
+Nagpakita ug toast notification kung unsa exactly ang missing fields
+5. Upload Equipment Page (upload_equipment.php)
+
+Naghimo ug public page (walay login required) para mag-upload ug equipment image
+Naay loading spinner sa button samtang nag-upload
+Naay toast notification kung successful ang upload
+Ang filename gi-prefix sa ticket number para ma-trace balik sa SRF request
+6. QR Code
+
+Ang QR code sa Other modal nag-point sa upload_equipment.php?ticket=TICKETNUMBER
+Dynamic ang URL — gamit ang server variables (dili hardcoded localhost)
+7. Real-time notification via Pusher
+
+Kung mag-upload ang user sa upload_equipment.php, mo-trigger ug Pusher event (file-uploaded)
+Sa SRF form, naay nakabantay (listener) nga magpakita ug toast notification kung naay bag-ong upload

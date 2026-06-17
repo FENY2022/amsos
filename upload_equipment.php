@@ -1,33 +1,62 @@
 <?php
+require_once 'vendor/autoload.php';
+
+$options = array(
+  'cluster' => 'ap3',
+  'useTLS' => true,
+);
+
+$pusher = new Pusher\Pusher(
+    '98d5a35431a9fefb0370', 
+    'd4c2ad94090a33d8abaf', 
+    '2129830',
+    $options
+);
+
+$ticket = isset($_GET['ticket']) ? $_GET['ticket'] : '';
 $message = '';
 $alertType = '';
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit'])) {
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $ticket = isset($_POST['ticket']) ? $_POST['ticket'] : '';
     $targetDir = 'uploads/';
     if (!is_dir($targetDir)) mkdir($targetDir, 0777, true);
 
-    $file = $_FILES['equipmentImage'];
-    $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
-    $allowed = ['jpg', 'jpeg', 'png', 'gif'];
-
-    if ($file['error'] !== UPLOAD_ERR_OK) {
-        $message = 'Upload failed.';
-        $alertType = 'danger';
-    } elseif (!in_array($ext, $allowed)) {
-        $message = 'Invalid file type. Only JPG, PNG, GIF allowed.';
-        $alertType = 'danger';
-    } elseif ($file['size'] > 10000000) {
-        $message = 'File too large (max 10MB).';
+    if (!isset($_FILES['equipmentImage']) || $_FILES['equipmentImage']['error'] === UPLOAD_ERR_NO_FILE) {
+        $message = 'Please select a file to upload.';
         $alertType = 'danger';
     } else {
-        $filename = uniqid() . '_' . basename($file['name']);
-        $dest = $targetDir . $filename;
-        if (move_uploaded_file($file['tmp_name'], $dest)) {
-            $message = 'File uploaded successfully!';
-            $alertType = 'success';
-        } else {
-            $message = 'Failed to save file.';
+        $file = $_FILES['equipmentImage'];
+        $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+        $allowed = ['jpg', 'jpeg', 'png', 'gif'];
+
+        if ($file['error'] !== UPLOAD_ERR_OK) {
+            $message = 'Upload failed.';
             $alertType = 'danger';
+        } elseif (!in_array($ext, $allowed)) {
+            $message = 'Invalid file type. Only JPG, PNG, GIF allowed.';
+            $alertType = 'danger';
+        } elseif ($file['size'] > 10000000) {
+            $message = 'File too large (max 10MB).';
+            $alertType = 'danger';
+        } else {
+            $prefix = $ticket ? preg_replace('/[^a-zA-Z0-9_-]/', '', $ticket) . '_' : '';
+            $filename = $prefix . uniqid() . '_' . basename($file['name']);
+            $dest = $targetDir . $filename;
+            
+            if (move_uploaded_file($file['tmp_name'], $dest)) {
+                $message = 'File uploaded successfully!';
+                $alertType = 'success';
+                try {
+                    // Kini nga linya mo-trigger sa event padulong sa listener sa srfrequestform.php
+                    $pusher->trigger('upload-channel', 'file-uploaded', array('ticket' => $ticket, 'filename' => $filename));
+                } catch (Exception $e) {
+                    error_log("PUSHER ERROR: " . $e->getMessage()); // I-log ang error kung mapakyas
+                }
+            } else {
+                $message = 'Failed to save file.';
+                $alertType = 'danger';
+            }
         }
     }
 }
@@ -43,63 +72,82 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit'])) {
     <style>
         body { background: #f0f2f5; display: flex; align-items: center; min-height: 100vh; }
         .card { border-radius: 15px; box-shadow: 0 8px 20px rgba(0,0,0,0.1); width: 100%; max-width: 500px; margin: 20px auto; }
-        .card-header { background: #fff; border-bottom: 1px solid #e0e0e0; text-align: center; padding: 20px 30px; }
-        .card-header h4 { font-weight: 700; color: #343a40; }
+        .card-header { background: #fff; border-bottom: 1px solid #e0e0e0; padding: 20px; text-align: center; border-radius: 15px 15px 0 0; }
         .card-body { padding: 30px; }
-        .form-control { border-radius: 8px; padding: 10px 15px; }
-        .btn { border-radius: 8px; padding: 12px 20px; font-weight: 600; width: 100%; }
-        .toast-container { z-index: 1050; }
+        .file-upload-wrapper { border: 2px dashed #ced4da; border-radius: 10px; padding: 30px; text-align: center; background: #f8f9fa; cursor: pointer; transition: 0.3s; }
+        .file-upload-wrapper:hover { border-color: #0d6efd; background: #e9f5ff; }
+        .file-upload-wrapper i { font-size: 3rem; color: #0d6efd; }
     </style>
 </head>
 <body>
-    <div class="toast-container position-fixed top-0 start-50 translate-middle-x p-3" style="z-index: 1060;">
-        <div id="uploadToast" class="toast align-items-center text-white border-0" role="alert" aria-live="assertive" aria-atomic="true">
-            <div class="d-flex">
-                <div class="toast-body"></div>
-                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
-            </div>
-        </div>
-    </div>
 
+<div class="container">
     <div class="card">
         <div class="card-header">
-            <h4>Upload Equipment Image</h4>
+            <h4 class="mb-0">Upload Equipment</h4>
         </div>
         <div class="card-body">
-            <form id="uploadForm" action="upload_equipment.php" method="POST" enctype="multipart/form-data">
-                <div class="mb-3">
-                    <label for="equipmentImage" class="form-label fw-semibold">Select Image</label>
-                    <input type="file" id="equipmentImage" name="equipmentImage" class="form-control" accept="image/*" required>
+            
+            <?php if ($message): ?>
+            <div id="uploadToast" class="toast align-items-center text-bg-<?php echo $alertType; ?> border-0 mb-3 mx-auto" role="alert" aria-live="assertive" aria-atomic="true" style="display:block; width:100%;">
+                <div class="d-flex">
+                    <div class="toast-body">
+                        <?php echo htmlspecialchars($message, ENT_QUOTES); ?>
+                    </div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close" onclick="this.parentElement.parentElement.style.display='none'"></button>
                 </div>
-                <button type="submit" id="submitBtn" name="submit" class="btn btn-primary">
-                    <span id="btnText">Upload</span>
-                    <span id="btnSpinner" class="spinner-border spinner-border-sm d-none" role="status"></span>
+            </div>
+            <?php endif; ?>
+
+            <form id="uploadForm" action="upload_equipment.php" method="POST" enctype="multipart/form-data">
+                <input type="hidden" name="ticket" value="<?php echo htmlspecialchars($ticket); ?>">
+                
+                <div class="mb-4">
+                    <label class="form-label fw-bold">Select Image</label>
+                    <div class="file-upload-wrapper" onclick="document.getElementById('equipmentImage').click()">
+                        <i class="bi bi-cloud-arrow-up"></i>
+                        <p class="mt-2 mb-0">Click to browse or drag file here</p>
+                    </div>
+                    <input class="form-control d-none" type="file" id="equipmentImage" name="equipmentImage" accept=".jpg,.jpeg,.png,.gif">
+                </div>
+                
+                <button type="submit" id="submitBtn" class="btn btn-primary w-100 py-2">
+                    <span id="btnSpinner" class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+                    <span id="btnText"><i class="bi bi-upload me-2"></i>Upload File</span>
                 </button>
             </form>
             <p class="text-center text-muted mt-3 mb-0 small">Supported formats: JPG, PNG, GIF (Max: 10MB)</p>
         </div>
     </div>
+</div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
-        document.getElementById('uploadForm').addEventListener('submit', function() {
-            var btn = document.getElementById('submitBtn');
-            var text = document.getElementById('btnText');
-            var spinner = document.getElementById('btnSpinner');
-            btn.disabled = true;
-            text.textContent = 'Uploading...';
-            spinner.classList.remove('d-none');
-        });
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    document.getElementById('uploadForm').addEventListener('submit', function(e) {
+        var fileInput = document.getElementById('equipmentImage');
+        if (!fileInput.files || !fileInput.files.length) {
+            e.preventDefault();
+            alert("Please select a file first.");
+            return;
+        }
+        var btn = document.getElementById('submitBtn');
+        var text = document.getElementById('btnText');
+        var spinner = document.getElementById('btnSpinner');
+        btn.disabled = true;
+        text.textContent = 'Uploading...';
+        spinner.classList.remove('d-none');
+    });
 
-        <?php if ($message): ?>
-        document.addEventListener('DOMContentLoaded', function() {
-            var toastEl = document.getElementById('uploadToast');
-            toastEl.classList.add('text-bg-<?php echo $alertType; ?>');
-            toastEl.querySelector('.toast-body').textContent = '<?php echo htmlspecialchars($message, ENT_QUOTES); ?>';
-            var toast = new bootstrap.Toast(toastEl, { autohide: true, delay: 4000 });
-            toast.show();
-        });
-        <?php endif; ?>
-    </script>
+    <?php if ($message): ?>
+    document.addEventListener('DOMContentLoaded', function() {
+        var toastEl = document.getElementById('uploadToast');
+        if (toastEl) {
+            setTimeout(function() {
+                toastEl.style.display = 'none';
+            }, 4000);
+        }
+    });
+    <?php endif; ?>
+</script>
 </body>
 </html>
