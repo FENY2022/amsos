@@ -471,6 +471,32 @@ $date = date('Y-m-d');
                 </div>
 
                 <div class="form-group">
+                    <label for="requestType" class="form-label">Request Type</label>
+                    <select id="requestType" name="requestType" onchange="showOtherSpecify()" class="form-select" required>
+                        <option value="" selected disabled>-- Select Request Type --</option>
+                        <option value="Zoom">Zoom</option>
+                        <option value="Technical Assistance">Technical Assistance</option>
+                        <option value="Asset/Borrow">Asset/Borrow</option>
+                        <option value="Email">Email</option>
+                        <option value="In House Software">In House Software (OTOS WEB+, EDATS, OLDPMS, D-SIGN)</option>
+                        <option value="Other">Other (Specify)</option>
+                    </select>
+                    <input type="hidden" id="zoomTitle_hidden" name="zoomTitle_hidden">
+                    <input type="hidden" id="zoomDateTime_hidden" name="zoomDateTime_hidden">
+                    <input type="hidden" id="zoomMeetingId_hidden" name="zoomMeetingId_hidden">
+                    <input type="hidden" id="zoomPassword_hidden" name="zoomPassword_hidden">
+                    <input type="hidden" id="zoomBlended_hidden" name="zoomBlended_hidden">
+                    <input type="hidden" id="zoomRemarks_hidden" name="zoomRemarks_hidden">
+                    <input type="hidden" id="emailTo_hidden" name="emailTo_hidden">
+                    <input type="hidden" id="emailSubject_hidden" name="emailSubject_hidden">
+                    <input type="hidden" id="emailRemarks_hidden" name="emailRemarks_hidden">
+                    <input type="hidden" id="softwareName_hidden" name="softwareName_hidden">
+                    <input type="hidden" id="softwareRemarks_hidden" name="softwareRemarks_hidden">
+                    <input type="hidden" id="otherTitle_hidden" name="otherTitle_hidden">
+                    <input type="hidden" id="otherRemarks_hidden" name="otherRemarks_hidden">
+                </div>
+
+                <div class="form-group">
                     <label for="equipment_id" class="form-label">Selected Equipment</label>
                     <div class="input-group">
                         <input type="text" id="equipment_id" name="equipment_id" class="form-control" placeholder="Select equipment" readonly >
@@ -480,23 +506,6 @@ $date = date('Y-m-d');
                     </div>
                 </div>
             </div><div class="form-section" id="section-2">
-              <div class="form-group">
-                    <label for="requestType" class="form-label">Request Type</label>
-                    <select id="requestType" name="requestType" onchange="showOtherSpecify()" class="form-select" required>
-                        <option value="" selected disabled>-- Select Request Type --</option>
-                        <option value="Zoom">Zoom</option>
-                        <option value="Technical Assistance">Technical Assistance</option>
-                        <option value="Asset/Borrow">Asset/Borrow</option>
-                        <option value="Email">Email</option>
-                        <option value="In House Software">In House Software</option>
-                        <option value="Otos Web+">Otos Web+</option>
-                        <option value="E-Dats">E-Dats</option>
-                        <option value="Other">Other (Specify)</option>
-                    </select>
-                    <input type="text" id="otherSpecify" name="otherSpecify" class="form-control other-specify" placeholder="Please specify" style="display:none;">
-                </div>
-
-
                 <div class="form-group">
                     <label for="description" class="form-label">Description of Request</label>
                     <textarea id="description" name="description" class="form-control italic" placeholder="Please Clearly Write-down the details of the request" required></textarea>
@@ -550,6 +559,10 @@ $date = date('Y-m-d');
             </div>
 
             <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
+                <div class="alert alert-warning d-flex align-items-center mb-3" role="alert">
+                    <i class="bi bi-info-circle-fill me-2"></i>
+                    You must select an Equipment for Technical Assistance requests.
+                </div>
                 <input type="text" id="searchBox" class="form-control mb-3" placeholder="Search by Employee Name, ID, or Serial Number">
                 <table class="table table-bordered table-hover" id="equipmentTable">
                     <thead>
@@ -589,6 +602,150 @@ $date = date('Y-m-d');
     </div>
 </div>
 
+<!-- Zoom Meeting Details Modal -->
+<div class="modal fade" id="zoomModal" tabindex="-1" aria-labelledby="zoomModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="zoomModalLabel">Zoom Meeting Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group mb-3">
+                    <label for="zoomTitle" class="form-label">Meeting Title</label>
+                    <input type="text" id="zoomTitle" class="form-control" placeholder="Enter meeting title" required>
+                </div>
+                <div class="form-group mb-3">
+                    <label for="zoomDateTime" class="form-label">Date & Time of Meeting</label>
+                    <input type="datetime-local" id="zoomDateTime" class="form-control" required>
+                </div>
+                <div class="form-group mb-3">
+                    <label for="zoomMeetingId" class="form-label">Meeting ID <small class="text-muted">(optional)</small></label>
+                    <input type="text" id="zoomMeetingId" class="form-control" placeholder="Enter meeting ID">
+                </div>
+                <div class="form-group mb-3">
+                    <label for="zoomPassword" class="form-label">Password <small class="text-muted">(optional)</small></label>
+                    <input type="text" id="zoomPassword" class="form-control" placeholder="Enter meeting password">
+                </div>
+                <div class="form-group mb-3">
+                    <label for="zoomBlended" class="form-label">Meeting Type</label>
+                    <select id="zoomBlended" class="form-select">
+                        <option value="Online">Online</option>
+                        <option value="Blended">Blended</option>
+                    </select>
+                </div>
+                <div class="form-group mb-3">
+                    <label for="zoomRemarks" class="form-label">Remarks / Instructions <small class="text-muted">(optional)</small></label>
+                    <textarea id="zoomRemarks" class="form-control" placeholder="Additional remarks or instructions" rows="3"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="saveZoomDetails()">Save</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Email Details Modal -->
+<div class="modal fade" id="emailModal" tabindex="-1" aria-labelledby="emailModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="emailModalLabel">Email Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group mb-3">
+                    <label for="emailTo" class="form-label">Recipient Email Address</label>
+                    <input type="email" id="emailTo" class="form-control" placeholder="Enter recipient email address" required>
+                </div>
+                <div class="form-group mb-3">
+                    <label for="emailSubject" class="form-label">Subject <small class="text-muted">(optional)</small></label>
+                    <input type="text" id="emailSubject" class="form-control" placeholder="Enter email subject">
+                </div>
+                <div class="form-group mb-3">
+                    <label for="emailRemarks" class="form-label">Remarks</label>
+                    <textarea id="emailRemarks" class="form-control" placeholder="Additional remarks or instructions" rows="3" required></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="saveEmailDetails()">Save</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- In House Software Modal -->
+<div class="modal fade" id="softwareModal" tabindex="-1" aria-labelledby="softwareModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="softwareModalLabel">In House Software</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group mb-3">
+                    <label for="softwareName" class="form-label">Select Software</label>
+                    <select id="softwareName" class="form-select" required>
+                        <option value="" selected disabled>-- Select Software --</option>
+                        <option value="OTOS WEB+">OTOS WEB+</option>
+                        <option value="EDATS">EDATS</option>
+                        <option value="OLDPMS">OLDPMS</option>
+                        <option value="D-SIGN">D-SIGN</option>
+                    </select>
+                </div>
+                <div class="form-group mb-3">
+                    <label for="softwareRemarks" class="form-label">Remarks</label>
+                    <textarea id="softwareRemarks" class="form-control" placeholder="Enter remarks or details" rows="3" required></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="saveSoftwareDetails()">Save</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Other Request Modal -->
+<div class="modal fade" id="otherModal" tabindex="-1" aria-labelledby="otherModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="otherModalLabel">Other Request</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group mb-3">
+                    <label for="otherTitle" class="form-label">Title of Issue</label>
+                    <input type="text" id="otherTitle" class="form-control" placeholder="Enter title of issue" required>
+                </div>
+                <div class="form-group mb-3">
+                    <label for="otherRemarks" class="form-label">Remarks</label>
+                    <textarea id="otherRemarks" class="form-control" placeholder="Enter remarks or details" rows="3" required></textarea>
+                </div>
+                <div class="form-group mb-3 text-center">
+                    <label class="form-label">Scan QR to upload equipment image</label>
+                    <div class="d-flex justify-content-center">
+                        <img id="otherQRCode" src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=<?php echo urlencode('http://' . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI']); ?>" alt="QR Code" class="img-fluid" style="max-width: 200px;">
+                    </div>
+                    <small class="text-muted d-block mt-2">Scan with your mobile device to upload equipment images</small>
+                </div>
+                <div class="form-group mb-3">
+                    <label for="otherUpload" class="form-label">Upload Equipment Image</label>
+                    <input type="file" id="otherUpload" name="otherUpload[]" class="form-control" accept="image/*" multiple>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="saveOtherDetails()">Save</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 
 <script>
@@ -609,17 +766,161 @@ $date = date('Y-m-d');
         }
     }
 
+    function clearZoomHidden() {
+        document.getElementById('zoomTitle_hidden').value = '';
+        document.getElementById('zoomDateTime_hidden').value = '';
+        document.getElementById('zoomMeetingId_hidden').value = '';
+        document.getElementById('zoomPassword_hidden').value = '';
+        document.getElementById('zoomBlended_hidden').value = '';
+        document.getElementById('zoomRemarks_hidden').value = '';
+    }
+
+    function clearEmailHidden() {
+        document.getElementById('emailTo_hidden').value = '';
+        document.getElementById('emailSubject_hidden').value = '';
+        document.getElementById('emailRemarks_hidden').value = '';
+    }
+
+    function clearSoftwareHidden() {
+        document.getElementById('softwareName_hidden').value = '';
+        document.getElementById('softwareRemarks_hidden').value = '';
+    }
+
+    function clearOtherHidden() {
+        document.getElementById('otherTitle_hidden').value = '';
+        document.getElementById('otherRemarks_hidden').value = '';
+    }
+
     function showOtherSpecify() {
         var requestType = document.getElementById("requestType").value;
         var descriptionInput = document.getElementById('description');
+        var prevType = showOtherSpecify._prevType || '';
 
-        descriptionInput.value = "";
+        if (prevType !== requestType) {
+            descriptionInput.value = "";
+            if (prevType === "Zoom") clearZoomHidden();
+            if (prevType === "Email") clearEmailHidden();
+            if (prevType === "In House Software") clearSoftwareHidden();
+            if (prevType === "Other") clearOtherHidden();
+        }
+        showOtherSpecify._prevType = requestType;
 
         if (requestType === "Zoom") {
-            descriptionInput.value = `Meeting Title:\nDate & Time:\nBlended or Online:\n\n`;
+            var zoomModal = new bootstrap.Modal(document.getElementById('zoomModal'));
+            zoomModal.show();
+        } else if (requestType === "Technical Assistance" || requestType === "Asset/Borrow") {
+            var equipModal = new bootstrap.Modal(document.getElementById('searchEquipmentModal'));
+            equipModal.show();
+        } else if (requestType === "Email") {
+            var emailModal = new bootstrap.Modal(document.getElementById('emailModal'));
+            emailModal.show();
+        } else if (requestType === "In House Software") {
+            var softwareModal = new bootstrap.Modal(document.getElementById('softwareModal'));
+            softwareModal.show();
+        } else if (requestType === "Other") {
+            var otherModal = new bootstrap.Modal(document.getElementById('otherModal'));
+            otherModal.show();
         }
     }
 
+    function formatDateTime(dt) {
+        if (!dt) return 'N/A';
+        var d = new Date(dt);
+        var months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+        var hours = d.getHours();
+        var minutes = d.getMinutes();
+        var ampm = hours >= 12 ? 'pm' : 'am';
+        hours = hours % 12 || 12;
+        minutes = minutes < 10 ? '0' + minutes : minutes;
+        return months[d.getMonth()] + ' ' + d.getDate() + ', ' + d.getFullYear() + ' at ' + hours + ':' + minutes + ' ' + ampm;
+    }
+
+    function saveZoomDetails() {
+        var title = document.getElementById('zoomTitle').value;
+        var dateTime = document.getElementById('zoomDateTime').value;
+        var meetingId = document.getElementById('zoomMeetingId').value;
+        var password = document.getElementById('zoomPassword').value;
+        var blended = document.getElementById('zoomBlended').value;
+        var remarks = document.getElementById('zoomRemarks').value;
+
+        document.getElementById('zoomTitle_hidden').value = title;
+        document.getElementById('zoomDateTime_hidden').value = dateTime;
+        document.getElementById('zoomMeetingId_hidden').value = meetingId;
+        document.getElementById('zoomPassword_hidden').value = password;
+        document.getElementById('zoomBlended_hidden').value = blended;
+        document.getElementById('zoomRemarks_hidden').value = remarks;
+
+        var formattedDateTime = formatDateTime(dateTime);
+
+        var description = '';
+        description += 'Meeting Title: ' + (title || 'N/A') + '\n';
+        description += 'Date & Time: ' + formattedDateTime + '\n';
+        description += 'Meeting ID: ' + (meetingId || 'N/A') + '\n';
+        description += 'Password: ' + (password || 'N/A') + '\n';
+        description += 'Type: ' + blended + '\n';
+        if (remarks) {
+            description += 'Remarks: ' + remarks + '\n';
+        }
+        document.getElementById('description').value = description;
+
+        var zoomModalEl = document.getElementById('zoomModal');
+        var zoomModal = bootstrap.Modal.getInstance(zoomModalEl);
+        zoomModal.hide();
+    }
+
+    function saveEmailDetails() {
+        var to = document.getElementById('emailTo').value;
+        var subject = document.getElementById('emailSubject').value;
+        var remarks = document.getElementById('emailRemarks').value;
+
+        document.getElementById('emailTo_hidden').value = to;
+        document.getElementById('emailSubject_hidden').value = subject;
+        document.getElementById('emailRemarks_hidden').value = remarks;
+
+        var description = '';
+        description += 'Recipient: ' + (to || 'N/A') + '\n';
+        if (subject) description += 'Subject: ' + subject + '\n';
+        if (remarks) description += 'Remarks: ' + remarks + '\n';
+        document.getElementById('description').value = description;
+
+        var emailModalEl = document.getElementById('emailModal');
+        var emailModal = bootstrap.Modal.getInstance(emailModalEl);
+        emailModal.hide();
+    }
+
+    function saveSoftwareDetails() {
+        var software = document.getElementById('softwareName').value;
+        var remarks = document.getElementById('softwareRemarks').value;
+
+        document.getElementById('softwareName_hidden').value = software;
+        document.getElementById('softwareRemarks_hidden').value = remarks;
+
+        var description = '';
+        description += 'Software: ' + software + '\n';
+        description += 'Remarks: ' + remarks + '\n';
+        document.getElementById('description').value = description;
+
+        var softwareModalEl = document.getElementById('softwareModal');
+        var softwareModal = bootstrap.Modal.getInstance(softwareModalEl);
+        softwareModal.hide();
+    }
+
+    function saveOtherDetails() {
+        var title = document.getElementById('otherTitle').value;
+        var remarks = document.getElementById('otherRemarks').value;
+
+        document.getElementById('otherTitle_hidden').value = title;
+        document.getElementById('otherRemarks_hidden').value = remarks;
+
+        var description = '';
+        description += 'Title of Issue: ' + title + '\n';
+        description += 'Remarks: ' + remarks + '\n';
+        document.getElementById('description').value = description;
+
+        var otherModalEl = document.getElementById('otherModal');
+        var otherModal = bootstrap.Modal.getInstance(otherModalEl);
+        otherModal.hide();
+    }
 
     const sections = document.querySelectorAll('.form-section');
     const progressSteps = document.querySelectorAll('.progress-step-item');
@@ -649,11 +950,14 @@ $date = date('Y-m-d');
         const currentActiveSection = sections[currentSection];
         const inputs = currentActiveSection.querySelectorAll('input:not([type="hidden"]), select, textarea');
         let allValid = true;
+        var missing = [];
 
         inputs.forEach(input => {
             if (input.hasAttribute('required') && input.value.trim() === '') {
                 allValid = false;
                 input.classList.add('is-invalid');
+                var label = document.querySelector('label[for="' + input.id + '"]');
+                missing.push(label ? label.textContent.trim() : input.id);
             } else {
                 input.classList.remove('is-invalid');
             }
@@ -664,6 +968,7 @@ $date = date('Y-m-d');
             if (descriptionInput.value.trim() === '' || descriptionInput.value.trim() === `Meeting Title:\nDate & Time:\nBlended or Online:`) {
                 allValid = false;
                 descriptionInput.classList.add('is-invalid');
+                missing.push('Description of Request');
             } else {
                 descriptionInput.classList.remove('is-invalid');
             }
@@ -673,6 +978,7 @@ $date = date('Y-m-d');
         if (currentSection === 0 && emailInput && (!emailInput.value.includes('@') || emailInput.value.trim() === '')) {
             allValid = false;
             emailInput.classList.add('is-invalid');
+            missing.push('Email Address');
         } else if (currentSection === 0 && emailInput) {
             emailInput.classList.remove('is-invalid');
         }
@@ -681,12 +987,30 @@ $date = date('Y-m-d');
         if (currentSection === 0 && nameSelect && nameSelect.value.trim() === '') {
             allValid = false;
             nameSelect.classList.add('is-invalid');
+            missing.push('Name');
         } else if (currentSection === 0 && nameSelect) {
             nameSelect.classList.remove('is-invalid');
         }
 
+        if (currentSection === 0) {
+            var requestType = document.getElementById('requestType').value;
+            if (requestType === "Zoom" && !document.getElementById('zoomDateTime_hidden').value) {
+                allValid = false;
+                missing.push('Zoom Meeting Details');
+            } else if (requestType === "In House Software" && !document.getElementById('softwareName_hidden').value) {
+                allValid = false;
+                missing.push('Software Details');
+            } else if (requestType === "Email" && !document.getElementById('emailTo_hidden').value) {
+                allValid = false;
+                missing.push('Email Details');
+            } else if (requestType === "Other" && !document.getElementById('otherTitle_hidden').value) {
+                allValid = false;
+                missing.push('Other Request Details');
+            }
+        }
+
         if (!allValid) {
-            showToast('errorToast', 'Please fill in all required fields.');
+            showToast('errorToast', 'Please fill in: ' + missing.join(', ') + '.');
             return; 
         }
         
