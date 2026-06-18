@@ -494,6 +494,11 @@ $date = date('Y-m-d');
                     <input type="hidden" id="otherRemarks_hidden" name="otherRemarks_hidden">
                     <input type="hidden" id="taEquipmentId_hidden" name="taEquipmentId_hidden">
                     <input type="hidden" id="taDescription_hidden" name="taDescription_hidden">
+                    <input type="hidden" id="borrowName_hidden" name="borrowName_hidden">
+                    <input type="hidden" id="borrowDivSec_hidden" name="borrowDivSec_hidden">
+                    <input type="hidden" id="borrowDescription_hidden" name="borrowDescription_hidden">
+                    <input type="hidden" id="borrowDate_hidden" name="borrowDate_hidden">
+                    <input type="hidden" id="borrowReturnDate_hidden" name="borrowReturnDate_hidden">
                 </div>
 
                 <div class="form-group">
@@ -643,6 +648,49 @@ $date = date('Y-m-d');
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                 <button type="button" class="btn btn-primary" onclick="saveTechnicalAssistance()">Save</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="borrowModal" tabindex="-1" aria-labelledby="borrowModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="borrowModalLabel">Asset/Borrow Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group mb-3">
+                    <label class="form-label">Selected Equipment</label>
+                    <div class="p-3 bg-light rounded border" id="borrowEquipmentDisplay">
+                        No equipment selected.
+                    </div>
+                </div>
+                <div class="form-group mb-3">
+                    <label for="borrowName" class="form-label">Borrower's Name</label>
+                    <input type="text" id="borrowName" class="form-control" placeholder="Enter borrower's full name" required>
+                </div>
+                <div class="form-group mb-3">
+                    <label for="borrowDivSec" class="form-label">Division/Section</label>
+                    <input type="text" id="borrowDivSec" class="form-control" placeholder="Enter division or section" required>
+                </div>
+                <div class="form-group mb-3">
+                    <label for="borrowDescription" class="form-label">Reason for Borrowing</label>
+                    <textarea id="borrowDescription" class="form-control" placeholder="Why are you borrowing this equipment?" rows="3" required></textarea>
+                </div>
+                <div class="form-group mb-3">
+                    <label for="borrowDate" class="form-label">Date Borrowed</label>
+                    <input type="date" id="borrowDate" class="form-control" required>
+                </div>
+                <div class="form-group mb-3">
+                    <label for="borrowReturnDate" class="form-label">Date to Return</label>
+                    <input type="date" id="borrowReturnDate" class="form-control" required>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="saveBorrowDetails()">Save</button>
             </div>
         </div>
     </div>
@@ -838,6 +886,14 @@ $date = date('Y-m-d');
         document.getElementById('taDescription_hidden').value = '';
     }
 
+    function clearBorrowHidden() {
+        document.getElementById('borrowName_hidden').value = '';
+        document.getElementById('borrowDivSec_hidden').value = '';
+        document.getElementById('borrowDescription_hidden').value = '';
+        document.getElementById('borrowDate_hidden').value = '';
+        document.getElementById('borrowReturnDate_hidden').value = '';
+    }
+
     function showEquipmentSearch() {
         var equipModal = new bootstrap.Modal(document.getElementById('searchEquipmentModal'));
         equipModal.show();
@@ -856,6 +912,7 @@ $date = date('Y-m-d');
             if (prevType === "In House Software") clearSoftwareHidden();
             if (prevType === "Other") clearOtherHidden();
             if (prevType === "Technical Assistance") clearTaHidden();
+            if (prevType === "Asset/Borrow") clearBorrowHidden();
         }
         showOtherSpecify._prevType = requestType;
 
@@ -1007,6 +1064,43 @@ $date = date('Y-m-d');
         taModal.hide();
     }
 
+    function saveBorrowDetails() {
+        var name = document.getElementById('borrowName').value;
+        var divSec = document.getElementById('borrowDivSec').value;
+        var reason = document.getElementById('borrowDescription').value;
+        var dateBorrowed = document.getElementById('borrowDate').value;
+        var dateReturn = document.getElementById('borrowReturnDate').value;
+
+        if (!name.trim() || !divSec.trim() || !reason.trim() || !dateBorrowed || !dateReturn) {
+            showToast('errorToast', 'Please fill in all fields.');
+            return;
+        }
+
+        var data = window._borrowEquipmentData || {};
+
+        document.getElementById('borrowName_hidden').value = name;
+        document.getElementById('borrowDivSec_hidden').value = divSec;
+        document.getElementById('borrowDescription_hidden').value = reason;
+        document.getElementById('borrowDate_hidden').value = dateBorrowed;
+        document.getElementById('borrowReturnDate_hidden').value = dateReturn;
+
+        var fullDescription = '';
+        fullDescription += 'Equipment ID: ' + (data.id || 'N/A') + '\n\n';
+        fullDescription += 'Equipment: ' + (data.specs || 'N/A') + ' (S/N: ' + (data.serial || 'N/A') + ') - User: ' + (data.name || 'N/A') + '\n\n';
+        fullDescription += 'Borrower\'s Name: ' + name + '\n';
+        fullDescription += 'Division/Section: ' + divSec + '\n';
+        fullDescription += 'Date Borrowed: ' + dateBorrowed + '\n';
+        fullDescription += 'Date to Return: ' + dateReturn + '\n\n';
+        fullDescription += 'Reason for Borrowing:\n' + reason;
+
+        document.getElementById('description').value = fullDescription;
+        toggleSubmitBtn();
+
+        var borrowModalEl = document.getElementById('borrowModal');
+        var borrowModal = bootstrap.Modal.getInstance(borrowModalEl);
+        borrowModal.hide();
+    }
+
     const sections = document.querySelectorAll('.form-section');
     const progressSteps = document.querySelectorAll('.progress-step-item');
     let currentSection = 0;
@@ -1094,6 +1188,9 @@ $date = date('Y-m-d');
             } else if (requestType === "Technical Assistance" && !document.getElementById('equipment_id').value.trim()) {
                 allValid = false;
                 missing.push('Equipment Selection');
+            } else if (requestType === "Asset/Borrow" && !document.getElementById('borrowName_hidden').value) {
+                allValid = false;
+                missing.push('Asset/Borrow Details');
             }
         }
 
@@ -1198,6 +1295,34 @@ $date = date('Y-m-d');
                     document.getElementById('taDescription').value = '';
                     let taModal = new bootstrap.Modal(document.getElementById('technicalAssistanceModal'));
                     taModal.show();
+                }, { once: true });
+            } else if (requestType === 'Asset/Borrow') {
+                window._borrowEquipmentData = {
+                    id: equipmentId,
+                    name: equipmentName,
+                    specs: specifications,
+                    serial: serialNumber
+                };
+
+                let searchModalEl = document.getElementById('searchEquipmentModal');
+                let searchModal = bootstrap.Modal.getInstance(searchModalEl);
+                searchModal.hide();
+
+                searchModalEl.addEventListener('hidden.bs.modal', function () {
+                    let borrowEquipmentDisplay = document.getElementById('borrowEquipmentDisplay');
+                    borrowEquipmentDisplay.innerHTML = `
+                        <strong>ID:</strong> ${equipmentId}<br>
+                        <strong>Specifications:</strong> ${specifications}<br>
+                        <strong>Serial Number:</strong> ${serialNumber}<br>
+                        <strong>User:</strong> ${equipmentName}
+                    `;
+                    document.getElementById('borrowName').value = '';
+                    document.getElementById('borrowDivSec').value = '';
+                    document.getElementById('borrowDescription').value = '';
+                    document.getElementById('borrowDate').value = '';
+                    document.getElementById('borrowReturnDate').value = '';
+                    let borrowModal = new bootstrap.Modal(document.getElementById('borrowModal'));
+                    borrowModal.show();
                 }, { once: true });
             } else {
                 showToast('selectionToast', 'Equipment selected successfully!');
