@@ -12,9 +12,7 @@
 require_once 'connect.php';
 require_once 'session_checker.php';
 
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
-error_reporting(E_ALL);
+
 
 
 // Retrieve form data
@@ -27,7 +25,7 @@ $position = $_POST['position'];
 $contactNumber = $_POST['contactNumber'];
 $email = $_POST['email'];
 $requestType = $_POST['requestType'];
-$otherSpecify = $_POST['otherSpecify'];
+$otherSpecify = $_POST['otherSpecify'] ?? '';
 $description = $_POST['description'];
 $station = $_POST['station'];
 $status = "On Process";

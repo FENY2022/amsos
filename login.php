@@ -343,8 +343,8 @@
                             <i class="fas fa-eye" aria-hidden="true"></i>
                         </span>
                     </div>
-                    <div class="g-recaptcha" data-sitekey="6Lcx-IwsAAAAABdHfpiwf9fIC4KDeXur7mpxLCxm" style="margin-bottom: 15px; display: flex; justify-content: center;"></div>
-                    <button type="submit" class="login-button">Login</button>
+                    <div class="g-recaptcha" data-sitekey="6Lcx-IwsAAAAABdHfpiwf9fIC4KDeXur7mpxLCxm" data-callback="onRecaptchaSuccess" data-expired-callback="onRecaptchaExpired" style="margin-bottom: 15px; display: flex; justify-content: center;"></div>
+                    <button type="submit" class="login-button" disabled>Login</button>
                     <div class="forgot-password">
                         <a href="#" aria-label="Forgot your password? Click here.">Forgot Password?</a>
                     </div>
@@ -383,6 +383,15 @@
         };
 
         // JavaScript from scripts.js
+        // reCAPTCHA callbacks
+        function onRecaptchaSuccess() {
+            $('.login-button').prop('disabled', false);
+        }
+
+        function onRecaptchaExpired() {
+            $('.login-button').prop('disabled', true);
+        }
+
         $(document).ready(function() {
             // Slideshow functionality
             let slideIndex = 0;
@@ -426,6 +435,11 @@
 
                 if (!username || !password) {
                     toastr.warning('Please enter both username and password.');
+                    return;
+                }
+
+                if (!grecaptcha.getResponse()) {
+                    toastr.warning('Please complete the reCAPTCHA verification.');
                     return;
                 }
 
