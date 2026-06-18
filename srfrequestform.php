@@ -541,6 +541,29 @@ $date = date('Y-m-d');
     </div>
 </div>
 
+<div class="modal fade" id="equipmentInfoModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Select Equipment</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-info d-flex align-items-start mb-0" role="alert">
+                    <i class="bi bi-info-circle-fill me-2 fs-4"></i>
+                    <div>
+                        <strong>Why select equipment?</strong><br>
+                        You must select an Equipment for Technical Assistance requests. This will help IT or the Help Desk identify your equipment, validate it faster, resolve the issue more quickly, and determine the necessary tools based on the selected equipment.
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" data-bs-dismiss="modal" onclick="showEquipmentSearch()">I Understand</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div class="modal fade" id="searchEquipmentModal" tabindex="-1" aria-labelledby="searchEquipmentModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-centered">
         <div class="modal-content">
@@ -559,10 +582,6 @@ $date = date('Y-m-d');
             </div>
 
             <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
-                <div class="alert alert-warning d-flex align-items-center mb-3" role="alert">
-                    <i class="bi bi-info-circle-fill me-2"></i>
-                    You must select an Equipment for Technical Assistance requests.
-                </div>
                 <input type="text" id="searchBox" class="form-control mb-3" placeholder="Search by Employee Name, ID, or Serial Number">
                 <table class="table table-bordered table-hover" id="equipmentTable">
                     <thead>
@@ -819,6 +838,11 @@ $date = date('Y-m-d');
         document.getElementById('taDescription_hidden').value = '';
     }
 
+    function showEquipmentSearch() {
+        var equipModal = new bootstrap.Modal(document.getElementById('searchEquipmentModal'));
+        equipModal.show();
+    }
+
     function showOtherSpecify() {
         var requestType = document.getElementById("requestType").value;
         var descriptionInput = document.getElementById('description');
@@ -838,7 +862,10 @@ $date = date('Y-m-d');
         if (requestType === "Zoom") {
             var zoomModal = new bootstrap.Modal(document.getElementById('zoomModal'));
             zoomModal.show();
-        } else if (requestType === "Technical Assistance" || requestType === "Asset/Borrow") {
+        } else if (requestType === "Technical Assistance") {
+            var equipInfoModal = new bootstrap.Modal(document.getElementById('equipmentInfoModal'));
+            equipInfoModal.show();
+        } else if (requestType === "Asset/Borrow") {
             var equipModal = new bootstrap.Modal(document.getElementById('searchEquipmentModal'));
             equipModal.show();
         } else if (requestType === "Email") {
@@ -966,9 +993,9 @@ $date = date('Y-m-d');
         var data = window._taEquipmentData || {};
 
         var fullDescription = '';
-        fullDescription += 'Equipment ID: ' + (data.id || 'N/A') + '\n';
+        fullDescription += 'Equipment ID: ' + (data.id || 'N/A') + '\n\n';
         fullDescription += 'Equipment: ' + (data.specs || 'N/A') + ' (S/N: ' + (data.serial || 'N/A') + ') - User: ' + (data.name || 'N/A') + '\n\n';
-        fullDescription += 'Description:\n' + description;
+        fullDescription += '\nDescription:\n' + description;
 
         document.getElementById('description').value = fullDescription;
         document.getElementById('taEquipmentId_hidden').value = data.id || '';
@@ -1089,33 +1116,30 @@ $date = date('Y-m-d');
         }
     }
 
-    // --- MODIFIED HANDLESUBMIT FUNCTION TO INCLUDE HARDWARE VALIDATION ---
     function handleSubmit(e) {
-        // Prevent immediate form submission
         e.preventDefault();
 
-        // 1. Hardware/Equipment Validation Logic
         const description = document.getElementById('description').value.toLowerCase();
         const equipmentId = document.getElementById('equipment_id').value.trim();
 
-        // Keywords that indicate a hardware or installation request
         const hwKeywords = ['repair', 'install', 'no display',  'blue screen', 'laptop', 'desktop', 'computer', 'printer', 'ink', 'screen', 'monitor', 'keyboard', 'format', 'slow', 'virus', 'boot', 'hardware', 'device', 'broken', 'damaged', 'malfunction', 'crash', 'freeze', 'network', 'wifi', 'driver', 'cable', 'port', 'battery', 'charger', 'power', 'replacement', 'upgrade', 'disk', 'memory', 'ram', 'gpu', 'cpu', 'motherboard', 'fan', 'overheat', 'asus', 'dell', 'hp', 'lenovo', 'acer'];
-        
-        // Check if description contains any keyword
+
         const isHardwareRequest = hwKeywords.some(keyword => description.includes(keyword));
 
-        // If it looks like a hardware request AND equipment is not selected
         if (isHardwareRequest && (equipmentId === "" || equipmentId === null)) {
-            // Show error toast
             showToast('errorToast', 'For repair, installation, or hardware issues, please select an Equipment first.');
-            
-            // Re-enable button immediately (in case they want to try again)
-            // But we essentially stop here.
-            return; 
+            return;
         }
 
-        // 2. If validation passes, proceed with submission
-        const submitBtn = e.target;
+        var submitConfirmModal = new bootstrap.Modal(document.getElementById('submitConfirmModal'));
+        submitConfirmModal.show();
+    }
+
+    function proceedSubmit() {
+        var submitConfirmModal = bootstrap.Modal.getInstance(document.getElementById('submitConfirmModal'));
+        submitConfirmModal.hide();
+
+        const submitBtn = document.getElementById('submitBtn');
         submitBtn.disabled = true;
         submitBtn.style.opacity = '0.7';
         submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Submitting...';
@@ -1344,6 +1368,32 @@ $date = date('Y-m-d');
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                 <button type="button" class="btn btn-danger" id="confirmDeleteBtn">Delete</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="submitConfirmModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Confirm Submission</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-info d-flex align-items-start" role="alert">
+                    <i class="bi bi-info-circle-fill me-2 fs-4"></i>
+                    <div>
+                        <strong>Reminder:</strong><br>
+                        Your request will be forwarded to your Section/Division Chief for validation and approval.
+                        Once approved by the Section/Division Chief, your request will be forwarded to the RICTU Help Desk for action.
+                    </div>
+                </div>
+                <p class="mb-0 text-muted">Do you want to proceed with submitting this request?</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-success" onclick="proceedSubmit()">Proceed</button>
             </div>
         </div>
     </div>
