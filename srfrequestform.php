@@ -492,6 +492,8 @@ $date = date('Y-m-d');
                     <input type="hidden" id="softwareRemarks_hidden" name="softwareRemarks_hidden">
                     <input type="hidden" id="otherTitle_hidden" name="otherTitle_hidden">
                     <input type="hidden" id="otherRemarks_hidden" name="otherRemarks_hidden">
+                    <input type="hidden" id="taEquipmentId_hidden" name="taEquipmentId_hidden">
+                    <input type="hidden" id="taDescription_hidden" name="taDescription_hidden">
                 </div>
 
                 <div class="form-group">
@@ -595,6 +597,33 @@ $date = date('Y-m-d');
                         ?>
                     </tbody>
                 </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="technicalAssistanceModal" tabindex="-1" aria-labelledby="technicalAssistanceModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="technicalAssistanceModalLabel">Technical Assistance Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group mb-3">
+                    <label class="form-label">Selected Equipment</label>
+                    <div class="p-3 bg-light rounded border" id="taEquipmentDisplay">
+                        No equipment selected.
+                    </div>
+                </div>
+                <div class="form-group mb-3">
+                    <label for="taDescription" class="form-label">Description of Issue</label>
+                    <textarea id="taDescription" class="form-control" placeholder="Describe the technical issue or assistance needed" rows="4" required></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="saveTechnicalAssistance()">Save</button>
             </div>
         </div>
     </div>
@@ -785,6 +814,11 @@ $date = date('Y-m-d');
         document.getElementById('otherRemarks_hidden').value = '';
     }
 
+    function clearTaHidden() {
+        document.getElementById('taEquipmentId_hidden').value = '';
+        document.getElementById('taDescription_hidden').value = '';
+    }
+
     function showOtherSpecify() {
         var requestType = document.getElementById("requestType").value;
         var descriptionInput = document.getElementById('description');
@@ -797,6 +831,7 @@ $date = date('Y-m-d');
             if (prevType === "Email") clearEmailHidden();
             if (prevType === "In House Software") clearSoftwareHidden();
             if (prevType === "Other") clearOtherHidden();
+            if (prevType === "Technical Assistance") clearTaHidden();
         }
         showOtherSpecify._prevType = requestType;
 
@@ -921,6 +956,30 @@ $date = date('Y-m-d');
         otherModal.hide();
     }
 
+    function saveTechnicalAssistance() {
+        var description = document.getElementById('taDescription').value;
+        if (!description.trim()) {
+            showToast('errorToast', 'Please enter a description of the issue.');
+            return;
+        }
+
+        var data = window._taEquipmentData || {};
+
+        var fullDescription = '';
+        fullDescription += 'Equipment ID: ' + (data.id || 'N/A') + '\n';
+        fullDescription += 'Equipment: ' + (data.specs || 'N/A') + ' (S/N: ' + (data.serial || 'N/A') + ') - User: ' + (data.name || 'N/A') + '\n\n';
+        fullDescription += 'Description:\n' + description;
+
+        document.getElementById('description').value = fullDescription;
+        document.getElementById('taEquipmentId_hidden').value = data.id || '';
+        document.getElementById('taDescription_hidden').value = description;
+        toggleSubmitBtn();
+
+        var taModalEl = document.getElementById('technicalAssistanceModal');
+        var taModal = bootstrap.Modal.getInstance(taModalEl);
+        taModal.hide();
+    }
+
     const sections = document.querySelectorAll('.form-section');
     const progressSteps = document.querySelectorAll('.progress-step-item');
     let currentSection = 0;
@@ -1005,6 +1064,9 @@ $date = date('Y-m-d');
             } else if (requestType === "Other" && !document.getElementById('otherTitle_hidden').value) {
                 allValid = false;
                 missing.push('Other Request Details');
+            } else if (requestType === "Technical Assistance" && !document.getElementById('equipment_id').value.trim()) {
+                allValid = false;
+                missing.push('Equipment Selection');
             }
         }
 
@@ -1084,13 +1146,41 @@ $date = date('Y-m-d');
             let specifications = e.target.getAttribute('data-specs');
             let serialNumber = e.target.getAttribute('data-serial');
 
-            document.getElementById('equipment_id').value = `${specifications} (S/N: ${serialNumber}) - User: ${equipmentName}`;
+            let displayValue = `${specifications} (S/N: ${serialNumber}) - User: ${equipmentName}`;
+            document.getElementById('equipment_id').value = displayValue;
 
-            showToast('selectionToast', 'Equipment selected successfully!');
+            let requestType = document.getElementById('requestType').value;
 
-            let modalElement = document.getElementById('searchEquipmentModal');
-            let modalInstance = bootstrap.Modal.getInstance(modalElement);
-            modalInstance.hide();
+            if (requestType === 'Technical Assistance') {
+                window._taEquipmentData = {
+                    id: equipmentId,
+                    name: equipmentName,
+                    specs: specifications,
+                    serial: serialNumber
+                };
+
+                let searchModalEl = document.getElementById('searchEquipmentModal');
+                let searchModal = bootstrap.Modal.getInstance(searchModalEl);
+                searchModal.hide();
+
+                searchModalEl.addEventListener('hidden.bs.modal', function () {
+                    let taEquipmentDisplay = document.getElementById('taEquipmentDisplay');
+                    taEquipmentDisplay.innerHTML = `
+                        <strong>ID:</strong> ${equipmentId}<br>
+                        <strong>Specifications:</strong> ${specifications}<br>
+                        <strong>Serial Number:</strong> ${serialNumber}<br>
+                        <strong>User:</strong> ${equipmentName}
+                    `;
+                    document.getElementById('taDescription').value = '';
+                    let taModal = new bootstrap.Modal(document.getElementById('technicalAssistanceModal'));
+                    taModal.show();
+                }, { once: true });
+            } else {
+                showToast('selectionToast', 'Equipment selected successfully!');
+                let modalElement = document.getElementById('searchEquipmentModal');
+                let modalInstance = bootstrap.Modal.getInstance(modalElement);
+                modalInstance.hide();
+            }
         }
     });
 
