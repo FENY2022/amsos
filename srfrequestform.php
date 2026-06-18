@@ -792,6 +792,7 @@ $date = date('Y-m-d');
 
         if (prevType !== requestType) {
             descriptionInput.value = "";
+            toggleSubmitBtn();
             if (prevType === "Zoom") clearZoomHidden();
             if (prevType === "Email") clearEmailHidden();
             if (prevType === "In House Software") clearSoftwareHidden();
@@ -856,6 +857,7 @@ $date = date('Y-m-d');
             description += 'Remarks: ' + remarks + '\n';
         }
         document.getElementById('description').value = description;
+        toggleSubmitBtn();
 
         var zoomModalEl = document.getElementById('zoomModal');
         var zoomModal = bootstrap.Modal.getInstance(zoomModalEl);
@@ -876,6 +878,7 @@ $date = date('Y-m-d');
         if (subject) description += 'Subject: ' + subject + '\n';
         if (remarks) description += 'Remarks: ' + remarks + '\n';
         document.getElementById('description').value = description;
+        toggleSubmitBtn();
 
         var emailModalEl = document.getElementById('emailModal');
         var emailModal = bootstrap.Modal.getInstance(emailModalEl);
@@ -893,6 +896,7 @@ $date = date('Y-m-d');
         description += 'Software: ' + software + '\n';
         description += 'Remarks: ' + remarks + '\n';
         document.getElementById('description').value = description;
+        toggleSubmitBtn();
 
         var softwareModalEl = document.getElementById('softwareModal');
         var softwareModal = bootstrap.Modal.getInstance(softwareModalEl);
@@ -910,6 +914,7 @@ $date = date('Y-m-d');
         description += 'Title of Issue: ' + title + '\n';
         description += 'Remarks: ' + remarks + '\n';
         document.getElementById('description').value = description;
+        toggleSubmitBtn();
 
         var otherModalEl = document.getElementById('otherModal');
         var otherModal = bootstrap.Modal.getInstance(otherModalEl);

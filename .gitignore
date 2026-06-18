@@ -1,0 +1,11 @@
+vendor/guzzlehttp/guzzle/
+vendor/guzzlehttp/promises/
+vendor/guzzlehttp/psr7/
+vendor/psr/http-client/
+vendor/psr/http-factory/
+vendor/psr/http-message/
+vendor/psr/log/
+vendor/pusher/pusher-php-server/
+vendor/ralouphie/getallheaders/
+vendor/symfony/deprecation-contracts/
+vendor/symfony/polyfill-php80/
