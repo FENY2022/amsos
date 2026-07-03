@@ -1,0 +1,32 @@
+DROP TABLE IF EXISTS `srf_repair_history`;
+
+CREATE TABLE `srf_repair_history` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `record_type` varchar(50) NOT NULL,
+  `source_id` int(11) DEFAULT NULL,
+  `srf_id` int(11) DEFAULT NULL,
+  `preventive_id` int(11) DEFAULT NULL,
+  `inventory_id` int(11) NOT NULL,
+  `property_number` varchar(255) DEFAULT NULL,
+  `actual_user` varchar(255) DEFAULT NULL,
+  `equipment_type` varchar(255) DEFAULT NULL,
+  `brand` varchar(255) DEFAULT NULL,
+  `description` longtext DEFAULT NULL,
+  `requestor_name` varchar(255) DEFAULT NULL,
+  `request_type` varchar(255) DEFAULT NULL,
+  `issue_description` longtext DEFAULT NULL,
+  `status` varchar(255) DEFAULT NULL,
+  `action_staff` varchar(255) DEFAULT NULL,
+  `action_taken` longtext DEFAULT NULL,
+  `date_recorded` date DEFAULT NULL,
+  `time_recorded` varchar(20) DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NULL DEFAULT NULL ON UPDATE current_timestamp(),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `unique_srf_repair` (`record_type`, `srf_id`),
+  KEY `idx_record_type` (`record_type`),
+  KEY `idx_srf_id` (`srf_id`),
+  KEY `idx_preventive_id` (`preventive_id`),
+  KEY `idx_inventory_id` (`inventory_id`),
+  KEY `idx_date_recorded` (`date_recorded`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;

@@ -11,6 +11,7 @@
 
 require_once 'connect.php';
 require_once 'session_checker.php';
+require_once 'repair_history_helpers.php';
 
 
 
@@ -33,8 +34,14 @@ $office = $_SESSION['OfficeSRF'];
 $Endsrd = "";
 $level = 1;
 
-// Handle equipment ID
-$equipmentId = isset($_POST['equipment_id']) ? filter_var($_POST['equipment_id'], FILTER_SANITIZE_NUMBER_INT) : "";
+// Handle equipment ID. Technical Assistance stores the real inventory ID in a hidden field;
+// the visible equipment_id input contains display text for the selected equipment.
+$equipmentId = 0;
+if (!empty($_POST['taEquipmentId_hidden'])) {
+    $equipmentId = intval($_POST['taEquipmentId_hidden']);
+} elseif (!empty($_POST['equipment_id'])) {
+    $equipmentId = intval(filter_var($_POST['equipment_id'], FILTER_SANITIZE_NUMBER_INT));
+}
 
 // Handle file uploads
 $uploadedFiles = [];
@@ -138,6 +145,10 @@ $stmt->execute();
 
 if ($stmt->affected_rows > 0) {
     $srfId = $stmt->insert_id; // Get the last inserted ID
+
+    if ($requestType === 'Technical Assistance' && $equipmentId > 0) {
+        repairHistoryInsertSrfRepair($conn, $srfId, $equipmentId, $name, $requestType, $description, $status, $date);
+    }
 
     echo '
     <div class="modal fade show" id="receive_read' . $srfId . '" tabindex="-1" aria-labelledby="printModalLabel" aria-hidden="true" style="display: block; background: rgba(0,0,0,0.5);">

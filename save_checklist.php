@@ -1,6 +1,7 @@
 <?php
 // Database connection
 require_once 'connect.php';
+require_once 'repair_history_helpers.php';
 
 // Get the maintenance ID from the POST data
 $maintenance_id = isset($_POST['inv_id']) ? intval($_POST['inv_id']) : 0;
@@ -17,6 +18,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $remarks = $conn->real_escape_string($_POST['remarks'] ?? ''); // Capture remarks
     $tasks = $_POST['tasks'] ?? []; // Tasks that are currently checked
     $brand = $_POST['brand'] ?? []; // Tasks that are currently checked
+    $completedTasks = [];
 
     // Retrieve all tasks currently in the database for this maintenance ID
     $existingTasks = [];
@@ -32,6 +34,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $task = $conn->real_escape_string($task);
             $month = intval($month);
             $status = 1; // Checked
+            $monthName = date('F', mktime(0, 0, 0, $month, 1));
+            $completedTasks[] = $task . ' (' . $monthName . ')';
 
             $sql = "INSERT INTO inv_preventive_maintenance_schedule 
                     (inv_id, maintenance_id, division, used_by, article, property_no, accounting_officer, mr_number, description, remarks, task, month, status) 
@@ -90,6 +94,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $stmt->bind_param("isssssii", $inv_id, $brand, $property_name, $property_number, $remarks, $notification_remarks, $action, $tracking);
 
     if ($stmt->execute()) {
+        $actionStaff = $_SESSION['Full_NameSRF'] ?? '';
+        $taskSummary = !empty($completedTasks) ? implode('; ', array_unique($completedTasks)) : 'Preventive maintenance checklist updated.';
+        $actionTaken = trim($remarks) !== '' ? $remarks : $taskSummary;
+        repairHistoryInsertPreventiveMaintenance($conn, $maintenance_id, $taskSummary, 'Completed', $actionStaff, $actionTaken);
+
         echo "<script>alert('Checklist and notification updated successfully!');</script>";
     } else {
         echo "<script>alert('Failed to add notification: " . $stmt->error . "');</script>";

@@ -5,6 +5,7 @@ ini_set('display_errors', 1);
 
 // Include database connection
 include 'connect.php'; // Replace with your actual connection file
+require_once 'repair_history_helpers.php';
 
 // Check if the form was submitted
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
@@ -41,6 +42,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $stmth->bind_param("issssss", $srfId, $name, $details, $date, $time, $status, $office);
         $stmth->execute();
         $stmth->close();
+
+        repairHistoryUpdateSrfRepairAction($conn, $srfId, $status, $name, $remarks, $date, $time);
     
         
         // Success: redirect to the request list page

@@ -1,4 +1,6 @@
 <?php
+require_once 'session_checker.php';
+
 // Include database connection
 require_once 'connect.php'; 
 

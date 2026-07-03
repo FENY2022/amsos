@@ -4,6 +4,7 @@
 
 // Include database connection
 require_once 'connect.php'; // Replace with your actual connection file
+require_once 'repair_history_helpers.php';
 
 
 // Check if the form was submitted via GET and 'assign' parameter exists
@@ -287,6 +288,8 @@ if ($_SERVER["REQUEST_METHOD"] == "GET" && isset($_GET['assign'])) {
         $stmthij->execute();
         $stmthij->close();
     }
+
+    repairHistoryUpdateSrfRepairAction($conn, $srfId, $status, $name, $remarks, $date, $time);
 
 
     // Prepare the update statement for srf table
