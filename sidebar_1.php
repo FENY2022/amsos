@@ -159,9 +159,6 @@ $tracking2 = $tracking2 ?? 0;
             <a href="#servicesSubmenu" data-toggle="collapse" aria-expanded="false" >Inventory<span class="arrow"></span></a>
             <ul class="collapse list-unstyled" id="servicesSubmenu">
                 <li>
-                    <a href="mainmenu.php?dir=edtitf">Entry Data ITF</a>
-                </li>
-                <li>
                     <a href="mainmenu.php?dir=entrydata">Entry Data</a>
                 </li>
                 <li>
@@ -341,6 +338,9 @@ if ($_SESSION['User_RoleSRF'] == 'Encoder' || $_SESSION['User_RoleSRF'] == 'Veri
                                 <a href="mainmenu.php?dir=otos_employee_include">OTOS Employee Include</a>
                             </li>
 
+                            <li>
+                                <a href="amsos-requestdata.php" target="_blank">Request Data</a>
+                            </li>
 
                         </ul>
                     </li>';
@@ -367,6 +367,22 @@ document.addEventListener("DOMContentLoaded", function () {
     // Retrieve the last opened menu from localStorage
     const activeMenu = localStorage.getItem("activeMenu");
     const activeSubmenu = localStorage.getItem("activeSubmenu");
+
+    function applyMenuLoadingState(link) {
+        document.querySelectorAll('#sidebar a.menu-link-loading').forEach(activeLink => {
+            activeLink.classList.remove('menu-link-loading');
+            const spinner = activeLink.querySelector('.menu-loading-icon');
+            if (spinner) {
+                spinner.remove();
+            }
+        });
+
+        if (!link.querySelector('.menu-loading-icon')) {
+            link.insertAdjacentHTML('beforeend', '<span class="menu-loading-icon" aria-hidden="true"><i class="fas fa-spinner fa-spin"></i></span>');
+        }
+
+        link.classList.add('menu-link-loading');
+    }
 
     // If there's an active menu, expand it and highlight it
     if (activeMenu) {
@@ -395,9 +411,21 @@ document.addEventListener("DOMContentLoaded", function () {
     });
 
     document.querySelectorAll("a").forEach(link => {
-        link.addEventListener("click", function () {
+        link.addEventListener("click", function (event) {
             const linkHref = this.getAttribute("href");
             localStorage.setItem("activeSubmenu", linkHref);
+
+            if (!linkHref || linkHref.startsWith('#') || this.dataset.toggle === 'collapse' || this.getAttribute('target') === '_blank' || this.id === 'logoutLink') {
+                return;
+            }
+
+            if (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) {
+                return;
+            }
+
+            if (linkHref.startsWith('mainmenu.php?dir=')) {
+                applyMenuLoadingState(this);
+            }
         });
     });
 });

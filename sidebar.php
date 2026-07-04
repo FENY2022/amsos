@@ -196,9 +196,6 @@ $tracking2 = $tracking2 ?? 0;
             <a href="#servicesSubmenu" data-toggle="collapse" aria-expanded="false" ><i class="fas fa-boxes"></i> Inventory<span class="arrow"></span></a>
             <ul class="collapse list-unstyled" id="servicesSubmenu">
                 <li>
-                    <a href="mainmenu.php?dir=edtitf"><i class="fas fa-file-alt"></i> Entry Data ITF</a>
-                </li>
-                <li>
                     <a href="mainmenu.php?dir=entrydata"><i class="fas fa-keyboard"></i> Entry Data</a>
                 </li>
                 <li>
@@ -423,6 +420,9 @@ if ($_SESSION['User_RoleSRF'] == 'Encoder' || $_SESSION['User_RoleSRF'] == 'Veri
                                 <a href="mainmenu.php?dir=otos_employee_include"><i class="fas fa-users"></i> OTOS Employee Include</a>
                             </li>
 
+                            <li>
+                                <a href="amsos-requestdata.php" target="_blank"><i class="fas fa-database"></i> Request Data</a>
+                            </li>
 
                         </ul>
                     </li>';
@@ -454,6 +454,22 @@ document.addEventListener("DOMContentLoaded", function () {
     const activeMenu = localStorage.getItem("activeMenu");
     const activeSubmenu = localStorage.getItem("activeSubmenu");
 
+    function applyMenuLoadingState(link) {
+        document.querySelectorAll('#sidebar a.menu-link-loading').forEach(activeLink => {
+            activeLink.classList.remove('menu-link-loading');
+            const spinner = activeLink.querySelector('.menu-loading-icon');
+            if (spinner) {
+                spinner.remove();
+            }
+        });
+
+        if (!link.querySelector('.menu-loading-icon')) {
+            link.insertAdjacentHTML('beforeend', '<span class="menu-loading-icon" aria-hidden="true"><i class="fas fa-spinner fa-spin"></i></span>');
+        }
+
+        link.classList.add('menu-link-loading');
+    }
+
     // If there's an active menu, expand it and highlight it
     if (activeMenu) {
         const menuElement = document.querySelector(`#${activeMenu}`);
@@ -481,9 +497,21 @@ document.addEventListener("DOMContentLoaded", function () {
     });
 
     document.querySelectorAll("a").forEach(link => {
-        link.addEventListener("click", function () {
+        link.addEventListener("click", function (event) {
             const linkHref = this.getAttribute("href");
             localStorage.setItem("activeSubmenu", linkHref);
+
+            if (!linkHref || linkHref.startsWith('#') || this.dataset.toggle === 'collapse' || this.getAttribute('target') === '_blank' || this.id === 'logoutLink') {
+                return;
+            }
+
+            if (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) {
+                return;
+            }
+
+            if (linkHref.startsWith('mainmenu.php?dir=')) {
+                applyMenuLoadingState(this);
+            }
         });
     });
 });

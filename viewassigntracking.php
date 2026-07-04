@@ -669,6 +669,7 @@ $selectedStation = isset($_POST['station']) ? $conn->real_escape_string($_POST['
     document.addEventListener('DOMContentLoaded', function() {
         var officeSelect = document.getElementById('office');
         var stationSelect = document.getElementById('station');
+        var filterForm = document.getElementById('filterForm');
         var newSignerOfficeSelect = document.getElementById('newSignerOffice');
         var newSignerStationSelect = document.getElementById('newSignerStation');
 
@@ -679,30 +680,22 @@ $selectedStation = isset($_POST['station']) ? $conn->real_escape_string($_POST['
             }
             fetch('fetch_station.php', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded'
-                },
-                body: new URLSearchParams({
-                    'office': officeValue
-                })
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: new URLSearchParams({ 'office': officeValue })
             })
             .then(response => response.text())
             .then(data => {
                 targetSelectElement.innerHTML = data;
-                if (previouslySelectedStation) {
-                    targetSelectElement.value = previouslySelectedStation;
-                } else {
-                    targetSelectElement.value = '';
-                }
+                targetSelectElement.value = previouslySelectedStation || '';
             })
-            .catch(error => {
-                console.error("Fetch Error: ", error);
+            .catch(function() {
                 targetSelectElement.innerHTML = '<option value="">Error loading stations</option>';
             });
         }
 
-        var savedOffice = localStorage.getItem('selectedOffice');
-        var savedStation = localStorage.getItem('selectedStation');
+        var savedOffice = localStorage.getItem('vatoffice');
+        var savedStation = localStorage.getItem('vatstation');
+        var hasPost = <?php echo $_SERVER['REQUEST_METHOD'] === 'POST' ? 'true' : 'false'; ?>;
 
         if (savedOffice && officeSelect) {
             officeSelect.value = savedOffice;
@@ -712,16 +705,27 @@ $selectedStation = isset($_POST['station']) ? $conn->real_escape_string($_POST['
         if (officeSelect) {
             officeSelect.addEventListener('change', function() {
                 var officeValue = this.value;
-                localStorage.setItem('selectedOffice', officeValue);
-                localStorage.removeItem('selectedStation');
+                localStorage.setItem('vatoffice', officeValue);
+                localStorage.removeItem('vatstation');
                 fetchStations(officeValue, stationSelect);
             });
         }
 
         if (stationSelect) {
             stationSelect.addEventListener('change', function() {
-                localStorage.setItem('selectedStation', this.value);
+                localStorage.setItem('vatstation', this.value);
             });
+        }
+
+        if (filterForm) {
+            filterForm.addEventListener('submit', function() {
+                localStorage.setItem('vatoffice', officeSelect.value);
+                localStorage.setItem('vatstation', stationSelect.value);
+            });
+
+            if (!hasPost && savedOffice) {
+                setTimeout(function() { filterForm.submit(); }, 300);
+            }
         }
 
         if (newSignerOfficeSelect && newSignerStationSelect) {
@@ -735,28 +739,25 @@ $selectedStation = isset($_POST['station']) ? $conn->real_escape_string($_POST['
 
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        // Get search input element
         const searchInput = document.querySelector('input[type="search"]');
         if (searchInput) {
-            // Load previous search if exists
-            const previousSearch = localStorage.getItem('previousSearch');
-            if (previousSearch) {
-                searchInput.value = previousSearch;
-            }
+            var saved = localStorage.getItem('vatsearch');
+            if (saved) searchInput.value = saved;
 
-            // Save search term when user types
             searchInput.addEventListener('input', function() {
-                localStorage.setItem('previousSearch', this.value);
-                // Keep the table visible/present
-                document.querySelector('table')?.style.display = 'table';
+                localStorage.setItem('vatsearch', this.value);
+                var tbl = document.querySelector('table');
+                if (tbl) tbl.style.display = 'table';
             });
 
-            // Save search term when form is submitted
-            searchInput.closest('form')?.addEventListener('submit', function() {
-                localStorage.setItem('previousSearch', searchInput.value);
-                // Ensure table remains visible after form submission
-                document.querySelector('table')?.style.display = 'table';
-            });
+            var f = searchInput.closest('form');
+            if (f) {
+                f.addEventListener('submit', function() {
+                    localStorage.setItem('vatsearch', searchInput.value);
+                    var tbl = document.querySelector('table');
+                    if (tbl) tbl.style.display = 'table';
+                });
+            }
         }
     });
 </script>

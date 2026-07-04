@@ -352,7 +352,7 @@
 
         /* Toast Notification */
         .toast-container {
-            z-index: 1050;
+            z-index: 9999;
         }
         .toast {
             border-radius: 8px;
@@ -532,7 +532,7 @@ $date = date('Y-m-d');
                 <h5 class="modal-title" id="searchEquipmentModalLabel">Search Equipment</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close">x</button>
             </div>
-            <div class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index: 11;">
+            <div class="toast-container position-fixed bottom-0 end-0 p-3">
                 <div id="selectionToast" class="toast align-items-center text-white bg-success border-0" role="alert" aria-live="assertive" aria-atomic="true">
                     <div class="d-flex">
                         <div class="toast-body">

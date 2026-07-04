@@ -49,6 +49,73 @@
               height: 100vh;
           }
 
+          .loading-overlay {
+              position: fixed;
+              inset: 0;
+              background: rgba(15, 23, 42, 0.62);
+              display: none;
+              align-items: center;
+              justify-content: center;
+              z-index: 99999;
+              opacity: 0;
+              visibility: hidden;
+              transition: opacity 0.2s ease, visibility 0.2s ease;
+          }
+
+          .loading-overlay.active {
+              display: flex;
+              opacity: 1;
+              visibility: visible;
+          }
+
+          .loading-overlay-card {
+              min-width: 220px;
+              padding: 24px 28px;
+              border-radius: 16px;
+              background: rgba(255, 255, 255, 0.97);
+              color: #1f2937;
+              box-shadow: 0 18px 48px rgba(0, 0, 0, 0.2);
+              text-align: center;
+          }
+
+          .loading-overlay-icon {
+              font-size: 2rem;
+              color: #0d6efd;
+              margin-bottom: 12px;
+          }
+
+          .loading-overlay-text {
+              font-size: 1rem;
+              font-weight: 600;
+              letter-spacing: 0.02em;
+          }
+
+          #sidebar a.menu-link-loading {
+              opacity: 0.9;
+              pointer-events: none;
+              background: linear-gradient(90deg, rgba(13, 110, 253, 0.18), rgba(13, 110, 253, 0.08));
+          }
+
+          #sidebar a .menu-loading-icon {
+              position: absolute;
+              right: 14px;
+              top: 50%;
+              transform: translateY(-50%);
+              color: #ffffff;
+              font-size: 0.95rem;
+              line-height: 1;
+          }
+
+          #sidebar ul.collapse li a .menu-loading-icon {
+              right: 12px;
+          }
+
+          #sidebar a.menu-link-loading .arrow,
+          #sidebar a.menu-link-loading .notification-badge,
+          #sidebar a.menu-link-loading .notification-badgeSRF {
+              opacity: 0.35;
+          }
+
         
           .btn-Success {
               border-radius: 5px;

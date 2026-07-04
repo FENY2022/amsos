@@ -324,6 +324,25 @@ if ($result && $result->num_rows > 0) {
     }
 }
 $conn->close();
+
+$totalRecords = count($inventory_data);
+$uniqueDivisions = [];
+$uniqueEquipmentTypes = [];
+
+foreach ($inventory_data as $item) {
+    $division = trim((string)($item['officeDivision'] ?? ''));
+    $equipmentType = trim((string)($item['equipmentType'] ?? ''));
+
+    if ($division !== '') {
+        $uniqueDivisions[$division] = true;
+    }
+    if ($equipmentType !== '') {
+        $uniqueEquipmentTypes[$equipmentType] = true;
+    }
+}
+
+$divisionCount = count($uniqueDivisions);
+$equipmentTypeCount = count($uniqueEquipmentTypes);
 ?>
 
 <!DOCTYPE html>
@@ -344,40 +363,137 @@ $conn->close();
         /* Google Material Design Global Styles */
         body {
             font-family: 'Roboto', sans-serif;
-            background-color: #f8f9fa;
+            background: linear-gradient(180deg, #f4f7fb 0%, #eef3f9 100%);
             margin: 0;
-            padding: 40px 20px;
+            padding: 28px 16px;
             color: #202124;
         }
 
-        /* Material Card Container */
-        .table-container {
-            background: #ffffff;
-            padding: 24px 32px;
-            border-radius: 12px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.05), 0 1px 3px rgba(0,0,0,0.1);
-            max-width: 95%;
-            margin: auto;
+        .page-shell {
+            max-width: 1560px;
+            margin: 0 auto;
         }
 
-        /* Header Styling */
-        .header-title {
+        .hero-card {
+            background: linear-gradient(135deg, #1a73e8 0%, #1557b0 100%);
+            border-radius: 22px;
+            padding: 24px 26px;
+            color: #fff;
+            box-shadow: 0 18px 42px rgba(26, 115, 232, 0.22);
+            margin-bottom: 18px;
+        }
+
+        .hero-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .hero-title {
             display: flex;
             align-items: center;
+            gap: 14px;
+            font-size: 1.75rem;
+            font-weight: 700;
+            line-height: 1.2;
+            margin: 0 0 8px;
+        }
+
+        .hero-title i {
+            font-size: 2rem;
+        }
+
+        .hero-subtitle {
+            margin: 0;
+            max-width: 760px;
+            color: rgba(255, 255, 255, 0.86);
+            font-size: 0.98rem;
+            line-height: 1.55;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
             gap: 12px;
-            font-size: 24px;
+        }
+
+        .stat-chip {
+            background: rgba(255, 255, 255, 0.14);
+            border: 1px solid rgba(255, 255, 255, 0.14);
+            border-radius: 16px;
+            padding: 14px 16px;
+            backdrop-filter: blur(4px);
+        }
+
+        .stat-chip .label {
+            display: block;
+            font-size: 0.78rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: rgba(255, 255, 255, 0.75);
+            margin-bottom: 6px;
+        }
+
+        .stat-chip .value {
+            display: block;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #fff;
+        }
+
+        .table-container {
+            background: #ffffff;
+            padding: 24px 24px 20px;
+            border-radius: 22px;
+            box-shadow: 0 12px 34px rgba(15, 23, 42, 0.08);
+        }
+
+        .table-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+
+        .table-header-copy h2 {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: #1f2937;
+            margin: 0 0 6px;
+        }
+
+        .table-header-copy p {
+            margin: 0;
+            color: #64748b;
+            font-size: 0.92rem;
+        }
+
+        .table-note {
+            display: none;
+            margin: 0 0 12px;
+            padding: 10px 12px;
+            border-radius: 10px;
+            background: #eff6ff;
+            color: #1d4ed8;
+            font-size: 0.86rem;
             font-weight: 500;
-            color: #1a73e8;
-            margin-bottom: 20px;
-            border-bottom: 1px solid #e0e0e0;
-            padding-bottom: 16px;
         }
 
-        .header-title i {
-            font-size: 32px;
+        .table-shell {
+            border: 1px solid #e5e7eb;
+            border-radius: 18px;
+            overflow: hidden;
+            background: #fff;
         }
 
-        .header-title .export-btn {
+        .header-title .export-btn,
+        .export-btn {
             display: inline-flex;
             align-items: center;
             gap: 6px;
@@ -394,7 +510,8 @@ $conn->close();
             font-family: 'Roboto', sans-serif;
         }
 
-        .header-title .export-btn:hover {
+        .header-title .export-btn:hover,
+        .export-btn:hover {
             background: #1557b0;
         }
 
@@ -459,15 +576,16 @@ $conn->close();
             color: #5f6368;
             font-weight: 500;
             text-transform: capitalize;
-            padding: 16px 12px;
+            padding: 14px 12px;
             font-size: 14px;
             border-bottom: 2px solid #e0e0e0 !important;
             border-top: none !important;
+            background: #f8fafc;
         }
 
         table.dataTable tbody td {
             border-bottom: 1px solid #e0e0e0 !important;
-            padding: 14px 12px;
+            padding: 12px 12px;
             color: #3c4043;
             font-size: 14px;
             white-space: nowrap;
@@ -491,6 +609,41 @@ $conn->close();
         .dataTables_wrapper .dataTables_filter input:focus {
             border-color: #1a73e8;
             box-shadow: 0 1px 3px rgba(26,115,232,0.3);
+        }
+
+        .dataTables_wrapper .dataTables_length,
+        .dataTables_wrapper .dataTables_filter,
+        .dataTables_wrapper .dataTables_info,
+        .dataTables_wrapper .dataTables_paginate {
+            margin-top: 12px;
+            margin-bottom: 6px;
+            color: #475569;
+            font-size: 0.92rem;
+        }
+
+        .dataTables_wrapper .dataTables_length select {
+            border: 1px solid #d1d5db;
+            border-radius: 10px;
+            padding: 5px 10px;
+            background: #fff;
+        }
+
+        .dataTables_wrapper .dataTables_scroll {
+            overflow: hidden;
+        }
+
+        .dataTables_wrapper .dataTables_scrollBody {
+            border-top: 1px solid #eef2f7 !important;
+            scrollbar-width: thin;
+        }
+
+        .dataTables_wrapper .dataTables_scrollBody::-webkit-scrollbar {
+            height: 10px;
+        }
+
+        .dataTables_wrapper .dataTables_scrollBody::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 999px;
         }
 
         /* Pagination Buttons */
@@ -525,49 +678,184 @@ $conn->close();
         .column-search:focus {
             border-color: #1a73e8;
         }
+
+        @media (max-width: 992px) {
+            body {
+                padding: 20px 12px;
+            }
+
+            .hero-top,
+            .table-header {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .export-dropdown,
+            .export-btn {
+                width: 100%;
+            }
+
+            .stats-grid {
+                grid-template-columns: repeat(3, minmax(0, 1fr));
+            }
+        }
+
+        @media (max-width: 768px) {
+            .hero-card {
+                padding: 18px;
+                border-radius: 18px;
+            }
+
+            .hero-title {
+                font-size: 1.4rem;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .table-container {
+                padding: 18px 14px 14px;
+                border-radius: 18px;
+            }
+
+            .table-note {
+                display: block;
+            }
+
+            .dataTables_wrapper .dataTables_length,
+            .dataTables_wrapper .dataTables_filter,
+            .dataTables_wrapper .dataTables_info,
+            .dataTables_wrapper .dataTables_paginate {
+                float: none !important;
+                text-align: left !important;
+                width: 100%;
+            }
+
+            .dataTables_wrapper .dataTables_filter label,
+            .dataTables_wrapper .dataTables_length label {
+                width: 100%;
+                display: block;
+            }
+
+            .dataTables_wrapper .dataTables_filter input {
+                margin-left: 0;
+                margin-top: 8px;
+                width: 100%;
+                box-sizing: border-box;
+            }
+
+            .filter-row {
+                display: none;
+            }
+
+            table.dataTable thead th {
+                font-size: 12px;
+                padding: 12px 10px;
+            }
+
+            table.dataTable tbody td {
+                font-size: 12px;
+                padding: 10px;
+            }
+
+            .export-dropdown-content {
+                min-width: 100%;
+                left: 0;
+                right: auto;
+            }
+        }
+
+        @media (max-width: 576px) {
+            .hero-subtitle,
+            .table-header-copy p,
+            .table-note,
+            .dataTables_wrapper .dataTables_info,
+            .dataTables_wrapper .dataTables_filter,
+            .dataTables_wrapper .dataTables_length {
+                font-size: 0.84rem;
+            }
+
+            .hero-title i,
+            .material-icons {
+                font-size: 1.5rem;
+            }
+
+            .stat-chip .value {
+                font-size: 1.25rem;
+            }
+        }
     </style>
 </head>
 <body>
 
-    <div class="table-container">
-        <div class="header-title" style="display: flex; justify-content: space-between; align-items: center;">
-            <div>
-                <i class="material-icons">manage_search</i>
-                AMSOS Equipment Inventory
+    <div class="page-shell">
+        <div class="hero-card">
+            <div class="hero-top">
+                <div>
+                    <h1 class="hero-title"><i class="material-icons">inventory_2</i> AMSOS Equipment Inventory</h1>
+                    <p class="hero-subtitle">Browse, search, and export the latest AMSOS equipment records. Desktop keeps full filtering controls, while mobile is optimized for quick search and smooth horizontal scrolling.</p>
+                </div>
+                <div class="export-dropdown">
+                    <button class="export-btn" onclick="toggleExport(event)">
+                        <i class="material-icons" style="font-size: 18px; vertical-align: middle;">file_download</i>
+                        Export to Excel
+                        <i class="material-icons" style="font-size: 18px;">arrow_drop_down</i>
+                    </button>
+                    <div class="export-dropdown-content" id="exportDropdown">
+                        <a href="?export=excel">
+                            <i class="material-icons" style="font-size: 20px; color:#1a73e8;">table_chart</i>
+                            <span class="label">
+                                Export to Excel
+                                <small>Plain format without colors</small>
+                            </span>
+                        </a>
+                        <a href="?export=excel_color">
+                            <span class="color-icon" style="background: linear-gradient(135deg,#FFD6D6,#D6F5D6,#D6E8FF);"></span>
+                            <span class="label">
+                                Export to Excel (Color Coded)
+                                <small>Color coded by Equipment Type</small>
+                            </span>
+                        </a>
+                        <a href="?export=excel_division">
+                            <i class="material-icons" style="font-size: 20px; color:#34a853;">bar_chart</i>
+                            <span class="label">
+                                Summary per Division
+                                <small>Equipment count grouped by office division</small>
+                            </span>
+                        </a>
+                    </div>
+                </div>
             </div>
-            <div class="export-dropdown">
-                <button class="export-btn" onclick="toggleExport(event)">
-                    <i class="material-icons" style="font-size: 18px; vertical-align: middle;">file_download</i>
-                    Export to Excel
-                    <i class="material-icons" style="font-size: 18px;">arrow_drop_down</i>
-                </button>
-                <div class="export-dropdown-content" id="exportDropdown">
-                    <a href="?export=excel">
-                        <i class="material-icons" style="font-size: 20px; color:#1a73e8;">table_chart</i>
-                        <span class="label">
-                            Export to Excel
-                            <small>Plain format without colors</small>
-                        </span>
-                    </a>
-                    <a href="?export=excel_color">
-                        <span class="color-icon" style="background: linear-gradient(135deg,#FFD6D6,#D6F5D6,#D6E8FF);"></span>
-                        <span class="label">
-                            Export to Excel (Color Coded)
-                            <small>Color coded by Equipment Type</small>
-                        </span>
-                    </a>
-                    <a href="?export=excel_division">
-                        <i class="material-icons" style="font-size: 20px; color:#34a853;">bar_chart</i>
-                        <span class="label">
-                            Summary per Division
-                            <small>Equipment count grouped by office division</small>
-                        </span>
-                    </a>
+
+            <div class="stats-grid">
+                <div class="stat-chip">
+                    <span class="label">Total Records</span>
+                    <span class="value"><?php echo number_format($totalRecords); ?></span>
+                </div>
+                <div class="stat-chip">
+                    <span class="label">Office Divisions</span>
+                    <span class="value"><?php echo number_format($divisionCount); ?></span>
+                </div>
+                <div class="stat-chip">
+                    <span class="label">Equipment Types</span>
+                    <span class="value"><?php echo number_format($equipmentTypeCount); ?></span>
                 </div>
             </div>
         </div>
-        
-        <table id="inventoryTable" class="display nowrap" style="width:100%">
+
+        <div class="table-container">
+            <div class="table-header">
+                <div class="table-header-copy">
+                    <h2><i class="material-icons">manage_search</i> Inventory Explorer</h2>
+                    <p>Use global search for quick lookups. On desktop, each column also has a dropdown filter for exact matching.</p>
+                </div>
+            </div>
+
+            <p class="table-note"><i class="material-icons" style="font-size: 16px; vertical-align: text-bottom;">swipe</i> Swipe sideways to view more columns on smaller screens.</p>
+
+            <div class="table-shell">
+                <table id="inventoryTable" class="display nowrap" style="width:100%">
             <thead>
                 <tr>
                     <?php
@@ -607,7 +895,9 @@ $conn->close();
                 }
                 ?>
             </tbody>
-        </table>
+                </table>
+            </div>
+        </div>
     </div>
 
     <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
@@ -616,8 +906,9 @@ $conn->close();
     <script>
         $(document).ready(function() {
             $('#inventoryTable').DataTable({
-                "scrollX": true,       
-                "pageLength": 15,      
+                "scrollX": true,
+                "autoWidth": false,
+                "pageLength": 15,
                 "order": [[ 0, "desc" ]],
                 "language": {
                     "search": "<i class='material-icons' style='vertical-align: middle; font-size: 20px; color: #5f6368;'>search</i> Global Search:",

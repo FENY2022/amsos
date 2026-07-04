@@ -17,6 +17,7 @@ if (
     <title>ICT-AMSOS</title>
     <link rel="shortcut icon" type="image/x-icon" href="icon/amsos.ico">
     <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
     <link rel="stylesheet" href="css/mainmenu.css">
 </head>
 <body>
@@ -57,10 +58,6 @@ require_once 'sidebar.php';
                 
                 require_once 'about.php' ;
 
-            }elseif ($_dirlist == 'edtitf') {
-
-                require_once 'captureindex.html' ;
-
             }elseif ($_dirlist == 'entrydata') {
 
                 require_once 'entrydata.php' ;
@@ -76,7 +73,7 @@ require_once 'sidebar.php';
 
             }elseif ($_dirlist == 'getinventory') {
 
-                echo '<iframe src="getinventory.php" style="width:100%; height:100vh; border:none;"></iframe>';
+                echo '<iframe src="getinventory.php" onload="var overlay = window.parent.document.getElementById(\'globalLoadingOverlay\'); if (overlay) { overlay.classList.remove(\'active\'); overlay.setAttribute(\'aria-hidden\', \'true\'); }" style="width:100%; height:100vh; border:none;"></iframe>';
 
                   
             }elseif ($_dirlist == 'analysisandgraph') {
@@ -89,7 +86,7 @@ require_once 'sidebar.php';
 
             }elseif ($_dirlist == 'srfrequestform') {
 
-                echo '<iframe src="srfrequestform.php" style="width:100%; height:100vh; border:none;"></iframe>';
+                echo '<iframe src="srfrequestform.php" onload="var overlay = window.parent.document.getElementById(\'globalLoadingOverlay\'); if (overlay) { overlay.classList.remove(\'active\'); overlay.setAttribute(\'aria-hidden\', \'true\'); }" style="width:100%; height:100vh; border:none;"></iframe>';
 
             }elseif ($_dirlist == 'srfactiontaken') {
 
@@ -219,12 +216,54 @@ require_once 'sidebar.php';
         </div>
     </div>
 
+    <div id="globalLoadingOverlay" class="loading-overlay" aria-hidden="true">
+        <div class="loading-overlay-card">
+            <div class="loading-overlay-icon"><i class="fas fa-spinner fa-spin"></i></div>
+            <div class="loading-overlay-text">Loading...</div>
+        </div>
+    </div>
+
     <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.4/dist/umd/popper.min.js"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
 
     <script>
                 $(document).ready(function () {
+                    const loadingOverlay = document.getElementById('globalLoadingOverlay');
+
+                    function showLoadingOverlay() {
+                        if (!loadingOverlay) {
+                            return;
+                        }
+                        loadingOverlay.classList.add('active');
+                        loadingOverlay.setAttribute('aria-hidden', 'false');
+                    }
+
+                    window.hideLoadingOverlay = function hideLoadingOverlay() {
+                        if (!loadingOverlay) {
+                            return;
+                        }
+                        loadingOverlay.classList.remove('active');
+                        loadingOverlay.setAttribute('aria-hidden', 'true');
+                    }
+
+                    hideLoadingOverlay();
+
+                    document.querySelectorAll('a[href^="mainmenu.php?dir="]').forEach(function (link) {
+                        if (link.getAttribute('target') === '_blank') {
+                            return;
+                        }
+
+                        link.addEventListener('click', function (event) {
+                            if (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) {
+                                return;
+                            }
+                            showLoadingOverlay();
+                        });
+                    });
+
+                    window.addEventListener('pageshow', hideLoadingOverlay);
+
                     // Toggle sidebar when clicking the collapse button
                     $('#sidebarCollapse').on('click', function () {
                         $('#sidebar').toggleClass('active');
