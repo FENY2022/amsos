@@ -337,6 +337,10 @@ if ($_SESSION['User_RoleSRF'] == 'Encoder' || $_SESSION['User_RoleSRF'] == 'Veri
                                 <a href="mainmenu.php?dir=assignactionstaff">Assign Action Staff</a>
                             </li>
 
+                            <li>
+                                <a href="mainmenu.php?dir=otos_employee_include">OTOS Employee Include</a>
+                            </li>
+
 
                         </ul>
                     </li>';

@@ -119,6 +119,10 @@ require_once 'sidebar.php';
 
                 require_once 'assignactionstaff.php' ;
 
+            }elseif ($_dirlist == 'otos_employee_include') {
+
+                require_once 'otos_employee_include.php' ;
+
 
             }elseif ($_dirlist == 'printform') {
 
