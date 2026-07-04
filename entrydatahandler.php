@@ -187,13 +187,15 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $_SESSION['success'] = "Inventory record saved successfully!";
             unset($_SESSION['form_data']);
         } else {
-            $_SESSION['error'] = "Error: Could not execute the insertion query.";
+            $_SESSION['error'] = "Error: Could not execute the insertion query. " . $stmt->error;
+            error_log('entrydatahandler.php insert execute failed: ' . $stmt->error);
             $_SESSION['form_data'] = $_POST;
         }
 
         $stmt->close();
     } else {
-        $_SESSION['error'] = "Error: Could not prepare the insertion query.";
+        $_SESSION['error'] = "Error: Could not prepare the insertion query. " . $conn->error;
+        error_log('entrydatahandler.php insert prepare failed: ' . $conn->error);
         $_SESSION['form_data'] = $_POST;
     }
 

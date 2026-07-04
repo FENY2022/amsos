@@ -4,6 +4,16 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 require_once 'connect.php';
 
+if (!isset($conn) || !($conn instanceof mysqli)) {
+    die('Database connection is not available. Please check connect.php.');
+}
+
+if ($conn->connect_error) {
+    die('Database connection failed: ' . htmlspecialchars($conn->connect_error));
+}
+
+$conn->set_charset('utf8mb4');
+
 // Check if there is saved form data from a previous submission
 $saved_data = isset($_SESSION['form_data']) ? $_SESSION['form_data'] : [];
 unset($_SESSION['form_data']); // Clear the saved data after retrieving it
@@ -26,6 +36,9 @@ if ($stmt_employees) {
         }
     }
     $stmt_employees->close();
+} else {
+    $user_options = "<option value='Unable to load employee list'>";
+    error_log('entrydata.php employee query prepare failed: ' . $conn->error);
 }
 
 // --- 2. Fetch office/station data for STANDARD SELECT (Dropdown) ---
@@ -49,6 +62,7 @@ if ($stmt_offices) {
     $stmt_offices->close();
 } else {
     $office_options = "<option value=''>Error fetching offices</option>";
+    error_log('entrydata.php office division query prepare failed: ' . $conn->error);
 }
 
 // --- 3. Fetch equipment data ---
@@ -82,6 +96,7 @@ $conn->close();
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>ICT Equipment Inventory</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root {
