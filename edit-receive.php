@@ -1,9 +1,58 @@
 <?php
 
-require_once 'connect.php';
+require_once 'connect_amsos.php';
 
 // Set the default timezone to prevent potential date/time errors
 date_default_timezone_set('Asia/Manila');
+
+function fetchOllamaModels() {
+    $fallback = ['deepseek-r1:latest', 'qwen3:latest', 'qwen3:4b', 'qwen2.5-coder:7b', 'MFDoom/deepseek-r1-tool-calling:8b', 'gemma4:latest', 'phi3:latest', 'tinyllama:latest'];
+
+    if (!function_exists('curl_init')) {
+        return $fallback;
+    }
+
+    $ch = curl_init('http://localhost:11434/api/tags');
+    curl_setopt_array($ch, [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_TIMEOUT => 8,
+    ]);
+    $response = curl_exec($ch);
+    if (curl_errno($ch)) {
+        curl_close($ch);
+        return $fallback;
+    }
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+    if ($httpCode !== 200) {
+        return $fallback;
+    }
+
+    $data = json_decode($response, true);
+    if (!is_array($data) || empty($data['models'])) {
+        return $fallback;
+    }
+
+    $models = [];
+    foreach ($data['models'] as $model) {
+        $name = trim((string)($model['name'] ?? ''));
+        $capabilitiesRaw = $model['capabilities'] ?? [];
+        $capabilities = is_array($capabilitiesRaw) ? strtolower(implode(' ', $capabilitiesRaw)) : strtolower((string)$capabilitiesRaw);
+        if ($name === '') {
+            continue;
+        }
+        if ($capabilities !== '' && strpos($capabilities, 'completion') === false && strpos($capabilities, 'thinking') === false && strpos($capabilities, 'tools') === false) {
+            continue;
+        }
+        $models[] = $name;
+    }
+
+    if (empty($models)) {
+        return $fallback;
+    }
+
+    return array_values(array_unique($models));
+}
 
 $trackid = $_GET['id'];
 
@@ -35,6 +84,9 @@ if (!$stmt_action->execute()) {
     die('Execute failed: ' . htmlspecialchars($stmt_action->error));
 }
 $action_result = $stmt_action->get_result();
+
+$ollamaModels = fetchOllamaModels();
+$defaultModel = in_array('deepseek-r1:latest', $ollamaModels, true) ? 'deepseek-r1:latest' : ($ollamaModels[0] ?? 'deepseek-r1:latest');
 
 ?>
 
@@ -88,13 +140,24 @@ $action_result = $stmt_action->get_result();
 <body class="bg-gray-100 p-4 min-h-screen flex flex-col items-center">
 
     <div class="container max-w-4xl mx-auto bg-white rounded-lg shadow-xl p-6 mb-8">
-        <div class="flex justify-between items-center mb-6">
+        <div class="flex flex-wrap justify-between items-center mb-6 gap-3">
             <h1 class="text-3xl font-bold text-gray-800">Receive History</h1>
-            <div class="flex gap-2">
+            <div class="flex flex-wrap items-center gap-2">
+                <div class="flex items-center gap-1 pr-3 border-r border-gray-300">
+                    <select id="ollamaModelSelect" class="select select-bordered select-xs max-w-36">
+                        <?php foreach ($ollamaModels as $model): ?>
+                            <option value="<?= htmlspecialchars($model) ?>" <?= $model === $defaultModel ? 'selected' : '' ?>><?= htmlspecialchars($model) ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                    <button id="autoAdjustTimelineBtn" onclick="autoAdjustTimeline()" class="btn btn-sm btn-warning text-white gap-1">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor"><path d="M13 2l-2 7h7l-8 13 2-8H5l8-12z"/></svg>
+                        Auto edit Timeline
+                    </button>
+                </div>
                 <button onclick="autoAdjustReceiveDate()" class="btn btn-sm btn-outline btn-primary">Auto Adjust Date</button>
                 <button onclick="autoAdjustReceiveTime()" class="btn btn-sm btn-accent text-white">Auto Adjust Time</button>
-                <button id="saveAllReceiveBtn" onclick="saveAllReceive()" class="btn btn-sm btn-success text-white">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
+                <button id="saveAllReceiveBtn" onclick="saveAllReceive()" class="btn btn-sm btn-success text-white gap-1">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
                     Save All
                 </button>
             </div>
@@ -195,13 +258,13 @@ $action_result = $stmt_action->get_result();
     </div>
 
     <div class="container max-w-4xl mx-auto bg-white rounded-lg shadow-xl p-6">
-        <div class="flex justify-between items-center mb-6">
+        <div class="flex flex-wrap justify-between items-center mb-6 gap-3">
             <h1 class="text-3xl font-bold text-gray-800">RICTU Staff Actions</h1>
-            <div class="flex gap-2">
+            <div class="flex flex-wrap items-center gap-2">
                 <button onclick="autoAdjustActionDate()" class="btn btn-sm btn-outline btn-primary">Auto Adjust Date</button>
                 <button onclick="autoAdjustActionTime()" class="btn btn-sm btn-accent text-white">Auto Adjust Time</button>
-                <button id="saveAllActionBtn" onclick="saveAllAction()" class="btn btn-sm btn-success text-white">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
+                <button id="saveAllActionBtn" onclick="saveAllAction()" class="btn btn-sm btn-success text-white gap-1">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
                     Save All
                 </button>
             </div>
@@ -335,10 +398,182 @@ $action_result = $stmt_action->get_result();
         </dialog>
     </div>
 
+    <dialog id="adjustSummaryModal" class="modal">
+        <div class="modal-box w-11/12 max-w-5xl">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="font-bold text-xl">Timeline Adjustments Applied</h3>
+                <form method="dialog"><button class="btn btn-sm btn-circle btn-ghost">✕</button></form>
+            </div>
+            <div id="summaryContent" class="overflow-x-auto max-h-[65vh] overflow-y-auto"></div>
+            <div class="modal-action">
+                <form method="dialog">
+                    <button class="btn btn-primary" onclick="window.location.reload()">OK, Reload Page</button>
+                </form>
+            </div>
+        </div>
+    </dialog>
+
     <script>
         /**
          * Global Save All Functions
          */
+        async function autoAdjustTimeline() {
+            if (!confirm('Auto-adjust all dates/times for this SRF within one day and set feedback to Excellent?')) return;
+
+            const btn = document.getElementById('autoAdjustTimelineBtn');
+            const originalHtml = btn.innerHTML;
+            btn.innerHTML = '<span class="loading loading-spinner loading-xs"></span> Adjusting...';
+            btn.disabled = true;
+
+            try {
+                const response = await fetch('auto_adjust_srf_timeline.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ trackid: <?= json_encode((int)$trackid) ?>, model: document.getElementById('ollamaModelSelect').value })
+                });
+                const data = await response.json();
+
+                if (!data.success) {
+                    alert(data.error || 'Auto-adjust failed.');
+                    return;
+                }
+
+                showSummaryModal(data);
+            } catch (error) {
+                console.error(error);
+                alert('Auto-adjust failed. Please try again.');
+            } finally {
+                btn.innerHTML = originalHtml;
+                btn.disabled = false;
+            }
+        }
+
+        function showSummaryModal(data) {
+            const modal = document.getElementById('adjustSummaryModal');
+            const content = document.getElementById('summaryContent');
+
+            const modeLabel = data.mode === 'ollama' ? 'Ollama AI' : 'Fallback (PHP)';
+            const profileLabel = data.profile.charAt(0).toUpperCase() + data.profile.slice(1);
+
+            let html = `
+                <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4 p-4 bg-gray-50 rounded-lg text-sm">
+                    <div><span class="font-semibold">Mode:</span> ${modeLabel}</div>
+                    <div><span class="font-semibold">Model:</span> ${data.model || 'N/A'}</div>
+                    <div><span class="font-semibold">Profile:</span> ${profileLabel}</div>
+                    <div><span class="font-semibold">Anchor:</span> ${data.anchor}</div>
+                </div>
+            `;
+
+            if (data.aiError) {
+                html += `<div class="alert alert-warning mb-4 text-sm">AI error: ${data.aiError} &mdash; fallback used.</div>`;
+            }
+
+            const timeline = data.timeline || [];
+            const oldValues = data.oldValues || { srfhistory: [], srf_actiontaken: [], srffeedback: [] };
+
+            const historyItems = timeline.filter(t => t.table === 'srfhistory');
+            if (historyItems.length) {
+                html += buildDiffTable('Receive History', historyItems, oldValues.srfhistory, ['date', 'time']);
+            }
+
+            const actionItems = timeline.filter(t => t.table === 'srf_actiontaken');
+            if (actionItems.length) {
+                html += buildDiffTable('RICTU Staff Actions', actionItems, oldValues.srf_actiontaken, ['date', 'time']);
+            }
+
+            const feedbackItems = timeline.filter(t => t.table === 'srffeedback');
+            if (feedbackItems.length) {
+                html += buildFeedbackDiffTable('Edit Feedback Entries', feedbackItems, oldValues.srffeedback);
+            }
+
+            content.innerHTML = html;
+            modal.showModal();
+        }
+
+        function buildDiffTable(title, newItems, oldItems, fields) {
+            const oldMap = {};
+            oldItems.forEach(item => { oldMap[item.id] = item; });
+
+            let rows = '';
+            newItems.forEach(item => {
+                const old = oldMap[item.id] || {};
+                fields.forEach(f => {
+                    const oldVal = old[f] || '';
+                    const newVal = item[f] || '';
+                    const changed = oldVal !== newVal;
+                    rows += `<tr class="${changed ? 'bg-yellow-50' : ''} border-b border-gray-200">`;
+                    rows += `<td class="p-2 font-mono text-center text-sm">${item.id}</td>`;
+                    rows += `<td class="p-2 font-medium text-gray-600 text-sm capitalize">${f}</td>`;
+                    rows += `<td class="p-2 text-sm ${changed ? 'text-red-500 line-through' : 'text-gray-500'}">${oldVal || '<span class="text-gray-400 italic">blank</span>'}</td>`;
+                    rows += `<td class="p-2 text-sm ${changed ? 'text-green-600 font-semibold' : 'text-gray-500'}">${newVal || '<span class="text-gray-400 italic">blank</span>'}</td>`;
+                    rows += `</tr>`;
+                });
+            });
+
+            const changed = Array.from(document.querySelectorAll('#summaryContent .bg-yellow-50')).length > 0;
+
+            return `
+                <h4 class="font-bold text-base mt-4 mb-2">${title} <span class="font-normal text-gray-500 text-sm">(${newItems.length} row${newItems.length > 1 ? 's' : ''})</span></h4>
+                <div class="overflow-x-auto border rounded-lg">
+                    <table class="table table-xs w-full">
+                        <thead>
+                            <tr class="bg-blue-600 text-white text-sm">
+                                <th class="p-2 w-16">ID</th>
+                                <th class="p-2 w-20">Field</th>
+                                <th class="p-2">Old Value</th>
+                                <th class="p-2">New Value</th>
+                            </tr>
+                        </thead>
+                        <tbody>${rows}</tbody>
+                    </table>
+                </div>
+            `;
+        }
+
+        function buildFeedbackDiffTable(title, newItems, oldItems) {
+            const oldMap = {};
+            oldItems.forEach(item => { oldMap[item.id] = item; });
+
+            const fieldDefs = [
+                { f: 'feedback', label: 'Rating' },
+                { f: 'created_at', label: 'Created At' },
+                { f: 'date_rated', label: 'Date Rated' },
+            ];
+
+            let rows = '';
+            newItems.forEach(item => {
+                const old = oldMap[item.id] || {};
+                fieldDefs.forEach(({ f, label }) => {
+                    const oldVal = old[f] || '';
+                    const newVal = item[f] || '';
+                    const changed = oldVal !== newVal;
+                    rows += `<tr class="${changed ? 'bg-yellow-50' : ''} border-b border-gray-200">`;
+                    rows += `<td class="p-2 font-mono text-center text-sm">${item.id}</td>`;
+                    rows += `<td class="p-2 font-medium text-gray-600 text-sm">${label}</td>`;
+                    rows += `<td class="p-2 text-sm ${changed ? 'text-red-500 line-through' : 'text-gray-500'}">${oldVal || '<span class="text-gray-400 italic">blank</span>'}</td>`;
+                    rows += `<td class="p-2 text-sm ${changed ? 'text-green-600 font-semibold' : 'text-gray-500'}">${newVal || '<span class="text-gray-400 italic">blank</span>'}</td>`;
+                    rows += `</tr>`;
+                });
+            });
+
+            return `
+                <h4 class="font-bold text-base mt-4 mb-2">${title} <span class="font-normal text-gray-500 text-sm">(${newItems.length} row${newItems.length > 1 ? 's' : ''})</span></h4>
+                <div class="overflow-x-auto border rounded-lg">
+                    <table class="table table-xs w-full">
+                        <thead>
+                            <tr class="bg-blue-600 text-white text-sm">
+                                <th class="p-2 w-16">ID</th>
+                                <th class="p-2 w-20">Field</th>
+                                <th class="p-2">Old Value</th>
+                                <th class="p-2">New Value</th>
+                            </tr>
+                        </thead>
+                        <tbody>${rows}</tbody>
+                    </table>
+                </div>
+            `;
+        }
+
         async function saveAllReceive() {
             const saveBtn = document.getElementById('saveAllReceiveBtn');
             const originalText = saveBtn.innerHTML;

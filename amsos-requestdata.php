@@ -1,5 +1,5 @@
 <?php
-require_once 'connect.php';
+require_once 'connect_amsos.php';
 
 // Fetch filter values
 $date_filter = $_GET['date_filter'] ?? 'this_month';
@@ -365,27 +365,10 @@ function getStarRating($feedback) {
                                         </div>
                                         <div class="modal-body p-0">
                                             <iframe 
-                                                src="printform-request.php?id=<?= $row['id'] ?>" 
+                                                data-src="printform-request.php?id=<?= $row['id'] ?>" 
                                                 style="width: 100%; height: 70vh; border: none; zoom: 1;" 
                                                 id="docIframe<?= $row['id'] ?>">
                                             </iframe>
-                                            <script>
-                                                // Responsive zoom for iframe on mobile
-                                                (function() {
-                                                    function setIframeZoom() {
-                                                        var iframe = document.getElementById('docIframe<?= $row['id'] ?>');
-                                                        if (!iframe) return;
-                                                        if (window.innerWidth <= 767) {
-                                                            iframe.style.zoom = "0.5";
-                                                        } else {
-                                                            iframe.style.zoom = "1";
-                                                        }
-                                                    }
-                                                    window.addEventListener('resize', setIframeZoom);
-                                                    document.addEventListener('DOMContentLoaded', setIframeZoom);
-                                                })();
-                                            </script>
-              
                                         </div>
                                         <div class="modal-footer">
                                             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
@@ -504,6 +487,27 @@ function getStarRating($feedback) {
                     // Add the highlight class to the row just clicked
                     this.classList.add('last-clicked-row');
                 });
+            });
+
+            // Lazy-load View Document iframes when modal opens
+            document.addEventListener('show.bs.modal', function (event) {
+                var modal = event.target;
+                if (modal.id && modal.id.indexOf('viewDocumentModal') === 0) {
+                    var iframe = modal.querySelector('iframe[data-src]');
+                    if (iframe && !iframe.src) {
+                        iframe.src = iframe.getAttribute('data-src');
+                    }
+                }
+            });
+
+            document.addEventListener('hide.bs.modal', function (event) {
+                var modal = event.target;
+                if (modal.id && modal.id.indexOf('viewDocumentModal') === 0) {
+                    var iframe = modal.querySelector('iframe');
+                    if (iframe) {
+                        iframe.src = '';
+                    }
+                }
             });
         });
     </script>

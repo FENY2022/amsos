@@ -3,7 +3,7 @@
 <?php
 
 
-            require_once 'connect.php' ;
+            require_once 'connect_amsos.php' ;
 
 
            $id  = $_GET['id'];
@@ -120,14 +120,17 @@ if ($stmt) {
 
 
 
-$user_id = $idname;
-require_once 'connect_otos.php';
+$user_id = isset($idname) ? (int)$idname : 0;
 
-// Define your SQL query with a WHERE clause to filter by id
-$query = "SELECT * FROM useremployee WHERE id = $user_id";
-
-// Execute the query
-$result_45 = $conn_otos->query($query);
+$query = "SELECT * FROM useremployee WHERE id = ?";
+$stmt_user = $conn->prepare($query);
+if ($stmt_user) {
+    $stmt_user->bind_param("i", $user_id);
+    $stmt_user->execute();
+    $result_45 = $stmt_user->get_result();
+} else {
+    $result_45 = false;
+}
 
 if ($result_45) {
     // Check if a row was found
