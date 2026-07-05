@@ -996,6 +996,9 @@ require_once 'calendarSchedulerdb.php';
         var dateFormatter = new Intl.DateTimeFormat('en-US', {
             weekday: 'long', month: 'long', day: 'numeric', year: 'numeric'
         });
+        var dateTimeFormatter = new Intl.DateTimeFormat('en-US', {
+            weekday: 'long', month: 'long', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit'
+        });
         var monthFormatter = new Intl.DateTimeFormat('en-US', {
             month: 'long', year: 'numeric'
         });
@@ -1018,7 +1021,15 @@ require_once 'calendarSchedulerdb.php';
             if (value instanceof Date) {
                 return new Date(value.getFullYear(), value.getMonth(), value.getDate());
             }
-            return new Date(String(value) + 'T00:00:00');
+            var stringValue = String(value);
+            if (stringValue.indexOf(':') !== -1) {
+                return new Date(stringValue.replace(' ', 'T'));
+            }
+            return new Date(stringValue + 'T00:00:00');
+        }
+
+        function hasTimeValue(value) {
+            return String(value || '').indexOf(':') !== -1;
         }
 
         function localDateString(value) {
@@ -1126,7 +1137,9 @@ require_once 'calendarSchedulerdb.php';
             var email = eventData && eventData.email ? eventData.email : 'No email saved';
             var password = eventData && eventData.password ? eventData.password : 'No password saved';
 
-            document.getElementById('detailDate').textContent = eventData && eventData.start ? dateFormatter.format(formatLocalDate(eventData.start)) : '';
+            document.getElementById('detailDate').textContent = eventData && eventData.start
+                ? (hasTimeValue(eventData.start) ? dateTimeFormatter.format(formatLocalDate(eventData.start)) : dateFormatter.format(formatLocalDate(eventData.start)))
+                : '';
             document.getElementById('detailRemarks').textContent = eventData && eventData.remarks ? eventData.remarks : '';
             document.getElementById('detailLink').innerHTML = eventData && eventData.zoom_link
                 ? '<a href="' + escapeHtml(eventData.zoom_link) + '" target="_blank" rel="noopener">' + escapeHtml(eventData.zoom_link) + '</a>'

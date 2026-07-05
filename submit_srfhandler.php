@@ -12,6 +12,9 @@
 require_once 'connect.php';
 require_once 'session_checker.php';
 require_once 'repair_history_helpers.php';
+require_once 'calendar_event_helpers.php';
+
+calendarEnsureSrfZoomSchema($conn);
 
 
 
@@ -28,6 +31,8 @@ $email = $_POST['email'];
 $requestType = $_POST['requestType'];
 $otherSpecify = $_POST['otherSpecify'] ?? '';
 $description = $_POST['description'];
+$zoomTitle = $requestType === 'Zoom' ? trim($_POST['zoomTitle_hidden'] ?? '') : null;
+$zoomScheduleDateTime = $requestType === 'Zoom' ? calendarNormalizeZoomDateTime($_POST['zoomDateTime_hidden'] ?? '') : null;
 $station = $_POST['station'];
 $status = "On Process";
 $office = $_SESSION['OfficeSRF'];
@@ -138,9 +143,9 @@ if ($results) {
 $stmt->close();
 
 // Insert data into the database
-$sql = "INSERT INTO srf (ticketNumber, date, name, idname, divSecUnit, position, contactNumber, email, requestType, otherSpecify, description, tracking, status, office, level, station, equipment_id, documents) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+$sql = "INSERT INTO srf (ticketNumber, date, name, idname, divSecUnit, position, contactNumber, email, requestType, otherSpecify, description, zoom_title, zoom_schedule_datetime, tracking, status, office, level, station, equipment_id, documents) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 $stmt = $conn->prepare($sql);
-$stmt->bind_param("sssssssssssissisis", $ticketNumber, $date, $name, $idname, $divSecUnit, $position, $contactNumber, $email, $requestType, $otherSpecify, $description, $tracking, $status, $office, $level, $station, $equipmentId, $documents);
+$stmt->bind_param("sssssssssssssissisis", $ticketNumber, $date, $name, $idname, $divSecUnit, $position, $contactNumber, $email, $requestType, $otherSpecify, $description, $zoomTitle, $zoomScheduleDateTime, $tracking, $status, $office, $level, $station, $equipmentId, $documents);
 $stmt->execute();
 
 if ($stmt->affected_rows > 0) {

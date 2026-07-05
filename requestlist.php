@@ -2,6 +2,9 @@
 // Database configuration
 require_once 'connect.php';
 require_once 'session_checker.php';
+require_once 'calendar_event_helpers.php';
+
+calendarEnsureSrfZoomSchema($conn);
 
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
@@ -1007,7 +1010,19 @@ ini_set('display_errors', 1);
             $jsDescription = preg_replace("/[\r\n]+/", " ", $description);
             $jsDescription = addslashes($jsDescription);
             $isZoomRequest = (strcasecmp($requestType, 'Zoom') === 0) ? '1' : '0';
-            $zoomTitleValue = htmlspecialchars($description ?: ($otherSpecify ?: $ticketNumber), ENT_QUOTES, 'UTF-8');
+            $rawZoomTitle = trim($row['zoom_title'] ?? '');
+            if ($rawZoomTitle === '') {
+                $rawZoomTitle = calendarExtractZoomField($description, 'Meeting Title');
+            }
+            if ($rawZoomTitle === '') {
+                $rawZoomTitle = $ticketNumber;
+            }
+            $rawZoomScheduleDateTime = calendarNormalizeZoomDateTime($row['zoom_schedule_datetime'] ?? '');
+            if ($rawZoomScheduleDateTime === '') {
+                $rawZoomScheduleDateTime = calendarNormalizeZoomDateTime(calendarExtractZoomField($description, 'Date & Time'));
+            }
+            $zoomTitleValue = htmlspecialchars($rawZoomTitle, ENT_QUOTES, 'UTF-8');
+            $zoomScheduleValue = htmlspecialchars($rawZoomScheduleDateTime, ENT_QUOTES, 'UTF-8');
             $officeValue = htmlspecialchars($row['office'], ENT_QUOTES, 'UTF-8');
             $divSecUnitValue = htmlspecialchars($row['divSecUnit'], ENT_QUOTES, 'UTF-8');
             $divisionDisplay = htmlspecialchars(trim($row['office'] . ' - ' . $row['divSecUnit']), ENT_QUOTES, 'UTF-8');
@@ -1020,7 +1035,7 @@ ini_set('display_errors', 1);
             $result2 = $stmt2->get_result();
             if ($result2->num_rows > 0) { while ($officeRow = $result2->fetch_assoc()) { echo "<option value='" . htmlspecialchars($officeRow['personelid']) . "'>" . strtoupper(htmlspecialchars($officeRow['name'])) . "</option>"; } }
             echo "<option value='102'>MARK AS DONE</option>";
-            echo "</select></div><input type='hidden' name='assignedperson_1' id='assignedperson_1_{$srfId}'><input type='hidden' name='email' value='{$email}'/><input type='hidden' name='name' value='{$name}'/><input type='hidden' name='ticketNumber' value='{$ticketNumber}'/><input type='hidden' name='requestType' value='{$requestType}'/><input type='hidden' name='otherSpecify' value='{$otherSpecify}'/><input type='hidden' name='equipment_id' value='{$equipment_id}'/><input type='hidden' name='zoom_title' value='{$zoomTitleValue}'/><input type='hidden' name='office' value='{$officeValue}'/><input type='hidden' name='divSecUnit' value='{$divSecUnitValue}'/><div class='border rounded-3 p-3 mt-3 bg-light zoom-completion-fields' id='zoomFields_{$srfId}' style='display:none;'><div class='alert alert-warning py-2 mb-3' style='font-size:0.85rem;'><strong>Zoom calendar save:</strong> Meeting ID and password will be saved to Calendar Scheduler with the requested division.</div><div class='mb-2'><label class='form-label'>Meeting ID</label><input type='text' class='form-control' name='zoom_meeting_id' id='zoom_meeting_id_{$srfId}' placeholder='Enter meeting ID' oninput='checkAssignForm({$srfId})'></div><div class='mb-2'><label class='form-label'>Password</label><input type='text' class='form-control' name='zoom_password' id='zoom_password_{$srfId}' placeholder='Enter password' oninput='checkAssignForm({$srfId})'></div><div class='mb-2'><label class='form-label'>Meeting Link (Optional)</label><input type='url' class='form-control' name='zoom_link' id='zoom_link_{$srfId}' placeholder='https://...'></div><div class='small text-muted'>Title: {$zoomTitleValue}<br>Requested Division: {$divisionDisplay}</div></div><div class='alert alert-info mt-3 mb-0' style='font-size:0.85rem;text-align:justify;'><strong>Notice:</strong> {$legal_disclaimer}</div></div><div class='modal-footer'><button type='button' class='btn btn-secondary' data-bs-dismiss='modal'>Close</button><span class='d-inline-block ms-2' tabindex='0' data-bs-toggle='tooltip' title='{$legal_disclaimer}'><button type='submit' id='submitBtn_{$srfId}' class='btn btn-primary' disabled>Affix Signature</button></span></div></div></form></div></div>";
+            echo "</select></div><input type='hidden' name='assignedperson_1' id='assignedperson_1_{$srfId}'><input type='hidden' name='email' value='{$email}'/><input type='hidden' name='name' value='{$name}'/><input type='hidden' name='ticketNumber' value='{$ticketNumber}'/><input type='hidden' name='requestType' value='{$requestType}'/><input type='hidden' name='otherSpecify' value='{$otherSpecify}'/><input type='hidden' name='equipment_id' value='{$equipment_id}'/><input type='hidden' name='zoom_title' value='{$zoomTitleValue}'/><input type='hidden' name='zoom_schedule_datetime' value='{$zoomScheduleValue}'/><input type='hidden' name='office' value='{$officeValue}'/><input type='hidden' name='divSecUnit' value='{$divSecUnitValue}'/><div class='border rounded-3 p-3 mt-3 bg-light zoom-completion-fields' id='zoomFields_{$srfId}' style='display:none;'><div class='alert alert-warning py-2 mb-3' style='font-size:0.85rem;'><strong>Zoom calendar save:</strong> Meeting ID and password will be saved to Calendar Scheduler with the requested division.</div><div class='mb-2'><label class='form-label'>Meeting ID</label><input type='text' class='form-control' name='zoom_meeting_id' id='zoom_meeting_id_{$srfId}' placeholder='Enter meeting ID' oninput='checkAssignForm({$srfId})'></div><div class='mb-2'><label class='form-label'>Password</label><input type='text' class='form-control' name='zoom_password' id='zoom_password_{$srfId}' placeholder='Enter password' oninput='checkAssignForm({$srfId})'></div><div class='mb-2'><label class='form-label'>Meeting Link (Optional)</label><input type='url' class='form-control' name='zoom_link' id='zoom_link_{$srfId}' placeholder='https://...'></div><div class='small text-muted'>Title: {$zoomTitleValue}<br>Zoom Schedule: {$zoomScheduleValue}<br>Requested Division: {$divisionDisplay}</div></div><div class='alert alert-info mt-3 mb-0' style='font-size:0.85rem;text-align:justify;'><strong>Notice:</strong> {$legal_disclaimer}</div></div><div class='modal-footer'><button type='button' class='btn btn-secondary' data-bs-dismiss='modal'>Close</button><span class='d-inline-block ms-2' tabindex='0' data-bs-toggle='tooltip' title='{$legal_disclaimer}'><button type='submit' id='submitBtn_{$srfId}' class='btn btn-primary' disabled>Affix Signature</button></span></div></div></form></div></div>";
 
             $stmt2->close();
             endforeach; ?>

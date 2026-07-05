@@ -9,17 +9,18 @@ header('Content-Type: application/json');
 try {
     calendarEnsureEventSchema($conn);
 
-    $stmt = $conn->prepare("SELECT id, source_srf_id, event_date, remarks, zoom_link, meeting_id, password, email, office, divSecUnit FROM events");
+    $stmt = $conn->prepare("SELECT id, source_srf_id, event_date, event_datetime, remarks, zoom_link, meeting_id, password, email, office, divSecUnit FROM events");
     $stmt->execute();
     $result = $stmt->get_result();
 
     $formattedEvents = [];
 
     while ($event = $result->fetch_assoc()) {
+        $start = !empty($event['event_datetime']) ? str_replace(' ', 'T', $event['event_datetime']) : $event['event_date'];
         $formattedEvent = [
             'id' => $event['id'],
             'title' => $event['remarks'],
-            'start' => $event['event_date'],
+            'start' => $start,
             'extendedProps' => [
                 'source_srf_id' => $event['source_srf_id'],
                 'zoom_link' => $event['zoom_link'],

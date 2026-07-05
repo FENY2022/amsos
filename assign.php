@@ -8,6 +8,7 @@ require_once 'repair_history_helpers.php';
 require_once 'calendar_event_helpers.php';
 
 calendarEnsureEventSchema($conn);
+calendarEnsureSrfZoomSchema($conn);
 
 
 // Check if the form was submitted and 'assign' parameter exists
@@ -17,7 +18,7 @@ if (isset($_REQUEST['assign'])) {
     $srfId = intval($request['assign']);
     $trackid = $srfId;
 
-    $srfStmt = $conn->prepare("SELECT id, ticketNumber, date, name, divSecUnit, office, requestType, otherSpecify, description, email, equipment_id FROM srf WHERE id = ?");
+    $srfStmt = $conn->prepare("SELECT id, ticketNumber, date, name, divSecUnit, office, requestType, otherSpecify, description, zoom_title, zoom_schedule_datetime, email, equipment_id FROM srf WHERE id = ?");
     $srfStmt->bind_param("i", $srfId);
     $srfStmt->execute();
     $srfResult = $srfStmt->get_result();
@@ -90,7 +91,7 @@ if (isset($_REQUEST['assign'])) {
         Thank you for your cooperation and trust in our services. Should you need further assistance or have additional requests, please feel free to contact us.<br><br> 
         Best regards,<br><br>RICTU OTOS/AMSOS Team'; 
 
-        if ($requestType === 'Zoom') {
+        if (strcasecmp($requestType, 'Zoom') === 0) {
             $zoomMeetingId = trim((string)($request['zoom_meeting_id'] ?? ''));
             $zoomPassword = trim((string)($request['zoom_password'] ?? ''));
 
@@ -99,10 +100,29 @@ if (isset($_REQUEST['assign'])) {
                 exit();
             }
 
+            $zoomScheduleDateTime = calendarNormalizeZoomDateTime($request['zoom_schedule_datetime'] ?? ($srfRow['zoom_schedule_datetime'] ?? ''));
+
+            if ($zoomScheduleDateTime === '') {
+                $zoomScheduleDateTime = calendarNormalizeZoomDateTime(calendarExtractZoomField($srfRow['description'] ?? '', 'Date & Time'));
+            }
+
+            if ($zoomScheduleDateTime === '') {
+                echo '<script>window.location.href = "mainmenu.php?dir=requestlist&toast_msg=Original%20Zoom%20schedule%20datetime%20is%20missing.&toast_type=error";</script>';
+                exit();
+            }
+
+            $zoomTitle = trim((string)($request['zoom_title'] ?? ($srfRow['zoom_title'] ?? '')));
+            if ($zoomTitle === '') {
+                $zoomTitle = calendarExtractZoomField($srfRow['description'] ?? '', 'Meeting Title');
+            }
+            if ($zoomTitle === '') {
+                $zoomTitle = $ticketNumber;
+            }
+
             $calendarSaved = calendarUpsertEventFromSrf($conn, [
                 'source_srf_id' => $srfId,
-                'event_date' => trim((string)($request['action_date'] ?? $srfRow['date'] ?? date('Y-m-d'))),
-                'remarks' => trim((string)($request['zoom_title'] ?? ($srfRow['description'] ?? $ticketNumber))),
+                'event_datetime' => $zoomScheduleDateTime,
+                'remarks' => $zoomTitle,
                 'zoom_link' => trim((string)($request['zoom_link'] ?? '')),
                 'meeting_id' => $zoomMeetingId,
                 'password' => $zoomPassword,
