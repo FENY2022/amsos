@@ -2,6 +2,7 @@ CREATE TABLE IF NOT EXISTS office_divisions (
   id INT AUTO_INCREMENT PRIMARY KEY,
   office VARCHAR(255) NOT NULL,
   officeDivision VARCHAR(255) NOT NULL,
+  division_counts INT NOT NULL DEFAULT 0,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   UNIQUE KEY unique_office_division (office, officeDivision)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;

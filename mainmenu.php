@@ -120,6 +120,10 @@ require_once 'sidebar.php';
 
                 require_once 'otos_employee_include.php' ;
 
+            }elseif ($_dirlist == 'division_counts') {
+
+                require_once 'division_counts.php' ;
+
 
             }elseif ($_dirlist == 'printform') {
 

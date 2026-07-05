@@ -339,6 +339,10 @@ if ($_SESSION['User_RoleSRF'] == 'Encoder' || $_SESSION['User_RoleSRF'] == 'Veri
                             </li>
 
                             <li>
+                                <a href="mainmenu.php?dir=division_counts">Division Counts</a>
+                            </li>
+
+                            <li>
                                 <a href="amsos-requestdata.php" target="_blank">Request Data</a>
                             </li>
 

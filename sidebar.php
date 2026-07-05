@@ -421,6 +421,10 @@ if ($_SESSION['User_RoleSRF'] == 'Encoder' || $_SESSION['User_RoleSRF'] == 'Veri
                             </li>
 
                             <li>
+                                <a href="mainmenu.php?dir=division_counts"><i class="fas fa-table"></i> Division Counts</a>
+                            </li>
+
+                            <li>
                                 <a href="amsos-requestdata.php" target="_blank"><i class="fas fa-database"></i> Request Data</a>
                             </li>
 
