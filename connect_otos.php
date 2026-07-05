@@ -8,7 +8,11 @@
                     $conn_otos = new mysqli($servername, $username, $password, $dbname);
 
                     if ($conn_otos->connect_error) {
-                        die("Connection failed: " . $conn->connect_error);
+                        die("Connection failed: " . $conn_otos->connect_error);
+                    }
+
+                    if (!$conn_otos->set_charset('utf8mb4')) {
+                        die("Failed to set charset: " . $conn_otos->error);
                     }
 
                     date_default_timezone_set('Asia/Manila');
