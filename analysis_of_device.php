@@ -46,7 +46,7 @@ $currentYear = date("Y");
             <option value="">-- All --</option>
             <?php
             // Database connection
-            $conn = new mysqli("153.92.15.60", "u645536029_ict_amsos_user", "9Ad=:C~WJ>", "u645536029_ict_amsos_db");
+            $conn = new mysqli("localhost", "root", "", "amsos");
 
             $officeQuery = "SELECT DISTINCT officeDivision FROM inv_inventory";
             $officeResult = $conn->query($officeQuery);
