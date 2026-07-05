@@ -2,11 +2,14 @@
 // fetch_events.php
 
 require_once 'calendarSchedulerdb.php';
+require_once 'calendar_event_helpers.php';
 
 header('Content-Type: application/json');
 
 try {
-    $stmt = $conn->prepare("SELECT id, event_date, remarks, zoom_link, password, email FROM events");
+    calendarEnsureEventSchema($conn);
+
+    $stmt = $conn->prepare("SELECT id, source_srf_id, event_date, remarks, zoom_link, meeting_id, password, email, office, divSecUnit FROM events");
     $stmt->execute();
     $result = $stmt->get_result();
 
@@ -18,13 +21,15 @@ try {
             'title' => $event['remarks'],
             'start' => $event['event_date'],
             'extendedProps' => [
+                'source_srf_id' => $event['source_srf_id'],
                 'zoom_link' => $event['zoom_link'],
-                'email' => $event['email']
+                'meeting_id' => $event['meeting_id'],
+                'password' => $event['password'],
+                'email' => $event['email'],
+                'office' => $event['office'],
+                'divSecUnit' => $event['divSecUnit']
             ]
         ];
-
-        // Remove password for security reasons
-        // $formattedEvent['extendedProps']['password'] = $event['password']; // Uncomment only if needed securely
 
         $formattedEvents[] = $formattedEvent;
     }

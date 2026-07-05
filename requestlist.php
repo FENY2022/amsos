@@ -1006,8 +1006,13 @@ ini_set('display_errors', 1);
             $jsRequestType = addslashes($requestType);
             $jsDescription = preg_replace("/[\r\n]+/", " ", $description);
             $jsDescription = addslashes($jsDescription);
+            $isZoomRequest = (strcasecmp($requestType, 'Zoom') === 0) ? '1' : '0';
+            $zoomTitleValue = htmlspecialchars($description ?: ($otherSpecify ?: $ticketNumber), ENT_QUOTES, 'UTF-8');
+            $officeValue = htmlspecialchars($row['office'], ENT_QUOTES, 'UTF-8');
+            $divSecUnitValue = htmlspecialchars($row['divSecUnit'], ENT_QUOTES, 'UTF-8');
+            $divisionDisplay = htmlspecialchars(trim($row['office'] . ' - ' . $row['divSecUnit']), ENT_QUOTES, 'UTF-8');
 
-            echo "<div class='modal fade' id='assign{$srfId}' tabindex='-1'><div class='modal-dialog'><form method='GET' action='assign.php'><div class='modal-content'><div class='modal-header'><h5 class='modal-title'>Assign Action</h5><button type='button' class='btn-close' data-bs-dismiss='modal'></button></div><div class='modal-body'><input type='hidden' name='assign' value='{$srfId}'/><div class='row g-3'><div class='col-md-6'><label>Date</label><input type='date' class='form-control' name='action_date' id='action_date_{$srfId}' onchange='checkAssignForm({$srfId})' required></div><div class='col-md-6'><label>Time</label><input type='time' class='form-control' name='action_time' value='{$formattedTime}' required></div></div><div class='mt-3'><label class='form-label d-flex justify-content-between align-items-center'><span>Action Taken</span><button type='button' id='ai-btn-{$srfId}' class='btn btn-outline-primary ai-suggestion-btn' onclick='getAiSuggestion({$srfId}, \"{$jsRequestType}\", \"{$jsDescription}\")'><span class='material-icons-outlined' style='font-size:1em;vertical-align:text-bottom;'>auto_awesome</span> Suggest</button></label><textarea class='form-control' id='action_taken_{$srfId}' name='action_taken' rows='3' oninput='checkAssignForm({$srfId})' required></textarea></div><div class='mt-3'><label>Assign To</label><select name='personelid' class='form-select' id='personelid_{$srfId}' onchange='updateNameInTextField(this, {$srfId}); checkAssignForm({$srfId});' required><option disabled selected value=''>Select Personnel...</option>";
+            echo "<div class='modal fade' id='assign{$srfId}' tabindex='-1'><div class='modal-dialog'><form method='GET' action='assign.php' data-is-zoom='{$isZoomRequest}'><div class='modal-content'><div class='modal-header'><h5 class='modal-title'>Assign Action</h5><button type='button' class='btn-close' data-bs-dismiss='modal'></button></div><div class='modal-body'><input type='hidden' name='assign' value='{$srfId}'/><div class='row g-3'><div class='col-md-6'><label>Date</label><input type='date' class='form-control' name='action_date' id='action_date_{$srfId}' onchange='checkAssignForm({$srfId})' required></div><div class='col-md-6'><label>Time</label><input type='time' class='form-control' name='action_time' value='{$formattedTime}' required></div></div><div class='mt-3'><label class='form-label d-flex justify-content-between align-items-center'><span>Action Taken</span><button type='button' id='ai-btn-{$srfId}' class='btn btn-outline-primary ai-suggestion-btn' onclick='getAiSuggestion({$srfId}, \"{$jsRequestType}\", \"{$jsDescription}\")'><span class='material-icons-outlined' style='font-size:1em;vertical-align:text-bottom;'>auto_awesome</span> Suggest</button></label><textarea class='form-control' id='action_taken_{$srfId}' name='action_taken' rows='3' oninput='checkAssignForm({$srfId})' required></textarea></div><div class='mt-3'><label>Assign To</label><select name='personelid' class='form-select' id='personelid_{$srfId}' onchange='updateNameInTextField(this, {$srfId}); checkAssignForm({$srfId});' required><option disabled selected value=''>Select Personnel...</option>";
             $sql2 = "SELECT DISTINCT personelid, name FROM srfactionstaff WHERE Office = ?";
             $stmt2 = $conn->prepare($sql2);
             $stmt2->bind_param("s", $_SESSION['OfficeSRF']);
@@ -1015,7 +1020,7 @@ ini_set('display_errors', 1);
             $result2 = $stmt2->get_result();
             if ($result2->num_rows > 0) { while ($officeRow = $result2->fetch_assoc()) { echo "<option value='" . htmlspecialchars($officeRow['personelid']) . "'>" . strtoupper(htmlspecialchars($officeRow['name'])) . "</option>"; } }
             echo "<option value='102'>MARK AS DONE</option>";
-            echo "</select></div><input type='hidden' name='assignedperson_1' id='assignedperson_1_{$srfId}'><input type='hidden' name='email' value='{$email}'/><input type='hidden' name='name' value='{$name}'/><input type='hidden' name='ticketNumber' value='{$ticketNumber}'/><input type='hidden' name='requestType' value='{$requestType}'/><input type='hidden' name='otherSpecify' value='{$otherSpecify}'/><input type='hidden' name='equipment_id' value='{$equipment_id}'/><div class='alert alert-info mt-3 mb-0' style='font-size:0.85rem;text-align:justify;'><strong>Notice:</strong> {$legal_disclaimer}</div></div><div class='modal-footer'><button type='button' class='btn btn-secondary' data-bs-dismiss='modal'>Close</button><span class='d-inline-block ms-2' tabindex='0' data-bs-toggle='tooltip' title='{$legal_disclaimer}'><button type='submit' id='submitBtn_{$srfId}' class='btn btn-primary' disabled>Affix Signature</button></span></div></div></form></div></div>";
+            echo "</select></div><input type='hidden' name='assignedperson_1' id='assignedperson_1_{$srfId}'><input type='hidden' name='email' value='{$email}'/><input type='hidden' name='name' value='{$name}'/><input type='hidden' name='ticketNumber' value='{$ticketNumber}'/><input type='hidden' name='requestType' value='{$requestType}'/><input type='hidden' name='otherSpecify' value='{$otherSpecify}'/><input type='hidden' name='equipment_id' value='{$equipment_id}'/><input type='hidden' name='zoom_title' value='{$zoomTitleValue}'/><input type='hidden' name='office' value='{$officeValue}'/><input type='hidden' name='divSecUnit' value='{$divSecUnitValue}'/><div class='border rounded-3 p-3 mt-3 bg-light zoom-completion-fields' id='zoomFields_{$srfId}' style='display:none;'><div class='alert alert-warning py-2 mb-3' style='font-size:0.85rem;'><strong>Zoom calendar save:</strong> Meeting ID and password will be saved to Calendar Scheduler with the requested division.</div><div class='mb-2'><label class='form-label'>Meeting ID</label><input type='text' class='form-control' name='zoom_meeting_id' id='zoom_meeting_id_{$srfId}' placeholder='Enter meeting ID' oninput='checkAssignForm({$srfId})'></div><div class='mb-2'><label class='form-label'>Password</label><input type='text' class='form-control' name='zoom_password' id='zoom_password_{$srfId}' placeholder='Enter password' oninput='checkAssignForm({$srfId})'></div><div class='mb-2'><label class='form-label'>Meeting Link (Optional)</label><input type='url' class='form-control' name='zoom_link' id='zoom_link_{$srfId}' placeholder='https://...'></div><div class='small text-muted'>Title: {$zoomTitleValue}<br>Requested Division: {$divisionDisplay}</div></div><div class='alert alert-info mt-3 mb-0' style='font-size:0.85rem;text-align:justify;'><strong>Notice:</strong> {$legal_disclaimer}</div></div><div class='modal-footer'><button type='button' class='btn btn-secondary' data-bs-dismiss='modal'>Close</button><span class='d-inline-block ms-2' tabindex='0' data-bs-toggle='tooltip' title='{$legal_disclaimer}'><button type='submit' id='submitBtn_{$srfId}' class='btn btn-primary' disabled>Affix Signature</button></span></div></div></form></div></div>";
 
             $stmt2->close();
             endforeach; ?>
@@ -1182,10 +1187,23 @@ function checkAssignForm(id) {
     var personelVal = document.getElementById('personelid_' + id);
     var btn = document.getElementById('submitBtn_' + id);
     if (!dateVal || !actionVal || !personelVal || !btn) return;
+    var form = btn.closest('form');
+    var isZoom = form && form.getAttribute('data-is-zoom') === '1';
+    var isMarkDone = personelVal.value === '102';
+    var zoomPanel = document.getElementById('zoomFields_' + id);
+    var meetingId = document.getElementById('zoom_meeting_id_' + id);
+    var password = document.getElementById('zoom_password_' + id);
+    var showZoomFields = isZoom && isMarkDone;
+
+    if (zoomPanel) zoomPanel.style.display = showZoomFields ? 'block' : 'none';
+    if (meetingId) meetingId.required = showZoomFields;
+    if (password) password.required = showZoomFields;
+
     var dateOk = dateVal.value.trim() !== '';
     var actionOk = actionVal.value.trim() !== '';
     var personelOk = personelVal.value !== '';
-    btn.disabled = !(dateOk && actionOk && personelOk);
+    var zoomOk = !showZoomFields || ((meetingId && meetingId.value.trim() !== '') && (password && password.value.trim() !== ''));
+    btn.disabled = !(dateOk && actionOk && personelOk && zoomOk);
 }
 
 async function getAiSuggestion(srfId, requestType, description) {

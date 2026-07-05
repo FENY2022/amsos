@@ -5,27 +5,39 @@
 // Include database connection
 require_once 'connect.php'; // Replace with your actual connection file
 require_once 'repair_history_helpers.php';
+require_once 'calendar_event_helpers.php';
+
+calendarEnsureEventSchema($conn);
 
 
-// Check if the form was submitted via GET and 'assign' parameter exists
-if ($_SERVER["REQUEST_METHOD"] == "GET" && isset($_GET['assign'])) {
+// Check if the form was submitted and 'assign' parameter exists
+if (isset($_REQUEST['assign'])) {
 
+    $request = array_merge($_GET, $_POST);
+    $srfId = intval($request['assign']);
+    $trackid = $srfId;
 
-    
-    $srfId = intval($_GET['assign']); // Sanitize input
-    $email = intval($_GET['email']); // Sanitize input
-    $name = intval($_GET['name']); // Sanitize input
-    $requestType = intval($_GET['requestType']); // Sanitize input
-    $otherSpecify = intval($_GET['otherSpecify']); // Sanitize input
-    $ticketNumber = intval($_GET['ticketNumber']); // Sanitize input
-    $trackid = $srfId ;
-    $action_taken = $_GET['action_taken'];
-    $equipment_id = $_GET['equipment_id'];
+    $srfStmt = $conn->prepare("SELECT id, ticketNumber, date, name, divSecUnit, office, requestType, otherSpecify, description, email, equipment_id FROM srf WHERE id = ?");
+    $srfStmt->bind_param("i", $srfId);
+    $srfStmt->execute();
+    $srfResult = $srfStmt->get_result();
+    $srfRow = $srfResult ? $srfResult->fetch_assoc() : null;
+    $srfStmt->close();
 
+    if (!$srfRow) {
+        echo '<script>window.location.href = "mainmenu.php?dir=requestlist&toast_msg=SRF%20record%20not%20found.&toast_type=error";</script>';
+        exit();
+    }
 
-    // Sanitize and get personnel ID
-    $tracking = intval($_GET['personelid']); // Ensure 'personelid' is numeric
-    $NID = 101; // Set default NID
+    $email = trim((string)($request['email'] ?? $srfRow['email'] ?? ''));
+    $name = trim((string)($request['name'] ?? $srfRow['name'] ?? ''));
+    $requestType = trim((string)($request['requestType'] ?? $srfRow['requestType'] ?? ''));
+    $otherSpecify = trim((string)($request['otherSpecify'] ?? $srfRow['otherSpecify'] ?? ''));
+    $ticketNumber = trim((string)($request['ticketNumber'] ?? $srfRow['ticketNumber'] ?? ''));
+    $action_taken = trim((string)($request['action_taken'] ?? ''));
+    $equipment_id = trim((string)($request['equipment_id'] ?? ($srfRow['equipment_id'] ?? '')));
+    $tracking = intval($request['personelid'] ?? 0);
+    $NID = 101;
 
     $stmt = $conn->prepare("UPDATE srf SET step_counter = step_counter + 1 WHERE id = ?");
     $stmt->bind_param("i", $srfId); 
@@ -46,12 +58,12 @@ if ($_SERVER["REQUEST_METHOD"] == "GET" && isset($_GET['assign'])) {
         $name = $_SESSION['Full_NameSRF'];
 
 
-        $email = $_GET['email'];
-        $name = $_GET['name'];
-        $requestType = $_GET['requestType'];
-        $otherSpecify = $_GET['otherSpecify'];
-        $ticketNumber = $_GET['ticketNumber'];
-        $remarks = $_GET['action_taken'];
+        $email = trim((string)($request['email'] ?? $email));
+        $name = trim((string)($request['name'] ?? $name));
+        $requestType = trim((string)($request['requestType'] ?? $requestType));
+        $otherSpecify = trim((string)($request['otherSpecify'] ?? $otherSpecify));
+        $ticketNumber = trim((string)($request['ticketNumber'] ?? $ticketNumber));
+        $remarks = trim((string)($request['action_taken'] ?? $action_taken));
 
         $subject = 'Service Request Completion Notification';
         $yourname = 'ICTAMSOS ' . $ticketNumber;
@@ -78,12 +90,39 @@ if ($_SERVER["REQUEST_METHOD"] == "GET" && isset($_GET['assign'])) {
         Thank you for your cooperation and trust in our services. Should you need further assistance or have additional requests, please feel free to contact us.<br><br> 
         Best regards,<br><br>RICTU OTOS/AMSOS Team'; 
 
+        if ($requestType === 'Zoom') {
+            $zoomMeetingId = trim((string)($request['zoom_meeting_id'] ?? ''));
+            $zoomPassword = trim((string)($request['zoom_password'] ?? ''));
+
+            if ($zoomMeetingId === '' || $zoomPassword === '') {
+                echo '<script>window.location.href = "mainmenu.php?dir=requestlist&toast_msg=Zoom%20Meeting%20ID%20and%20password%20are%20required%20before%20marking%20done.&toast_type=error";</script>';
+                exit();
+            }
+
+            $calendarSaved = calendarUpsertEventFromSrf($conn, [
+                'source_srf_id' => $srfId,
+                'event_date' => trim((string)($request['action_date'] ?? $srfRow['date'] ?? date('Y-m-d'))),
+                'remarks' => trim((string)($request['zoom_title'] ?? ($srfRow['description'] ?? $ticketNumber))),
+                'zoom_link' => trim((string)($request['zoom_link'] ?? '')),
+                'meeting_id' => $zoomMeetingId,
+                'password' => $zoomPassword,
+                'email' => $email,
+                'office' => $srfRow['office'] ?? '',
+                'divSecUnit' => $srfRow['divSecUnit'] ?? ''
+            ]);
+
+            if (!$calendarSaved) {
+                echo '<script>window.location.href = "mainmenu.php?dir=requestlist&toast_msg=Unable%20to%20save%20Zoom%20event%20to%20calendar.&toast_type=error";</script>';
+                exit();
+            }
+        }
 
 
-        
+
+
         
         $sender = $_SESSION['Full_NameSRF'] ?? null; // Validate session variable
-        $srfId = isset($_GET['assign']) ? intval($_GET['assign']) : null; // Validate and cast to integer
+        $srfId = isset($request['assign']) ? intval($request['assign']) : null; // Validate and cast to integer
         $remarks = htmlspecialchars($message ?? '', ENT_QUOTES, 'UTF-8'); // Sanitize remarks (if needed)
         
         if (!empty($sender) && $srfId && !empty($remarks)) {
@@ -150,7 +189,7 @@ if ($_SERVER["REQUEST_METHOD"] == "GET" && isset($_GET['assign'])) {
 
 
     $name_s = $_SESSION['Full_NameSRF'];
-    $equipment_id = $_GET['equipment_id'];
+        $equipment_id = trim((string)($request['equipment_id'] ?? $equipment_id));
         // Prepare the insert statement for srfhistory table
         $office = $_SESSION['OfficeSRF'];
         $stmth = $conn->prepare("INSERT INTO srfhistory (trackid, name, details, date, time, status, equipment_id, office) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
@@ -212,7 +251,7 @@ if ($_SERVER["REQUEST_METHOD"] == "GET" && isset($_GET['assign'])) {
                             $time = date("h:i:s A");
 
                             // Check if equipment_id exists in GET parameters
-                            $equipment_id = isset($_GET['equipment_id']) ? intval($_GET['equipment_id']) : null;
+                            $equipment_id = isset($request['equipment_id']) ? intval($request['equipment_id']) : null;
 
                             // Prepare the SQL statement for srfhistory
                             $office = $_SESSION['OfficeSRF'];
@@ -240,7 +279,7 @@ if ($_SERVER["REQUEST_METHOD"] == "GET" && isset($_GET['assign'])) {
 
 
         
-        $name = $_GET["assignedperson_1"];
+        $name = trim((string)($request['assignedperson_1'] ?? ''));
         $status = "Assigned to RICTU staff " . $name;
 
         $details = "Received By: " . $_SESSION['Full_NameSRF'];
@@ -249,7 +288,7 @@ if ($_SERVER["REQUEST_METHOD"] == "GET" && isset($_GET['assign'])) {
         
         // Check if the database connection is valid
         if ($conn) {
-            $equipment_id = $_GET['equipment_id'];
+            $equipment_id = trim((string)($request['equipment_id'] ?? ''));
             // Prepare the SQL statement
             $office = $_SESSION['OfficeSRF'];
             $stmth = $conn->prepare("INSERT INTO srfhistory (trackid, name, details, date, time, status, equipment_id, office) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
@@ -277,8 +316,8 @@ if ($_SERVER["REQUEST_METHOD"] == "GET" && isset($_GET['assign'])) {
     $date = date("Y-m-d");
     $time = date("h:i:s A");
     $name = $_SESSION['Full_NameSRF'];
-    $remarks = $_GET['action_taken'];
-    $trackid = $_GET['assign'];
+    $remarks = trim((string)($request['action_taken'] ?? $action_taken));
+    $trackid = intval($request['assign'] ?? $trackid);
     $userId =  $_SESSION['idSRF'];
 
 
