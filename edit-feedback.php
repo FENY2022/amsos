@@ -36,7 +36,7 @@
                 </div>
                 <div class="card-body">
                     <?php
-                    require_once 'connect.php';
+                    require_once 'connect_amsos.php';
 
                     $trackid = $_GET['id'] ?? '';
 
@@ -189,7 +189,7 @@
 
     function deleteRow(id) {
         if (confirm('Are you sure you want to delete this record?')) {
-            fetch('delete_action.php', {
+            fetch('delete_feedback.php', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

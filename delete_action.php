@@ -3,7 +3,7 @@ header('Content-Type: application/json');
 
 // Include your database connection file.
 // This file should create and set the $conn variable. Example: new mysqli($host, $user, $password, $dbname);
-require_once 'connect.php';
+require_once 'connect_amsos.php';
 
 // Retrieve the raw POST data and decode the JSON.
 $data = json_decode(file_get_contents('php://input'));

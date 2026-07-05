@@ -327,7 +327,7 @@ function getStarRating($feedback) {
                                 <td data-label="Rating"><?= getStarRating($row['rate']) ?></td>
                                 <td data-label="Actions">
                                     <div class="d-flex gap-2 justify-content-end justify-content-md-start">
-                                        <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" 
+                                        <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" onclick="showModalLoading(this)" 
                                                 data-bs-target="#viewDocumentModal<?= $row['id'] ?>">
                                             <i class="bi bi-eye"></i>
                                         </button>
@@ -347,7 +347,7 @@ function getStarRating($feedback) {
                                             <p><strong>Request Type</strong>: <span class="badge bg-info"><?= $row['requestType'] ?></span></p>
                                             <p><strong>Rating</strong>: <?= getStarRating($row['rate']) ?></p>
                                             <div class="d-flex gap-2">
-                                                <button class="btn btn-sm btn-outline-primary w-100" data-bs-toggle="modal" 
+                                                <button class="btn btn-sm btn-outline-primary w-100" data-bs-toggle="modal" onclick="showModalLoading(this)" 
                                                         data-bs-target="#viewDocumentModal<?= $row['id'] ?>">
                                                     <i class="bi bi-eye me-2"></i>View Document
                                                 </button>
@@ -363,7 +363,13 @@ function getStarRating($feedback) {
                                             <h5 class="modal-title" id="viewDocumentModalLabel<?= $row['id'] ?>"><i class="bi bi-file-earmark-text me-2"></i>View Document - Ticket #<?= $row['ticketNumber'] ?></h5>
                                             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                                         </div>
-                                        <div class="modal-body p-0">
+                                        <div class="modal-body p-0 position-relative">
+                                            <div class="modal-iframe-loading d-flex align-items-center justify-content-center position-absolute top-0 start-0 w-100 h-100 bg-white" id="docLoading<?= $row['id'] ?>" style="z-index: 2;">
+                                                <div class="text-center">
+                                                    <div class="spinner-border text-primary" role="status" aria-hidden="true"></div>
+                                                    <div class="mt-2 text-muted small">Loading document...</div>
+                                                </div>
+                                            </div>
                                             <iframe 
                                                 data-src="printform-request.php?id=<?= $row['id'] ?>" 
                                                 style="width: 100%; height: 70vh; border: none; zoom: 1;" 
@@ -391,29 +397,18 @@ function getStarRating($feedback) {
                     <h5 class="modal-title" id="printModalLabel"><i class="bi bi-printer me-2"></i>View All Documents</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <div class="modal-body p-0">
+                <div class="modal-body p-0 position-relative">
+                    <div class="modal-iframe-loading d-flex align-items-center justify-content-center position-absolute top-0 start-0 w-100 h-100 bg-white" id="printLoading" style="z-index: 2;">
+                        <div class="text-center">
+                            <div class="spinner-border text-primary" role="status" aria-hidden="true"></div>
+                            <div class="mt-2 text-muted small">Loading document...</div>
+                        </div>
+                    </div>
                     <iframe 
-                        src="print-all.php?date_filter=<?= $date_filter ?>&from_date=<?= $from_date ?>&to_date=<?= $to_date ?>&show_rows=<?= $show_rows ?>" 
+                        data-src="print-all.php?date_filter=<?= $date_filter ?>&from_date=<?= $from_date ?>&to_date=<?= $to_date ?>&show_rows=<?= $show_rows ?>" 
                         style="width: 100%; height: 70vh; border: none; zoom: 1;" 
                         id="printAllIframe">
                     </iframe>
-                    <script>
-                        // Responsive zoom for iframe on mobile
-                        (function() {
-                            function setIframeZoom() {
-                                var iframe = document.getElementById('printAllIframe');
-                                if (!iframe) return;
-                                if (window.innerWidth <= 767) {
-                                    iframe.style.zoom = "0.5";
-                                } else {
-                                    iframe.style.zoom = "1";
-                                }
-                            }
-                            window.addEventListener('resize', setIframeZoom);
-                            document.addEventListener('DOMContentLoaded', setIframeZoom);
-                        })();
-                    </script>
-           
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
@@ -452,6 +447,65 @@ function getStarRating($feedback) {
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+        function showModalLoading(button) {
+            if (!button || button.dataset.loading === '1') return;
+            button.dataset.originalHtml = button.innerHTML;
+            button.dataset.loading = '1';
+            button.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>';
+            button.disabled = true;
+        }
+
+        function resetModalLoading(button) {
+            if (!button) return;
+            const original = button.dataset.originalHtml;
+            if (original) {
+                button.innerHTML = original;
+            }
+            button.disabled = false;
+            button.dataset.loading = '0';
+        }
+
+        function loadModalIframe(modalEl) {
+            if (!modalEl) return;
+            const iframe = modalEl.querySelector('iframe[data-src]');
+            if (!iframe) return;
+
+            if (!iframe.getAttribute('src')) {
+                iframe.setAttribute('src', iframe.getAttribute('data-src'));
+            }
+
+            const loading = modalEl.querySelector('.modal-iframe-loading');
+            if (loading) loading.classList.remove('d-none');
+
+            const setZoom = () => {
+                iframe.style.zoom = window.innerWidth <= 767 ? '0.5' : '1';
+            };
+
+            setZoom();
+
+            if (iframe.dataset.loaded === '1') {
+                if (loading) loading.classList.add('d-none');
+                return;
+            }
+
+            const onLoad = () => {
+                iframe.dataset.loaded = '1';
+                if (loading) loading.classList.add('d-none');
+                iframe.removeEventListener('load', onLoad);
+            };
+            iframe.addEventListener('load', onLoad);
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelectorAll('.modal').forEach(function(modal) {
+                modal.addEventListener('shown.bs.modal', function() {
+                    const trigger = document.querySelector('[data-bs-target="#' + modal.id + '"][data-loading="1"]');
+                    if (trigger) resetModalLoading(trigger);
+                    loadModalIframe(modal);
+                });
+            });
+        });
+
         function toggleDateRange() {
             const filter = document.getElementById("date_filter").value;
             document.getElementById("from_date").disabled = filter !== "custom";
@@ -459,6 +513,16 @@ function getStarRating($feedback) {
         }
 
         document.addEventListener('DOMContentLoaded', function() {
+            document.querySelectorAll('.modal').forEach(function(modal) {
+                modal.addEventListener('shown.bs.modal', function() {
+                    const iframe = modal.querySelector('iframe[data-src]');
+                    if (!iframe || iframe.getAttribute('src')) return;
+
+                    iframe.setAttribute('src', iframe.getAttribute('data-src'));
+                    iframe.style.zoom = window.innerWidth <= 767 ? '0.5' : '1';
+                });
+            });
+
             // Existing mobile collapse icon toggle logic
             const tableBody = document.querySelector('.table-custom tbody');
             tableBody.addEventListener('show.bs.collapse', function (event) {
@@ -487,27 +551,6 @@ function getStarRating($feedback) {
                     // Add the highlight class to the row just clicked
                     this.classList.add('last-clicked-row');
                 });
-            });
-
-            // Lazy-load View Document iframes when modal opens
-            document.addEventListener('show.bs.modal', function (event) {
-                var modal = event.target;
-                if (modal.id && modal.id.indexOf('viewDocumentModal') === 0) {
-                    var iframe = modal.querySelector('iframe[data-src]');
-                    if (iframe && !iframe.src) {
-                        iframe.src = iframe.getAttribute('data-src');
-                    }
-                }
-            });
-
-            document.addEventListener('hide.bs.modal', function (event) {
-                var modal = event.target;
-                if (modal.id && modal.id.indexOf('viewDocumentModal') === 0) {
-                    var iframe = modal.querySelector('iframe');
-                    if (iframe) {
-                        iframe.src = '';
-                    }
-                }
             });
         });
     </script>

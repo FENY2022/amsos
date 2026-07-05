@@ -2,7 +2,7 @@
 <?php
 
 
-            require_once 'connect.php' ;
+            require_once 'connect_amsos.php' ;
 
 
            $id  = $_GET['id'];
@@ -279,7 +279,7 @@ if ($result_45) {
 
     <?php
             // Assuming $date is a valid date string in the desired format (e.g., "2024-01-29")
-            $formattedDate = date("F j, Y", strtotime($date));
+            $formattedDate = date("m/d/Y", strtotime($date));
 
             echo "<input type='text' id='date' name='date' value='$formattedDate'>";
         ?>

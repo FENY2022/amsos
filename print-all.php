@@ -1,6 +1,6 @@
     <?php 
 
-    require_once 'connect.php';
+    require_once 'connect_amsos.php';
 
     // Fetch filter values
     $date_filter = $_GET['date_filter'] ?? 'this_month';

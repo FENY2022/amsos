@@ -1,5 +1,5 @@
 <?php
-require_once 'connect.php';
+require_once 'connect_amsos.php';
 
 header('Content-Type: application/json');
 date_default_timezone_set('Asia/Manila');
@@ -65,15 +65,46 @@ function interpolate_slot(DateTime $start, DateTime $end, $index, $total) {
     return $slot;
 }
 
+function varied_gap_minutes($seed, $index, $previousGap = null) {
+    $gaps = [21, 27, 23, 30, 24, 29, 22, 26, 20, 28, 25];
+    $slot = abs(crc32((string)$seed . ':' . (string)$index)) % count($gaps);
+    $gap = $gaps[$slot];
+
+    if ($previousGap !== null && $gap === $previousGap) {
+        $gap = $gaps[($slot + 3) % count($gaps)];
+    }
+
+    return $gap;
+}
+
 function create_fallback_schedule($historyRows, $actionRows, $feedbackRows, DateTime $anchor, DateTime $timelineEnd, DateTime $feedbackStart, $receivedByRowId) {
     $schedule = [];
+    $previousHistoryTs = null;
+    $previousHistoryGap = null;
+    $lastHistorySlot = clone $timelineEnd;
+    $feedbackGapSeconds = max(0, $feedbackStart->getTimestamp() - $timelineEnd->getTimestamp());
 
     $historyCount = count($historyRows);
     foreach ($historyRows as $index => $row) {
-        $slot = interpolate_slot($anchor, $timelineEnd, $index, $historyCount);
-        if (!empty($receivedByRowId) && (int)$row['id'] === (int)$receivedByRowId) {
+        if ($index === 0 || (!empty($receivedByRowId) && (int)$row['id'] === (int)$receivedByRowId)) {
             $slot = clone $anchor;
+        } else {
+            $gap = varied_gap_minutes($row['id'], $index, $previousHistoryGap);
+            $slot = new DateTime('@' . ($previousHistoryTs + ($gap * 60)));
+            $slot->setTimezone(new DateTimeZone(date_default_timezone_get()));
+            $previousHistoryGap = $gap;
         }
+
+        if ($previousHistoryTs !== null && $slot->getTimestamp() <= $previousHistoryTs) {
+            $slot->setTimestamp($previousHistoryTs + (varied_gap_minutes($row['id'], $index, $previousHistoryGap) * 60));
+        }
+
+        if ($slot->format('Y-m-d') !== $anchor->format('Y-m-d')) {
+            $slot = clone $anchor;
+            $slot->setTime(23, 55, 0);
+        }
+
+        $lastHistorySlot = clone $slot;
 
         $schedule[] = [
             'table' => 'srfhistory',
@@ -81,6 +112,18 @@ function create_fallback_schedule($historyRows, $actionRows, $feedbackRows, Date
             'date' => $slot->format('Y-m-d'),
             'time' => $slot->format('h:i:s A'),
         ];
+
+        $previousHistoryTs = $slot->getTimestamp();
+    }
+
+    if ($historyCount > 0) {
+        $timelineEnd = clone $lastHistorySlot;
+        $feedbackStart = clone $lastHistorySlot;
+        $feedbackStart->setTimestamp($lastHistorySlot->getTimestamp() + $feedbackGapSeconds);
+        if ($feedbackStart->format('Y-m-d') !== $anchor->format('Y-m-d')) {
+            $feedbackStart = clone $lastHistorySlot;
+            $feedbackStart->setTime(23, 55, 0);
+        }
     }
 
     $actionCount = count($actionRows);
@@ -130,6 +173,7 @@ Return JSON only, no markdown, no commentary.
 
 Rules:
 1. All rows must stay on the same date.
+1a. The canonical date is srf.date from the SRF table; every adjusted history/action/feedback date must follow this date.
 2. The receive row with name exactly 'MARIETTA L. CHUA' and details containing 'Received By' must match the first RICTU Staff Actions timestamp.
 3. The last Receive History row must match the last RICTU Staff Actions row timestamp.
 4. All timestamps must be in chronological order.
@@ -137,6 +181,9 @@ Rules:
 6. Feedback rows must be Excellent and must be later than the last action row.
 7. Keep the full timeline within one day.
 8. For feedback rows, infer the correct AM/PM from the surrounding timeline and output created_at/date_rated in 24-hour format.
+9. Receive History timestamps must be strictly increasing, and the first and second Receive History rows must never share the same timestamp.
+10. The gap between the first and second Receive History rows must be 20 to 30 minutes.
+11. Use varied gaps between Receive History rows; do not repeat the same interval pattern because it looks artificial.
 
 SRF context:
 " . json_encode([
@@ -241,6 +288,7 @@ function validate_timeline($timeline, $historyRows, $actionRows, $feedbackRows, 
     }
 
     $previousTimestamp = null;
+    $firstHistoryTimestamp = null;
     foreach ($historyRows as $row) {
         $item = $historyMap[(int)$row['id']] ?? null;
         if (!$item) {
@@ -256,6 +304,14 @@ function validate_timeline($timeline, $historyRows, $actionRows, $feedbackRows, 
         }
         if ($previousTimestamp !== null && $dt->getTimestamp() <= $previousTimestamp) {
             return [false, 'History rows are not strictly increasing'];
+        }
+        if ($firstHistoryTimestamp === null) {
+            $firstHistoryTimestamp = $dt->getTimestamp();
+        } elseif ((int)$row['id'] === (int)$historyRows[1]['id']) {
+            $gapMinutes = (int)(($dt->getTimestamp() - $firstHistoryTimestamp) / 60);
+            if ($gapMinutes < 20 || $gapMinutes > 30) {
+                return [false, 'First and second receive rows must be 20 to 30 minutes apart'];
+            }
         }
         $previousTimestamp = $dt->getTimestamp();
     }
@@ -383,12 +439,23 @@ foreach ($historyRows as $row) {
     }
 }
 
-$anchor = !empty($actionRows) ? fetch_row_datetime($actionRows[0]['date'], $actionRows[0]['time']) : null;
-if (!$anchor && !empty($historyRows)) {
-    $anchor = fetch_row_datetime($historyRows[0]['date'], $historyRows[0]['time']);
+$baseDate = trim((string)($srf['date'] ?? ''));
+if ($baseDate === '' || strtotime($baseDate) === false) {
+    $baseDate = !empty($srf['created_at']) && strtotime($srf['created_at']) !== false ? date('Y-m-d', strtotime($srf['created_at'])) : date('Y-m-d');
+} else {
+    $baseDate = date('Y-m-d', strtotime($baseDate));
 }
+
+$anchorTime = '08:00 AM';
+if (!empty($actionRows[0]['time'])) {
+    $anchorTime = $actionRows[0]['time'];
+} elseif (!empty($historyRows[0]['time'])) {
+    $anchorTime = $historyRows[0]['time'];
+}
+
+$anchor = fetch_row_datetime($baseDate, $anchorTime);
 if (!$anchor) {
-    $anchor = new DateTime(date('Y-m-d 08:00:00'));
+    $anchor = new DateTime($baseDate . ' 08:00:00');
 }
 
 $timelineEnd = clone $anchor;

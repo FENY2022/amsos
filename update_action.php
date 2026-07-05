@@ -1,5 +1,5 @@
 <?php
-require_once 'connect.php';
+require_once 'connect_amsos.php';
 
 // Get the raw POST data
 $data = json_decode(file_get_contents("php://input"), true);

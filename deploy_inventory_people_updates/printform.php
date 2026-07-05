@@ -1,7 +1,7 @@
 <?php
 
 
-            require_once 'connect.php' ;
+            require_once '../connect_amsos.php' ;
 
 
            $id  = $_GET['id'];
@@ -289,7 +289,7 @@ $stmt->close();
             </div>
             <div class='div-3 div-margin'>
             <p><strong>Ticket No: <u><?php echo $ticketNumber; ?></u></strong></p>
-            <p><strong><p>Date(mm/dd/yyyy): <u><?php echo $formattedDate = date("F j, Y", strtotime($date)); ?></u></p></u></strong></p>
+            <p><strong><p>Date(mm/dd/yyyy): <u><?php echo date("m/d/Y", strtotime($date)); ?></u></p></strong></p>
             </div>
             <div>
                 <table>

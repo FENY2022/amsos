@@ -1,5 +1,5 @@
 <?php
-require_once 'connect.php';
+require_once 'connect_amsos.php';
 
 // Get the raw POST data
 $input = file_get_contents('php://input');
