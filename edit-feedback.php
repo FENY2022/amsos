@@ -64,6 +64,42 @@
 
                     $result = $stmt->get_result();
 
+                    if ($result && $result->num_rows === 0 && $trackid !== '') {
+                        $stmt->close();
+
+                        $acknowledgedBy = '';
+                        $srfStmt = $conn->prepare("SELECT name FROM srf WHERE id = ? LIMIT 1");
+                        if ($srfStmt) {
+                            $srfStmt->bind_param("s", $trackid);
+                            $srfStmt->execute();
+                            $srfResult = $srfStmt->get_result();
+                            if ($srfResult && $srfResult->num_rows > 0) {
+                                $srfRow = $srfResult->fetch_assoc();
+                                $acknowledgedBy = (string)($srfRow['name'] ?? '');
+                            }
+                            $srfStmt->close();
+                        }
+
+                        $feedback = 'Excellent';
+                        $now = date('Y-m-d H:i:s');
+                        $insertStmt = $conn->prepare("INSERT INTO srffeedback (srf_id, feedback, acknowledged_by, date_rated, created_at) VALUES (?, ?, ?, ?, ?)");
+                        if ($insertStmt) {
+                            $insertStmt->bind_param("sssss", $trackid, $feedback, $acknowledgedBy, $now, $now);
+                            $insertStmt->execute();
+                            $insertStmt->close();
+                        }
+
+                        $stmt = $conn->prepare($query);
+                        if ($stmt === false) {
+                            die('Prepare failed: ' . htmlspecialchars($conn->error));
+                        }
+                        $stmt->bind_param("s", $trackid);
+                        if (!$stmt->execute()) {
+                            die('Execute failed: ' . htmlspecialchars($stmt->error));
+                        }
+                        $result = $stmt->get_result();
+                    }
+
                     if ($result && $result->num_rows > 0) {
                         echo "<div class='table-responsive'>";
                         echo "<table class='table table-striped table-hover table-bordered'>
