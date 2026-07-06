@@ -126,9 +126,17 @@ function create_fallback_schedule($historyRows, $actionRows, $feedbackRows, Date
         }
     }
 
+    $actionStart = clone $anchor;
+    if ($historyCount >= 2 && isset($schedule[1])) {
+        $dt = fetch_row_datetime($schedule[1]['date'], $schedule[1]['time']);
+        if ($dt) {
+            $actionStart = $dt;
+        }
+    }
+
     $actionCount = count($actionRows);
     foreach ($actionRows as $index => $row) {
-        $slot = interpolate_slot($anchor, $timelineEnd, $index, $actionCount);
+        $slot = interpolate_slot($actionStart, $timelineEnd, $index, $actionCount);
         $schedule[] = [
             'table' => 'srf_actiontaken',
             'id' => (int)$row['id'],
@@ -174,7 +182,7 @@ Return JSON only, no markdown, no commentary.
 Rules:
 1. All rows must stay on the same date.
 1a. The canonical date is srf.date from the SRF table; every adjusted history/action/feedback date must follow this date.
-2. The receive row with name exactly 'MARIETTA L. CHUA' and details containing 'Received By' must match the first RICTU Staff Actions timestamp.
+2. The second Receive History row must match the first RICTU Staff Actions timestamp.
 3. The last Receive History row must match the last RICTU Staff Actions row timestamp.
 4. All timestamps must be in chronological order.
 5. If any existing date/time is blank, fill it.
@@ -208,7 +216,7 @@ Output schema:
 
 Important:
 - Preserve the input row order inside each table.
-- The first receive row must equal the first action row timestamp.
+- The second receive row must equal the first action row timestamp.
 - The last receive row must equal the last action row timestamp.
 - Use the provided anchor and timeline_end as guides.
 "
@@ -356,18 +364,19 @@ function validate_timeline($timeline, $historyRows, $actionRows, $feedbackRows, 
         $previousTimestamp = $dt->getTimestamp();
     }
 
-    if (!empty($historyRows) && !empty($actionRows)) {
-        $firstHistory = $historyMap[(int)$historyRows[0]['id']] ?? null;
+    if (!empty($historyRows) && count($historyRows) >= 2 && !empty($actionRows)) {
+        $secondHistory = $historyMap[(int)$historyRows[1]['id']] ?? null;
         $firstAction = $byTable['srf_actiontaken'][0];
-        if ($firstHistory && (($firstHistory['date'] ?? '') !== ($firstAction['date'] ?? '') || ($firstHistory['time'] ?? '') !== ($firstAction['time'] ?? ''))) {
-            return [false, 'First receive row does not match first action row'];
+        if ($secondHistory && (($secondHistory['date'] ?? '') !== ($firstAction['date'] ?? '') || ($secondHistory['time'] ?? '') !== ($firstAction['time'] ?? ''))) {
+            return [false, 'Second receive row does not match first action row'];
         }
     }
 
     if ($receivedByRowId !== null && isset($historyMap[$receivedByRowId]) && !empty($byTable['srf_actiontaken'][0])) {
         $receive = $historyMap[$receivedByRowId];
         $firstAction = $byTable['srf_actiontaken'][0];
-        if (($receive['date'] ?? '') !== ($firstAction['date'] ?? '') || ($receive['time'] ?? '') !== ($firstAction['time'] ?? '')) {
+        $receiveIsSecond = $receivedByRowId === (int)($historyRows[1]['id'] ?? null);
+        if ($receiveIsSecond && (($receive['date'] ?? '') !== ($firstAction['date'] ?? '') || ($receive['time'] ?? '') !== ($firstAction['time'] ?? ''))) {
             return [false, 'Received By row does not match first action row'];
         }
     }

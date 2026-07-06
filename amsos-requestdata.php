@@ -20,7 +20,7 @@ $query = "SELECT srf.*, srffeedback.feedback AS rate
           WHERE srf.status = 'Completed'";
 
 if ($date_filter === 'this_month') {
-    $query .= " AND MONTH(STR_TO_DATE(srf.date, '%Y-%m-%d')) = MONTH(CURRENT_DATE()) ";
+    $query .= " AND MONTH(STR_TO_DATE(srf.date, '%Y-%m-%d')) = MONTH(CURRENT_DATE()) AND YEAR(STR_TO_DATE(srf.date, '%Y-%m-%d')) = YEAR(CURRENT_DATE()) ";
     $date_label = "SRF Completed Requests for " . date('F Y');
 } elseif (!empty($from_date) && !empty($to_date)) {
     // Sanitize date inputs
@@ -112,6 +112,190 @@ function getStarRating($feedback) {
             padding: 1.5rem;
             box-shadow: 0 0.25rem 0.5rem rgba(0, 0, 0, 0.05);
             margin-bottom: 1.5rem;
+        }
+
+        .date-range-trigger {
+            background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+            border: 1px solid #d9e5f5;
+            border-radius: 1rem;
+            padding: 1rem 1.1rem;
+            min-height: 74px;
+            box-shadow: 0 0.25rem 0.75rem rgba(13, 110, 253, 0.06);
+            transition: all 0.2s ease;
+        }
+
+        .date-range-trigger:hover,
+        .date-range-trigger.show {
+            border-color: #9ec5fe;
+            box-shadow: 0 0.35rem 1rem rgba(13, 110, 253, 0.14);
+            transform: translateY(-1px);
+        }
+
+        .date-picker-dropdown {
+            width: min(100%, 760px);
+            border-radius: 1.25rem;
+            margin-top: 0.75rem !important;
+            overflow: hidden;
+        }
+
+        .date-picker-shell {
+            padding: 1rem;
+            background: linear-gradient(180deg, #ffffff 0%, #f7fbff 100%);
+        }
+
+        .date-picker-presets {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .preset-chip {
+            border: 1px solid #d7e3f3;
+            background: #fff;
+            color: #334155;
+            border-radius: 999px;
+            padding: 0.45rem 0.9rem;
+            font-size: 0.875rem;
+            font-weight: 600;
+            transition: all 0.2s ease;
+        }
+
+        .preset-chip:hover,
+        .preset-chip.active {
+            background: var(--primary-color);
+            color: #fff;
+            border-color: var(--primary-color);
+            box-shadow: 0 0.35rem 0.8rem rgba(13, 110, 253, 0.18);
+        }
+
+        .date-picker-calendars {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 1rem;
+        }
+
+        .calendar-pane {
+            background: #fff;
+            border: 1px solid #e6eef8;
+            border-radius: 1rem;
+            padding: 0.85rem;
+        }
+
+        .calendar-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.5rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .calendar-title {
+            font-weight: 700;
+            color: var(--dark-color);
+        }
+
+        .calendar-nav {
+            width: 2rem;
+            height: 2rem;
+            border-radius: 999px;
+            border: 1px solid #d7e3f3;
+            background: #f8fbff;
+            color: #0d6efd;
+        }
+
+        .weekday-row,
+        .day-grid {
+            display: grid;
+            grid-template-columns: repeat(7, minmax(0, 1fr));
+            gap: 0.35rem;
+        }
+
+        .weekday-row {
+            margin-bottom: 0.5rem;
+        }
+
+        .weekday-row span {
+            text-align: center;
+            font-size: 0.72rem;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            color: #64748b;
+            text-transform: uppercase;
+        }
+
+        .day-cell {
+            border: none;
+            background: transparent;
+            border-radius: 0.8rem;
+            min-height: 40px;
+            font-weight: 600;
+            color: #334155;
+            transition: all 0.15s ease;
+        }
+
+        .day-cell:hover {
+            background: rgba(13, 110, 253, 0.08);
+        }
+
+        .day-cell.outside-month {
+            color: #cbd5e1;
+        }
+
+        .day-cell.in-range {
+            background: rgba(13, 110, 253, 0.12);
+            color: #0b5ed7;
+            border-radius: 0.6rem;
+        }
+
+        .day-cell.range-start,
+        .day-cell.range-end {
+            background: var(--primary-color);
+            color: #fff;
+            box-shadow: 0 0.35rem 0.75rem rgba(13, 110, 253, 0.2);
+        }
+
+        .day-cell.today {
+            outline: 2px solid rgba(13, 110, 253, 0.25);
+            outline-offset: -2px;
+        }
+
+        .date-picker-footer {
+            display: flex;
+            justify-content: space-between;
+            gap: 0.75rem;
+            padding-top: 1rem;
+            margin-top: 1rem;
+            border-top: 1px solid #e6eef8;
+        }
+
+        .airline-summary-box {
+            background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+            border: 1px solid #d9e5f5;
+            border-radius: 1rem;
+            padding: 1rem;
+            min-height: 74px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        @media (max-width: 767.98px) {
+            .date-picker-calendars {
+                grid-template-columns: 1fr;
+            }
+
+            .date-picker-dropdown {
+                width: calc(100vw - 2rem);
+            }
+
+            .date-picker-footer {
+                flex-direction: column;
+            }
+
+            .date-picker-footer .btn {
+                width: 100%;
+            }
         }
 
         .table-custom {
@@ -234,34 +418,93 @@ function getStarRating($feedback) {
             </div>
             <div class="card-body bg-white rounded-bottom-4 text-center">
                 <h4 class="text-muted mb-2"><?= $date_label ?></h4>
+                <?php if (isset($_SESSION['User_RoleSRF'])): ?>
                 <div class="badge bg-primary fs-6 py-2 px-3">Total Records: <?= $result->num_rows ?></div>
+                <?php endif; ?>
             </div>
         </div>
 
-        <?php if (!isset($_SESSION['User_RoleSRF']) || $_SESSION['User_RoleSRF'] != "Super_admin"): ?>
-        <?php else: ?>
+        <?php if (isset($_SESSION['User_RoleSRF'])): ?>
+
+        <?php if ($_SESSION['User_RoleSRF'] === 'Super_admin'): ?>
             <div class="filter-card mb-4">
-                <h5 class="mb-3 text-primary"><i class="bi bi-funnel me-2"></i>Filter Results</h5>
-                <form method="GET" class="row g-3 align-items-end">
-                    <div class="col-md-3">
-                        <label for="date_filter" class="form-label text-muted small">Date Range</label>
-                        <select name="date_filter" id="date_filter" class="form-select" onchange="toggleDateRange()">
-                            <option value="this_month" <?= $date_filter === 'this_month' ? 'selected' : '' ?>>This Month</option>
-                            <option value="custom" <?= $date_filter === 'custom' ? 'selected' : '' ?>>Custom Range</option>
-                        </select>
+                <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+                    <h5 class="mb-0 text-primary"><i class="bi bi-funnel me-2"></i>Filter Results</h5>
+                    <span class="badge bg-light text-primary border">Airline-style date picker</span>
+                </div>
+
+                <form method="GET" id="dateRangeForm" class="row g-3 align-items-end">
+                    <input type="hidden" name="date_filter" id="date_filter" value="<?= htmlspecialchars($date_filter) ?>">
+                    <input type="hidden" name="from_date" id="from_date" value="<?= htmlspecialchars($from_date) ?>">
+                    <input type="hidden" name="to_date" id="to_date" value="<?= htmlspecialchars($to_date) ?>">
+                    <input type="hidden" name="show_rows" value="<?= htmlspecialchars($show_rows) ?>">
+
+                    <div class="col-12 col-lg-8 position-relative">
+                        <label class="form-label text-muted small mb-2">Date Range</label>
+                        <button type="button" class="btn date-range-trigger w-100 text-start" id="dateRangeTrigger" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
+                            <div class="d-flex align-items-center justify-content-between gap-3">
+                                <div>
+                                    <div class="text-uppercase text-muted small fw-semibold">Select range</div>
+                                    <div class="fw-semibold fs-5" id="dateRangeText">Loading...</div>
+                                </div>
+                                <div class="text-end">
+                                    <i class="bi bi-calendar3 fs-3 text-primary"></i>
+                                </div>
+                            </div>
+                        </button>
+
+                        <div class="dropdown-menu date-picker-dropdown shadow-lg border-0 p-0" aria-labelledby="dateRangeTrigger">
+                            <div class="date-picker-shell">
+                                <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+                                    <div>
+                                        <div class="text-uppercase text-muted small fw-semibold">Booking style</div>
+                                        <div class="fw-semibold">Pick departure and return style dates</div>
+                                    </div>
+                                    <div class="small text-muted text-end" id="datePickerSummary">Choose a date range</div>
+                                </div>
+
+                                <div class="date-picker-presets">
+                                    <button type="button" class="preset-chip" data-preset="today">Today</button>
+                                    <button type="button" class="preset-chip" data-preset="this_week">This Week</button>
+                                    <button type="button" class="preset-chip" data-preset="this_month">This Month</button>
+                                    <button type="button" class="preset-chip" data-preset="clear">Clear</button>
+                                </div>
+
+                                <div class="date-picker-calendars">
+                                    <div class="calendar-pane">
+                                        <div class="calendar-head">
+                                            <button type="button" class="calendar-nav" id="prevMonthBtn" aria-label="Previous month"><i class="bi bi-chevron-left"></i></button>
+                                            <div class="calendar-title" id="leftMonthTitle"></div>
+                                            <button type="button" class="calendar-nav" id="nextMonthBtn" aria-label="Next month"><i class="bi bi-chevron-right"></i></button>
+                                        </div>
+                                        <div class="weekday-row" id="leftWeekdays"></div>
+                                        <div class="day-grid" id="leftCalendar"></div>
+                                    </div>
+
+                                    <div class="calendar-pane d-none d-lg-block">
+                                        <div class="calendar-head">
+                                            <div class="calendar-title" id="rightMonthTitle"></div>
+                                            <span class="small text-muted">Return</span>
+                                        </div>
+                                        <div class="weekday-row" id="rightWeekdays"></div>
+                                        <div class="day-grid" id="rightCalendar"></div>
+                                    </div>
+                                </div>
+
+                                <div class="date-picker-footer">
+                                    <button type="button" class="btn btn-outline-secondary" id="clearRangeBtn"><i class="bi bi-x-lg me-2"></i>Clear</button>
+                                    <button type="button" class="btn btn-primary" id="applyRangeBtn"><i class="bi bi-check2 me-2"></i>Apply Filter</button>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                    <div class="col-md-3">
-                        <label for="from_date" class="form-label text-muted small">From Date</label>
-                        <input type="date" name="from_date" class="form-control" value="<?= $from_date ?>" id="from_date" 
-                               <?= $date_filter === 'custom' ? '' : 'disabled' ?>>
-                    </div>
-                    <div class="col-md-3">
-                        <label for="to_date" class="form-label text-muted small">To Date</label>
-                        <input type="date" name="to_date" class="form-control" value="<?= $to_date ?>" id="to_date" 
-                               <?= $date_filter === 'custom' ? '' : 'disabled' ?>>
-                    </div>
-                    <div class="col-md-3">
-                        <button type="submit" class="btn btn-primary w-100"><i class="bi bi-filter me-2"></i>Apply Filter</button>
+
+                    <div class="col-12 col-lg-4">
+                        <label class="form-label text-muted small mb-2">Current Selection</label>
+                        <div class="airline-summary-box">
+                            <div class="fw-semibold" id="activeDateRangeLabel">Any date</div>
+                            <div class="small text-muted">Tap the field above to choose a flight-style range</div>
+                        </div>
                     </div>
                 </form>
             </div>
@@ -331,6 +574,11 @@ function getStarRating($feedback) {
                                                 data-bs-target="#viewDocumentModal<?= $row['id'] ?>">
                                             <i class="bi bi-eye"></i>
                                         </button>
+                                        <?php if ($_SESSION['User_RoleSRF'] === 'Super_admin'): ?>
+                                        <a href="edit-receive.php?id=<?= $row['id'] ?>" target="_blank" class="btn btn-sm btn-outline-warning">
+                                            <i class="bi bi-pencil"></i>
+                                        </a>
+                                        <?php endif; ?>
                                     </div>
                                 </td>
                             </tr>
@@ -351,6 +599,11 @@ function getStarRating($feedback) {
                                                         data-bs-target="#viewDocumentModal<?= $row['id'] ?>">
                                                     <i class="bi bi-eye me-2"></i>View Document
                                                 </button>
+                                                <?php if ($_SESSION['User_RoleSRF'] === 'Super_admin'): ?>
+                                                <a href="edit-receive.php?id=<?= $row['id'] ?>" target="_blank" class="btn btn-sm btn-outline-warning w-100">
+                                                    <i class="bi bi-pencil me-2"></i>Edit
+                                                </a>
+                                                <?php endif; ?>
                                             </div>
                                         </div>
                                     </div>
@@ -388,6 +641,16 @@ function getStarRating($feedback) {
                 </div>
             </div>
         </div>
+
+        <?php else: ?>
+        <div class="card custom-card">
+            <div class="card-body text-center py-5">
+                <i class="bi bi-shield-lock fs-1 text-muted"></i>
+                <h4 class="mt-3 text-muted">Please log in to view request data</h4>
+                <a href="login.php" class="btn btn-primary mt-3"><i class="bi bi-box-arrow-in-right me-2"></i>Login</a>
+            </div>
+        </div>
+        <?php endif; ?>
     </div>
 
     <div class="modal fade" id="printModal" tabindex="-1" aria-labelledby="printModalLabel" aria-hidden="true">
@@ -447,6 +710,356 @@ function getStarRating($feedback) {
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+        (function() {
+            const weekdayLabels = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+            const state = {
+                from: null,
+                to: null,
+                viewDate: new Date(),
+                preset: 'custom'
+            };
+
+            const els = {};
+
+            function pad(value) {
+                return String(value).padStart(2, '0');
+            }
+
+            function toLocalIso(date) {
+                return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+            }
+
+            function parseLocalIso(value) {
+                if (!value) return null;
+                const parts = value.split('-').map(Number);
+                if (parts.length !== 3 || parts.some(Number.isNaN)) return null;
+                return new Date(parts[0], parts[1] - 1, parts[2]);
+            }
+
+            function cloneDate(date) {
+                return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+            }
+
+            function isSameDay(a, b) {
+                return a && b && a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+            }
+
+            function compareDates(a, b) {
+                const left = cloneDate(a).setHours(0, 0, 0, 0);
+                const right = cloneDate(b).setHours(0, 0, 0, 0);
+                return left - right;
+            }
+
+            function addMonths(date, months) {
+                return new Date(date.getFullYear(), date.getMonth() + months, 1);
+            }
+
+            function startOfWeek(date) {
+                const result = cloneDate(date);
+                result.setDate(result.getDate() - result.getDay());
+                return result;
+            }
+
+            function formatLong(date) {
+                return date.toLocaleDateString('en-US', {
+                    month: 'short',
+                    day: 'numeric',
+                    year: 'numeric'
+                });
+            }
+
+            function formatMonth(date) {
+                return date.toLocaleDateString('en-US', {
+                    month: 'long',
+                    year: 'numeric'
+                });
+            }
+
+            function getRangeLabel() {
+                if (state.preset === 'this_month') {
+                    return 'This Month';
+                }
+
+                if (state.from && state.to) {
+                    if (isSameDay(state.from, state.to)) {
+                        return formatLong(state.from);
+                    }
+                    return `${formatLong(state.from)} - ${formatLong(state.to)}`;
+                }
+
+                if (state.from) {
+                    return formatLong(state.from);
+                }
+
+                return 'Any date';
+            }
+
+            function syncHiddenFields() {
+                const dateFilter = document.getElementById('date_filter');
+                const fromInput = document.getElementById('from_date');
+                const toInput = document.getElementById('to_date');
+
+                if (!dateFilter || !fromInput || !toInput) return;
+
+                dateFilter.value = state.preset === 'this_month' ? 'this_month' : 'custom';
+                fromInput.value = state.from ? toLocalIso(state.from) : '';
+                toInput.value = state.to ? toLocalIso(state.to) : '';
+            }
+
+            function updateText() {
+                const rangeLabel = getRangeLabel();
+                const rangeText = document.getElementById('dateRangeText');
+                const activeLabel = document.getElementById('activeDateRangeLabel');
+                const summary = document.getElementById('datePickerSummary');
+
+                if (rangeText) rangeText.textContent = rangeLabel;
+                if (activeLabel) activeLabel.textContent = rangeLabel;
+                if (summary) summary.textContent = rangeLabel === 'Any date' ? 'No date restriction' : rangeLabel;
+            }
+
+            function renderWeekdays(target) {
+                if (!target) return;
+                target.innerHTML = weekdayLabels.map(day => `<span>${day}</span>`).join('');
+            }
+
+            function buildCalendar(monthDate) {
+                const firstDay = new Date(monthDate.getFullYear(), monthDate.getMonth(), 1);
+                const startDate = cloneDate(firstDay);
+                startDate.setDate(startDate.getDate() - startDate.getDay());
+
+                const today = new Date();
+                const cells = [];
+
+                for (let i = 0; i < 42; i++) {
+                    const cellDate = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate() + i);
+                    const inMonth = cellDate.getMonth() === monthDate.getMonth();
+                    const iso = toLocalIso(cellDate);
+                    const classes = ['day-cell', 'btn', 'btn-sm', 'p-0'];
+
+                    if (!inMonth) classes.push('outside-month');
+                    if (isSameDay(cellDate, today)) classes.push('today');
+
+                    const hasRange = state.from && state.to;
+                    if (hasRange && compareDates(cellDate, state.from) >= 0 && compareDates(cellDate, state.to) <= 0) {
+                        classes.push('in-range');
+                    }
+
+                    if (state.from && isSameDay(cellDate, state.from)) classes.push('range-start');
+                    if (state.to && isSameDay(cellDate, state.to)) classes.push('range-end');
+
+                    cells.push(`
+                        <button type="button" class="${classes.join(' ')}" data-date="${iso}" aria-label="${cellDate.toDateString()}">
+                            ${cellDate.getDate()}
+                        </button>
+                    `);
+                }
+
+                return cells.join('');
+            }
+
+            function renderCalendars() {
+                const leftTitle = document.getElementById('leftMonthTitle');
+                const rightTitle = document.getElementById('rightMonthTitle');
+                const leftCalendar = document.getElementById('leftCalendar');
+                const rightCalendar = document.getElementById('rightCalendar');
+
+                if (!leftTitle || !leftCalendar) return;
+
+                const leftMonth = new Date(state.viewDate.getFullYear(), state.viewDate.getMonth(), 1);
+                const rightMonth = addMonths(leftMonth, 1);
+
+                leftTitle.textContent = formatMonth(leftMonth);
+                leftCalendar.innerHTML = buildCalendar(leftMonth);
+
+                if (rightTitle && rightCalendar) {
+                    rightTitle.textContent = formatMonth(rightMonth);
+                    rightCalendar.innerHTML = buildCalendar(rightMonth);
+                }
+
+                updatePresetStates();
+            }
+
+            function updatePresetStates() {
+                document.querySelectorAll('.preset-chip').forEach(button => {
+                    const preset = button.getAttribute('data-preset');
+                    button.classList.toggle('active', state.preset === preset);
+                });
+            }
+
+            function setRange(from, to, preset = 'custom') {
+                state.from = from ? cloneDate(from) : null;
+                state.to = to ? cloneDate(to) : null;
+                state.preset = preset;
+                state.viewDate = state.from || state.to || new Date();
+                syncHiddenFields();
+                updateText();
+                renderCalendars();
+            }
+
+            function setPreset(preset) {
+                const today = new Date();
+
+                if (preset === 'today') {
+                    setRange(today, today, 'today');
+                    return;
+                }
+
+                if (preset === 'this_week') {
+                    setRange(startOfWeek(today), today, 'this_week');
+                    return;
+                }
+
+                if (preset === 'this_month') {
+                    state.from = null;
+                    state.to = null;
+                    state.preset = 'this_month';
+                    state.viewDate = today;
+                    syncHiddenFields();
+                    updateText();
+                    renderCalendars();
+                    return;
+                }
+
+                state.from = null;
+                state.to = null;
+                state.preset = 'custom';
+                state.viewDate = today;
+                syncHiddenFields();
+                updateText();
+                renderCalendars();
+            }
+
+            function handleDayClick(dateString) {
+                const selected = parseLocalIso(dateString);
+                if (!selected) return;
+
+                if (!state.from || (state.from && state.to)) {
+                    state.from = selected;
+                    state.to = null;
+                    state.preset = 'custom';
+                } else if (compareDates(selected, state.from) < 0) {
+                    state.to = cloneDate(state.from);
+                    state.from = selected;
+                    state.preset = 'custom';
+                } else if (compareDates(selected, state.from) === 0) {
+                    state.to = cloneDate(selected);
+                    state.preset = 'custom';
+                } else {
+                    state.to = selected;
+                    state.preset = 'custom';
+                }
+
+                state.viewDate = state.from || selected;
+                syncHiddenFields();
+                updateText();
+                renderCalendars();
+            }
+
+            function applySelection() {
+                if (state.preset !== 'this_month' && state.from && !state.to) {
+                    state.to = cloneDate(state.from);
+                }
+
+                syncHiddenFields();
+
+                const form = document.getElementById('dateRangeForm');
+                const trigger = document.getElementById('dateRangeTrigger');
+                const dropdown = trigger ? bootstrap.Dropdown.getOrCreateInstance(trigger) : null;
+
+                if (dropdown) dropdown.hide();
+                if (form) form.submit();
+            }
+
+            function clearSelection() {
+                state.from = null;
+                state.to = null;
+                state.preset = 'custom';
+                state.viewDate = new Date();
+                syncHiddenFields();
+                updateText();
+                renderCalendars();
+            }
+
+            function initDatePicker() {
+                const trigger = document.getElementById('dateRangeTrigger');
+                const leftWeekdays = document.getElementById('leftWeekdays');
+                const rightWeekdays = document.getElementById('rightWeekdays');
+                const leftCalendar = document.getElementById('leftCalendar');
+                const rightCalendar = document.getElementById('rightCalendar');
+                const prevBtn = document.getElementById('prevMonthBtn');
+                const nextBtn = document.getElementById('nextMonthBtn');
+                const applyBtn = document.getElementById('applyRangeBtn');
+                const clearBtn = document.getElementById('clearRangeBtn');
+
+                if (!trigger || !leftCalendar || !prevBtn || !nextBtn || !applyBtn || !clearBtn) return;
+
+                renderWeekdays(leftWeekdays);
+                renderWeekdays(rightWeekdays);
+
+                const dateFilter = document.getElementById('date_filter');
+                const fromInput = document.getElementById('from_date');
+                const toInput = document.getElementById('to_date');
+
+                if (dateFilter && dateFilter.value === 'this_month') {
+                    state.preset = 'this_month';
+                    state.viewDate = new Date();
+                } else if (fromInput && fromInput.value) {
+                    state.from = parseLocalIso(fromInput.value);
+                    state.to = toInput && toInput.value ? parseLocalIso(toInput.value) : null;
+                    state.preset = 'custom';
+                    state.viewDate = state.from || new Date();
+                } else {
+                    state.viewDate = new Date();
+                }
+
+                syncHiddenFields();
+                updateText();
+                renderCalendars();
+
+                leftCalendar.addEventListener('click', function(event) {
+                    const button = event.target.closest('[data-date]');
+                    if (!button) return;
+                    handleDayClick(button.getAttribute('data-date'));
+                });
+
+                if (rightCalendar) {
+                    rightCalendar.addEventListener('click', function(event) {
+                        const button = event.target.closest('[data-date]');
+                        if (!button) return;
+                        handleDayClick(button.getAttribute('data-date'));
+                    });
+                }
+
+                document.querySelectorAll('.preset-chip').forEach(button => {
+                    button.addEventListener('click', function() {
+                        setPreset(this.getAttribute('data-preset'));
+                    });
+                });
+
+                prevBtn.addEventListener('click', function() {
+                    state.viewDate = addMonths(state.viewDate, -1);
+                    renderCalendars();
+                });
+
+                nextBtn.addEventListener('click', function() {
+                    state.viewDate = addMonths(state.viewDate, 1);
+                    renderCalendars();
+                });
+
+                applyBtn.addEventListener('click', applySelection);
+                clearBtn.addEventListener('click', clearSelection);
+
+                const dropdown = document.querySelector('.date-picker-dropdown');
+                if (dropdown) {
+                    dropdown.addEventListener('click', function(event) {
+                        event.stopPropagation();
+                    });
+                }
+            }
+
+            document.addEventListener('DOMContentLoaded', initDatePicker);
+        })();
+
         function showModalLoading(button) {
             if (!button || button.dataset.loading === '1') return;
             button.dataset.originalHtml = button.innerHTML;
@@ -506,12 +1119,6 @@ function getStarRating($feedback) {
             });
         });
 
-        function toggleDateRange() {
-            const filter = document.getElementById("date_filter").value;
-            document.getElementById("from_date").disabled = filter !== "custom";
-            document.getElementById("to_date").disabled = filter !== "custom";
-        }
-
         document.addEventListener('DOMContentLoaded', function() {
             document.querySelectorAll('.modal').forEach(function(modal) {
                 modal.addEventListener('shown.bs.modal', function() {
@@ -525,33 +1132,35 @@ function getStarRating($feedback) {
 
             // Existing mobile collapse icon toggle logic
             const tableBody = document.querySelector('.table-custom tbody');
-            tableBody.addEventListener('show.bs.collapse', function (event) {
-                const button = event.target.closest('tr').querySelector('[data-bs-toggle="collapse"]');
-                if (button) {
-                    button.querySelector('i').classList.remove('bi-plus-circle');
-                    button.querySelector('i').classList.add('bi-dash-circle');
-                }
-            });
-
-            tableBody.addEventListener('hide.bs.collapse', function (event) {
-                const button = event.target.closest('tr').querySelector('[data-bs-toggle="collapse"]');
-                if (button) {
-                    button.querySelector('i').classList.remove('bi-dash-circle');
-                    button.querySelector('i').classList.add('bi-plus-circle');
-                }
-            });
-
-            // NEW: Last clicked row indicator logic
-            const mainRows = document.querySelectorAll('.table-custom tbody tr.align-middle');
-            
-            mainRows.forEach(row => {
-                row.addEventListener('click', function() {
-                    // Remove the highlight class from all main rows
-                    mainRows.forEach(r => r.classList.remove('last-clicked-row'));
-                    // Add the highlight class to the row just clicked
-                    this.classList.add('last-clicked-row');
+            if (tableBody) {
+                tableBody.addEventListener('show.bs.collapse', function (event) {
+                    const button = event.target.closest('tr').querySelector('[data-bs-toggle="collapse"]');
+                    if (button) {
+                        button.querySelector('i').classList.remove('bi-plus-circle');
+                        button.querySelector('i').classList.add('bi-dash-circle');
+                    }
                 });
-            });
+
+                tableBody.addEventListener('hide.bs.collapse', function (event) {
+                    const button = event.target.closest('tr').querySelector('[data-bs-toggle="collapse"]');
+                    if (button) {
+                        button.querySelector('i').classList.remove('bi-dash-circle');
+                        button.querySelector('i').classList.add('bi-plus-circle');
+                    }
+                });
+
+                // NEW: Last clicked row indicator logic
+                const mainRows = document.querySelectorAll('.table-custom tbody tr.align-middle');
+
+                mainRows.forEach(row => {
+                    row.addEventListener('click', function() {
+                        // Remove the highlight class from all main rows
+                        mainRows.forEach(r => r.classList.remove('last-clicked-row'));
+                        // Add the highlight class to the row just clicked
+                        this.classList.add('last-clicked-row');
+                    });
+                });
+            }
         });
     </script>
 </body>
