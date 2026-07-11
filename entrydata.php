@@ -780,6 +780,17 @@ $conn->close();
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" data-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
+                    <div class="alert mb-3" id="ictValidationAlert" role="alert">
+                        <div class="d-flex justify-content-between align-items-center gap-2 flex-wrap">
+                            <div>
+                                <div class="fw-semibold" id="ictValidationTitle">ICT Validation</div>
+                                <div class="small" id="ictValidationMessage">System will evaluate this entry automatically.</div>
+                            </div>
+                            <span class="badge" id="ictValidationBadge">Pending</span>
+                        </div>
+                        <div class="small mt-2">Score: <span id="ictValidationScore">0</span></div>
+                    </div>
+
                     <p class="mb-3">Please review the summary below before saving this inventory record.</p>
                     <div class="table-responsive">
                         <table class="table table-sm table-bordered align-middle mb-0">
@@ -1402,6 +1413,137 @@ $conn->close();
             `;
         }
 
+        const ictPositiveStrongKeywords = [
+            'laptop', 'desktop', 'computer', 'monitor', 'printer', 'scanner', 'router', 'switch', 'modem', 'ups'
+        ];
+
+        const ictPositiveKeywords = [
+            'keyboard', 'mouse', 'ssd', 'ram', 'processor', 'motherboard', 'network', 'hard drive', 'hdd', 'server', 'access point', 'accesspoint'
+        ];
+
+        const ictNegativeKeywords = [
+            'chair', 'table', 'cabinet', 'paper', 'folder', 'book', 'furniture', 'sofa', 'desk', 'notebook'
+        ];
+
+        function normalizeForIctScan(value) {
+            return String(value || '').toLowerCase().replace(/[^a-z0-9\s-]/g, ' ').replace(/\s+/g, ' ').trim();
+        }
+
+        function containsKeyword(text, keyword) {
+            const escaped = keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const pattern = new RegExp(`\\b${escaped}\\b`, 'i');
+            return pattern.test(text);
+        }
+
+        function getIctValidationResult() {
+            const equipmentType = normalizeForIctScan(getFieldValue('equipmentType', ''));
+            const scannedFields = normalizeForIctScan([
+                getFieldValue('computer_specs', ''),
+                getFieldValue('specifications', ''),
+                getFieldValue('softwareInstalled', ''),
+                getFieldValue('remarks', ''),
+                getSelectLabelValue('rangeCategory', '')
+            ].join(' '));
+
+            let score = 0;
+            const positiveMatches = [];
+            const negativeMatches = [];
+
+            ictPositiveStrongKeywords.forEach((keyword) => {
+                if (containsKeyword(equipmentType, keyword)) {
+                    score += 3;
+                    positiveMatches.push(keyword);
+                }
+            });
+
+            ictPositiveKeywords.forEach((keyword) => {
+                if (containsKeyword(equipmentType, keyword)) {
+                    score += 2;
+                    positiveMatches.push(keyword);
+                } else if (containsKeyword(scannedFields, keyword)) {
+                    score += 1;
+                    positiveMatches.push(keyword);
+                }
+            });
+
+            ictNegativeKeywords.forEach((keyword) => {
+                if (containsKeyword(equipmentType, keyword) || containsKeyword(scannedFields, keyword)) {
+                    score -= 2;
+                    negativeMatches.push(keyword);
+                }
+            });
+
+            const uniquePositiveMatches = Array.from(new Set(positiveMatches));
+            const uniqueNegativeMatches = Array.from(new Set(negativeMatches));
+
+            let label = 'Possible Non-ICT';
+            let badgeClass = 'bg-danger';
+            let alertClass = 'alert-danger';
+            let message = 'System detected this entry may not be ICT equipment.';
+
+            if (score >= 6) {
+                label = 'ICT Verified';
+                badgeClass = 'bg-success';
+                alertClass = 'alert-success';
+                message = 'System detected this entry as ICT equipment.';
+            } else if (score >= 2) {
+                label = 'Needs Review';
+                badgeClass = 'bg-warning text-dark';
+                alertClass = 'alert-warning';
+                message = 'System detected this entry may be ICT equipment, but it needs review.';
+            }
+
+            return {
+                score,
+                label,
+                badgeClass,
+                alertClass,
+                message,
+                positiveMatches: uniquePositiveMatches,
+                negativeMatches: uniqueNegativeMatches
+            };
+        }
+
+        function updateIctValidationPanel() {
+            const result = getIctValidationResult();
+            const alertBox = document.getElementById('ictValidationAlert');
+            const title = document.getElementById('ictValidationTitle');
+            const message = document.getElementById('ictValidationMessage');
+            const badge = document.getElementById('ictValidationBadge');
+            const score = document.getElementById('ictValidationScore');
+
+            if (!alertBox || !title || !message || !badge || !score) {
+                return result;
+            }
+
+            alertBox.className = `alert ${result.alertClass} mb-3`;
+            title.textContent = result.label;
+            message.textContent = result.message;
+            badge.className = `badge ${result.badgeClass}`;
+            badge.textContent = result.label;
+            score.textContent = String(result.score);
+
+            const details = [];
+            if (result.positiveMatches.length) {
+                details.push(`Matched ICT keywords: ${result.positiveMatches.join(', ')}`);
+            }
+            if (result.negativeMatches.length) {
+                details.push(`Non-ICT keywords: ${result.negativeMatches.join(', ')}`);
+            }
+
+            const detailsId = 'ictValidationDetails';
+            let detailsNode = document.getElementById(detailsId);
+            if (!detailsNode) {
+                detailsNode = document.createElement('div');
+                detailsNode.id = detailsId;
+                detailsNode.className = 'small mt-2';
+                alertBox.appendChild(detailsNode);
+            }
+            detailsNode.textContent = details.join(' | ') || 'No keywords matched yet.';
+
+            return result;
+        }
+
         function updateSaveInventorySummary() {
             const summaryBody = document.getElementById('saveInventorySummaryBody');
             if (!summaryBody) {
@@ -1455,6 +1597,7 @@ $conn->close();
             }
 
             updateSaveInventorySummary();
+            updateIctValidationPanel();
             const modalElement = document.getElementById('saveInventoryConfirmModal');
             if (window.jQuery && typeof $('#saveInventoryConfirmModal').modal === 'function') {
                 $('#saveInventoryConfirmModal').modal('show');
@@ -1475,6 +1618,7 @@ $conn->close();
         function confirmSaveInventory() {
             const validation = validateAllSteps();
             const form = document.getElementById('ictEquipmentForm');
+            updateIctValidationPanel();
 
             if (!validation.valid) {
                 if (window.jQuery && typeof $('#saveInventoryConfirmModal').modal === 'function') {
@@ -1512,6 +1656,7 @@ $conn->close();
             }
             // Clear depreciation value
             document.getElementById('depreciation_value').value = '';
+            syncConditionalFieldStates();
             getWizardSteps().forEach(clearStepErrors);
             showStep(0);
         }
@@ -1558,7 +1703,12 @@ $conn->close();
             const toast = document.createElement('div');
             
             // Set toast styles based on type
-            const backgroundColor = type === 'error' ? '#ff4444' : '#00C851';
+            let backgroundColor = '#00C851';
+            if (type === 'error') {
+                backgroundColor = '#ff4444';
+            } else if (type === 'warning') {
+                backgroundColor = '#f0ad4e';
+            }
             
             toast.style.cssText = `
                 padding: 15px 25px;
@@ -1597,6 +1747,10 @@ $conn->close();
         if(isset($_SESSION['success'])) {
             echo "showToast('" . addslashes($_SESSION['success']) . "', 'success');";
             unset($_SESSION['success']);
+        }
+        if(isset($_SESSION['warning'])) {
+            echo "showToast('" . addslashes($_SESSION['warning']) . "', 'warning');";
+            unset($_SESSION['warning']);
         }
         ?>
     </script>

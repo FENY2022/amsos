@@ -74,6 +74,79 @@ function getOrCreateInventoryPersonId($conn, $name, $officeId, $office, $officeD
     return (int)$newId;
 }
 
+function normalizeIctScanValue($value) {
+    $value = strtolower(trim((string)$value));
+    $value = preg_replace('/[^a-z0-9\s-]/', ' ', $value);
+    $value = preg_replace('/\s+/', ' ', $value);
+    return trim($value);
+}
+
+function containsIctKeyword($text, $keyword) {
+    $pattern = '/\b' . preg_quote($keyword, '/') . '\b/i';
+    return (bool)preg_match($pattern, $text);
+}
+
+function evaluateIctInventoryEntry(array $data) {
+    $positiveStrong = ['laptop', 'desktop', 'computer', 'monitor', 'printer', 'scanner', 'router', 'switch', 'modem', 'ups'];
+    $positive = ['keyboard', 'mouse', 'ssd', 'ram', 'processor', 'motherboard', 'network', 'hard drive', 'hdd', 'server', 'access point', 'accesspoint'];
+    $negative = ['chair', 'table', 'cabinet', 'paper', 'folder', 'book', 'furniture', 'sofa', 'desk', 'notebook'];
+
+    $equipmentType = normalizeIctScanValue($data['equipmentType'] ?? '');
+    $scannedFields = normalizeIctScanValue(implode(' ', [
+        $data['computer_specs'] ?? '',
+        $data['specifications'] ?? '',
+        $data['softwareInstalled'] ?? '',
+        $data['remarks'] ?? '',
+        $data['rangeCategory'] ?? ''
+    ]));
+
+    $score = 0;
+    $positiveMatches = [];
+    $negativeMatches = [];
+
+    foreach ($positiveStrong as $keyword) {
+        if (containsIctKeyword($equipmentType, $keyword)) {
+            $score += 3;
+            $positiveMatches[] = $keyword;
+        }
+    }
+
+    foreach ($positive as $keyword) {
+        if (containsIctKeyword($equipmentType, $keyword)) {
+            $score += 2;
+            $positiveMatches[] = $keyword;
+        } elseif (containsIctKeyword($scannedFields, $keyword)) {
+            $score += 1;
+            $positiveMatches[] = $keyword;
+        }
+    }
+
+    foreach ($negative as $keyword) {
+        if (containsIctKeyword($equipmentType, $keyword) || containsIctKeyword($scannedFields, $keyword)) {
+            $score -= 2;
+            $negativeMatches[] = $keyword;
+        }
+    }
+
+    $positiveMatches = array_values(array_unique($positiveMatches));
+    $negativeMatches = array_values(array_unique($negativeMatches));
+
+    if ($score >= 6) {
+        $label = 'ICT Verified';
+    } elseif ($score >= 2) {
+        $label = 'Needs Review';
+    } else {
+        $label = 'Possible Non-ICT';
+    }
+
+    return [
+        'score' => $score,
+        'label' => $label,
+        'positiveMatches' => $positiveMatches,
+        'negativeMatches' => $negativeMatches,
+    ];
+}
+
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     // --- Collect and sanitize form data ---
     $amount = str_replace(',', '', $_POST['amount']);
@@ -120,6 +193,21 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $computer_specs = $_POST['computer_specs']; 
     
     $office = $_SESSION['OfficeSRF'];
+    $ictValidation = evaluateIctInventoryEntry([
+        'equipmentType' => $equipmentType,
+        'computer_specs' => $computer_specs,
+        'specifications' => $specifications,
+        'softwareInstalled' => $softwareInstalled,
+        'remarks' => $remarks,
+        'rangeCategory' => $rangeCategory,
+    ]);
+
+    if ($ictValidation['score'] < 2) {
+        $_SESSION['warning'] = 'System detected this entry may not be ICT equipment. Please review.';
+    } elseif ($ictValidation['score'] < 6) {
+        $_SESSION['warning'] = 'System detected this entry needs review to confirm ICT classification.';
+    }
+
     $officeId = getOrCreateOfficeDivisionId($conn, $office, $officeDivision);
     $employeePersonId = getOrCreateInventoryPersonId($conn, $employeeName, $officeId, $office, $officeDivision, $statusOfEmployment, 'employeeName');
     $accountablePersonId = getOrCreateInventoryPersonId($conn, $accountablePerson, $officeId, $office, $officeDivision, $statusOfEmployment, 'accountablePerson');

@@ -281,12 +281,28 @@ require_once 'calendarSchedulerdb.php';
             padding: 4px 8px;
             box-shadow: 0 8px 16px rgba(15, 23, 42, 0.14);
             cursor: pointer;
+            max-width: 100%;
+            overflow: hidden;
         }
 
         .fc .fc-event-main {
             display: flex;
             align-items: center;
             gap: 6px;
+            min-width: 0;
+            overflow: hidden;
+        }
+
+        .fc .fc-event-main > * {
+            min-width: 0;
+        }
+
+        .fc .fc-event-main .fc-event-title,
+        .fc .fc-event-main .fc-event-time,
+        .fc .fc-event-main div {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
         }
 
         .fc-event--linked {
