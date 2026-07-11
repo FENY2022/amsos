@@ -40,7 +40,7 @@ SELECT
   'Historical Repair' AS request_type,
   COALESCE(NULLIF(i.remarks, ''), 'No inventory remarks recorded') AS issue_description,
   COALESCE(NULLIF(sr.status, ''), 'Completed') AS status,
-  COALESCE(NULLIF(r.actionstaff, ''), 'N/A') AS action_staff,
+  COALESCE(NULLIF(latest_action.name, ''), NULLIF(r.actionstaff, ''), 'N/A') AS action_staff,
   COALESCE(NULLIF(r.action_taken, ''), 'No remarks recorded') AS action_taken,
   CASE
     WHEN r.date REGEXP '^[0-9]{4}-[0-9]{2}-[0-9]{2}$'
@@ -57,4 +57,13 @@ INNER JOIN (
   WHERE equipment_id <> 0
 ) tracks ON i.id = tracks.equipment_id
 LEFT JOIN `srf` sr ON tracks.trackid = sr.id
+LEFT JOIN (
+  SELECT sa.trackid, sa.name
+  FROM `srf_actiontaken` sa
+  INNER JOIN (
+    SELECT trackid, MAX(id) AS latest_id
+    FROM `srf_actiontaken`
+    GROUP BY trackid
+  ) latest_ids ON sa.id = latest_ids.latest_id
+) latest_action ON latest_action.trackid = tracks.trackid
 LEFT JOIN `srfstaff_remarks` r ON tracks.trackid = r.track_id;

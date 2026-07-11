@@ -5,9 +5,19 @@ function repairHistoryRows($conn) {
     $sql = "SELECT
                 rh.*,
                 COALESCE(sr.status, rh.status) AS current_status,
+                COALESCE(latest_action.name, rh.action_staff) AS resolved_action_staff,
                 repair_counts.total_srf_repairs
             FROM srf_repair_history rh
             LEFT JOIN srf sr ON rh.srf_id = sr.id
+            LEFT JOIN (
+                SELECT sa.trackid, sa.name
+                FROM srf_actiontaken sa
+                INNER JOIN (
+                    SELECT trackid, MAX(id) AS latest_id
+                    FROM srf_actiontaken
+                    GROUP BY trackid
+                ) latest_ids ON sa.id = latest_ids.latest_id
+            ) latest_action ON latest_action.trackid = COALESCE(rh.srf_id, rh.source_id)
             LEFT JOIN (
                 SELECT inventory_id, COUNT(*) AS total_srf_repairs
                 FROM srf_repair_history
@@ -58,7 +68,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'export') {
                 $row['current_status'] ?: 'N/A',
                 $row['date_recorded'] ?: 'N/A',
                 $row['time_recorded'] ?: 'N/A',
-                $row['action_staff'] ?: 'N/A',
+                $row['resolved_action_staff'] ?: 'N/A',
                 $row['issue_description'] ? str_replace(["\r", "\n"], ' | ', $row['issue_description']) : 'N/A',
                 $row['action_taken'] ? str_replace(["\r", "\n"], ' | ', $row['action_taken']) : 'N/A'
             ]);
@@ -178,7 +188,7 @@ $result = repairHistoryRows($conn);
                                 $statusEscaped = htmlspecialchars($status);
                                 $dateRecorded = htmlspecialchars(!empty($row['date_recorded']) ? $row['date_recorded'] : 'N/A');
                                 $timeRecorded = htmlspecialchars(!empty($row['time_recorded']) ? $row['time_recorded'] : 'N/A');
-                                $actionStaff = htmlspecialchars(!empty($row['action_staff']) ? $row['action_staff'] : 'N/A');
+                                $actionStaff = htmlspecialchars(!empty($row['resolved_action_staff']) ? $row['resolved_action_staff'] : 'N/A');
                                 $issueDescription = htmlspecialchars(!empty($row['issue_description']) ? str_replace(["\r", "\n"], ' | ', $row['issue_description']) : 'N/A', ENT_QUOTES);
                                 $actionTaken = htmlspecialchars(!empty($row['action_taken']) ? str_replace(["\r", "\n"], ' | ', $row['action_taken']) : 'No action recorded', ENT_QUOTES);
                                 $shortIssue = strlen($issueDescription) > 70 ? substr($issueDescription, 0, 70) . '...' : $issueDescription;
