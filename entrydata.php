@@ -177,6 +177,62 @@ $conn->close();
             bottom: 20px;
         }
 
+        .wizard-progress {
+            background-color: white;
+            padding: 16px 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            margin-bottom: 20px;
+        }
+
+        .wizard-progress .progress {
+            height: 10px;
+            border-radius: 999px;
+        }
+
+        .wizard-progress .progress-bar {
+            border-radius: 999px;
+        }
+
+        .wizard-step {
+            display: none;
+        }
+
+        .wizard-step.is-active {
+            display: block;
+        }
+
+        .wizard-step.section-invalid .card-header {
+            background-color: #c0392b !important;
+        }
+
+        .wizard-step .card-footer {
+            padding-top: 0;
+        }
+
+        .step-title {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: rgba(255, 255, 255, 0.85);
+        }
+
+        .step-number {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 999px;
+            font-size: 0.75rem;
+            background: rgba(255, 255, 255, 0.16);
+            color: inherit;
+        }
+
+        .form-control.is-invalid,
+        .form-select.is-invalid,
+        textarea.form-control.is-invalid {
+            border-color: #dc3545;
+            box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.15);
+        }
+
         .form-group {
             margin-bottom: 15px;
         }
@@ -251,9 +307,25 @@ $conn->close();
             </div>
         </div>
 
+        <div class="wizard-progress">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <div>
+                    <div class="step-title" id="wizardStepLabel">Step 1 of 6</div>
+                    <div class="fw-semibold" id="wizardStepName">Basic Information</div>
+                </div>
+                <div class="step-number" id="wizardStepCounter">1 / 6</div>
+            </div>
+            <div class="progress">
+                <div class="progress-bar" id="wizardProgressBar" role="progressbar" style="width: 16.66%;" aria-valuenow="1" aria-valuemin="1" aria-valuemax="6"></div>
+            </div>
+        </div>
+
         <form id="ictEquipmentForm" action="entrydatahandler.php" method="post">
-            <div class="card">
-                <div class="card-header">Basic Information</div>
+            <div class="card wizard-step" data-step="0">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span>Basic Information</span>
+                    <small class="step-number">Step 1 of 6</small>
+                </div>
                 <div class="card-body">
                     <div class="row">
                         <div class="col-md-6">
@@ -327,10 +399,23 @@ $conn->close();
                         </div>
                     </div>
                 </div>
+                <div class="card-footer bg-white border-top-0">
+                    <div class="d-flex justify-content-between gap-2 flex-wrap">
+                        <button type="button" class="btn btn-lg btn-outline-secondary" onclick="resetForm()">
+                            <i class="fas fa-undo me-2"></i>Clear
+                        </button>
+                        <button type="button" class="btn btn-lg btn-primary" onclick="goToNextStep()">
+                            Next <i class="fas fa-arrow-right ms-2"></i>
+                        </button>
+                    </div>
+                </div>
             </div>
 
-            <div class="card">
-                <div class="card-header">Specifications / Descriptions</div>
+            <div class="card wizard-step" data-step="1">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span>Specifications / Descriptions</span>
+                    <small class="step-number">Step 2 of 6</small>
+                </div>
                 <div class="card-body">
                     <div class="form-group">
                         <label class="form-label">Computer Specs</label>
@@ -420,8 +505,27 @@ $conn->close();
                         </div>
                     </div>
                     
+                </div>
+                <div class="card-footer bg-white border-top-0">
+                    <div class="d-flex justify-content-between gap-2 flex-wrap">
+                        <button type="button" class="btn btn-lg btn-outline-secondary" onclick="goToPreviousStep()">
+                            <i class="fas fa-arrow-left me-2"></i>Previous
+                        </button>
+                        <button type="button" class="btn btn-lg btn-primary" onclick="goToNextStep()">
+                            Next <i class="fas fa-arrow-right ms-2"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card wizard-step" data-step="2">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span>Identification Details</span>
+                    <small class="step-number">Step 3 of 6</small>
+                </div>
+                <div class="card-body">
                     <div class="form-group">
-                        <label class="form-label">Range Category (for Computers)</label>
+                        <label class="form-label required">Range Category (for Computers)</label>
                         <select class="form-select" id="rangeCategory" name="rangeCategory" required>
                             <option value="" disabled selected>Select Range Category</option>
                             <option value="Entry Level" <?php echo ($saved_data['rangeCategory'] ?? '') === 'Entry Level' ? 'selected' : ''; ?>>Entry Level</option>
@@ -430,12 +534,7 @@ $conn->close();
                             <option value="N/A" <?php echo ($saved_data['rangeCategory'] ?? '') === 'N/A' ? 'selected' : ''; ?>>N/A</option>          
                         </select>
                     </div>
-                </div>
-            </div>
 
-            <div class="card">
-                <div class="card-header">Identification Details</div>
-                <div class="card-body">
                     <div class="row">
                         <div class="col-md-6">
                             <div class="form-group">
@@ -451,10 +550,23 @@ $conn->close();
                         </div>
                     </div>
                 </div>
+                <div class="card-footer bg-white border-top-0">
+                    <div class="d-flex justify-content-between gap-2 flex-wrap">
+                        <button type="button" class="btn btn-lg btn-outline-secondary" onclick="goToPreviousStep()">
+                            <i class="fas fa-arrow-left me-2"></i>Previous
+                        </button>
+                        <button type="button" class="btn btn-lg btn-primary" onclick="goToNextStep()">
+                            Next <i class="fas fa-arrow-right ms-2"></i>
+                        </button>
+                    </div>
+                </div>
             </div>
 
-            <div class="card">
-                <div class="card-header">Software Information</div>
+            <div class="card wizard-step" data-step="3">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span>Software Information</span>
+                    <small class="step-number">Step 4 of 6</small>
+                </div>
                 <div class="card-body">
                     <div class="row">
                         <div class="col-md-6">
@@ -478,10 +590,23 @@ $conn->close();
                         </div>
                     </div>
                 </div>
+                <div class="card-footer bg-white border-top-0">
+                    <div class="d-flex justify-content-between gap-2 flex-wrap">
+                        <button type="button" class="btn btn-lg btn-outline-secondary" onclick="goToPreviousStep()">
+                            <i class="fas fa-arrow-left me-2"></i>Previous
+                        </button>
+                        <button type="button" class="btn btn-lg btn-primary" onclick="goToNextStep()">
+                            Next <i class="fas fa-arrow-right ms-2"></i>
+                        </button>
+                    </div>
+                </div>
             </div>
 
-            <div class="card">
-                <div class="card-header">Personnel Information</div>
+            <div class="card wizard-step" data-step="4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span>Personnel Information</span>
+                    <small class="step-number">Step 5 of 6</small>
+                </div>
                 <div class="card-body">
                     <div class="row">
                         <div class="col-md-6">
@@ -584,10 +709,23 @@ $conn->close();
                         </div>
                     </div>
                 </div>
+                <div class="card-footer bg-white border-top-0">
+                    <div class="d-flex justify-content-between gap-2 flex-wrap">
+                        <button type="button" class="btn btn-lg btn-outline-secondary" onclick="goToPreviousStep()">
+                            <i class="fas fa-arrow-left me-2"></i>Previous
+                        </button>
+                        <button type="button" class="btn btn-lg btn-primary" onclick="goToNextStep()">
+                            Next <i class="fas fa-arrow-right ms-2"></i>
+                        </button>
+                    </div>
+                </div>
             </div>
 
-            <div class="card">
-                <div class="card-header">Additional Information</div>
+            <div class="card wizard-step" data-step="5">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span>Additional Information</span>
+                    <small class="step-number">Step 6 of 6</small>
+                </div>
                 <div class="card-body">
                     <div class="row">
                         <div class="col-md-12">
@@ -620,19 +758,41 @@ $conn->close();
                         </div>
                     </div>
                 </div>
-            </div>
-
-            <div class="action-buttons">
-                <div class="d-flex justify-content-between">
-                    <button type="button" class="btn btn-lg btn-outline-secondary" onclick="resetForm()">
-                        <i class="fas fa-undo me-2"></i>Clear
-                    </button>
-                    <button type="submit" class="btn btn-lg btn-primary">
-                        <i class="fas fa-save me-2"></i>Save Inventory
-                    </button>
+                <div class="card-footer bg-white border-top-0">
+                    <div class="d-flex justify-content-between gap-2 flex-wrap">
+                        <button type="button" class="btn btn-lg btn-outline-secondary" onclick="goToPreviousStep()">
+                            <i class="fas fa-arrow-left me-2"></i>Previous
+                        </button>
+                        <button type="button" class="btn btn-lg btn-primary" onclick="openSaveInventoryConfirmModal()">
+                            <i class="fas fa-save me-2"></i>Save Inventory
+                        </button>
+                    </div>
                 </div>
             </div>
         </form>
+    </div>
+
+    <div class="modal fade" id="saveInventoryConfirmModal" tabindex="-1" aria-labelledby="saveInventoryConfirmModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title" id="saveInventoryConfirmModalLabel">Confirm Inventory Entry</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" data-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="mb-3">Please review the summary below before saving this inventory record.</p>
+                    <div class="table-responsive">
+                        <table class="table table-sm table-bordered align-middle mb-0">
+                            <tbody id="saveInventorySummaryBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" data-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="confirmSaveInventory()">Confirm Save</button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <?php
@@ -718,6 +878,282 @@ $conn->close();
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script>
+        const wizardStepNames = [
+            'Basic Information',
+            'Specifications / Descriptions',
+            'Identification Details',
+            'Software Information',
+            'Personnel Information',
+            'Additional Information'
+        ];
+
+        let currentWizardStep = 0;
+
+        function getWizardSteps() {
+            return Array.from(document.querySelectorAll('.wizard-step'));
+        }
+
+        function isElementVisible(element) {
+            return !!(element && element.getClientRects().length);
+        }
+
+        function clearFieldError(field) {
+            if (!field) {
+                return;
+            }
+
+            field.classList.remove('is-invalid');
+        }
+
+        function setFieldError(field) {
+            if (!field) {
+                return;
+            }
+
+            field.classList.add('is-invalid');
+        }
+
+        function clearStepErrors(stepElement) {
+            if (!stepElement) {
+                return;
+            }
+
+            stepElement.classList.remove('section-invalid');
+            stepElement.querySelectorAll('.is-invalid').forEach(clearFieldError);
+
+            const osStatusContainer = stepElement.querySelector('#os-status-container');
+            if (osStatusContainer) {
+                osStatusContainer.classList.remove('is-invalid');
+                osStatusContainer.style.border = '';
+                osStatusContainer.style.borderRadius = '';
+                osStatusContainer.style.padding = '';
+            }
+        }
+
+        function updateWizardHeader(stepIndex) {
+            const stepLabel = document.getElementById('wizardStepLabel');
+            const stepName = document.getElementById('wizardStepName');
+            const stepCounter = document.getElementById('wizardStepCounter');
+            const progressBar = document.getElementById('wizardProgressBar');
+            const totalSteps = wizardStepNames.length;
+
+            if (stepLabel) {
+                stepLabel.textContent = `Step ${stepIndex + 1} of ${totalSteps}`;
+            }
+
+            if (stepName) {
+                stepName.textContent = wizardStepNames[stepIndex] || '';
+            }
+
+            if (stepCounter) {
+                stepCounter.textContent = `${stepIndex + 1} / ${totalSteps}`;
+            }
+
+            if (progressBar) {
+                const percent = ((stepIndex + 1) / totalSteps) * 100;
+                progressBar.style.width = `${percent}%`;
+                progressBar.setAttribute('aria-valuenow', String(stepIndex + 1));
+            }
+        }
+
+        function showStep(stepIndex) {
+            const steps = getWizardSteps();
+            const totalSteps = steps.length;
+            const normalizedIndex = Math.max(0, Math.min(stepIndex, totalSteps - 1));
+
+            currentWizardStep = normalizedIndex;
+
+            steps.forEach((step, index) => {
+                step.classList.toggle('is-active', index === normalizedIndex);
+                step.setAttribute('aria-hidden', index === normalizedIndex ? 'false' : 'true');
+            });
+
+            updateWizardHeader(normalizedIndex);
+        }
+
+        function getFirstInvalidField(stepElement, ignoreVisibility = false) {
+            if (!stepElement) {
+                return null;
+            }
+
+            const candidates = Array.from(stepElement.querySelectorAll('input, select, textarea'));
+
+            for (const field of candidates) {
+                if (field.disabled || (!ignoreVisibility && !isElementVisible(field))) {
+                    continue;
+                }
+
+                if (field.type === 'hidden' || field.type === 'button' || field.type === 'submit') {
+                    continue;
+                }
+
+                if (field.required) {
+                    if (field.type === 'radio') {
+                        const checked = document.querySelector(`input[name="${field.name}"]:checked`);
+                        if (!checked) {
+                            return field;
+                        }
+                    } else if (field.type === 'checkbox') {
+                        if (!field.checked) {
+                            return field;
+                        }
+                    } else if (field.value.trim() === '') {
+                        return field;
+                    }
+                }
+            }
+
+            return null;
+        }
+
+        function validateVisibleConditionalField(field, ignoreVisibility = false) {
+            if (!field || field.disabled || (!ignoreVisibility && !isElementVisible(field))) {
+                return true;
+            }
+
+            if (field.type === 'radio') {
+                const checked = document.querySelector(`input[name="${field.name}"]:checked`);
+                return !!checked;
+            }
+
+            return field.value.trim() !== '';
+        }
+
+        function validateSpecificationsStep(stepElement, ignoreVisibility = false) {
+            const conditionalFields = [
+                ['hdd', 'hdd-capacity'],
+                ['ssd', 'ssd-capacity'],
+                ['ram', 'ram-capacity'],
+                ['processor', 'processor-type'],
+                ['display', 'display-size'],
+                ['display', 'display-resolution'],
+                ['battery', 'battery-capacity'],
+                ['os', 'os-type']
+            ];
+
+            let firstInvalid = null;
+
+            conditionalFields.forEach(([checkboxId, fieldId]) => {
+                const checkbox = document.getElementById(checkboxId);
+                const field = document.getElementById(fieldId);
+
+                if (!checkbox || !field || !checkbox.checked || (!ignoreVisibility && !isElementVisible(field))) {
+                    return;
+                }
+
+                if (!validateVisibleConditionalField(field, ignoreVisibility)) {
+                    setFieldError(field);
+                    if (!firstInvalid) {
+                        firstInvalid = field;
+                    }
+                }
+            });
+
+            const osCheckbox = document.getElementById('os');
+            if (osCheckbox && osCheckbox.checked) {
+                const osType = document.getElementById('os-type');
+                const osRadio = document.querySelector('input[name="os-status"]');
+                const osSelected = document.querySelector('input[name="os-status"]:checked');
+
+                if (osType && isElementVisible(osType) && osType.value.trim() === '') {
+                    setFieldError(osType);
+                    if (!firstInvalid) {
+                        firstInvalid = osType;
+                    }
+                }
+
+                if (osRadio && !osSelected) {
+                    const osStatusContainer = document.getElementById('os-status-container');
+                    if (osStatusContainer) {
+                        osStatusContainer.classList.add('is-invalid');
+                        osStatusContainer.style.border = '1px solid #dc3545';
+                        osStatusContainer.style.borderRadius = '8px';
+                        osStatusContainer.style.padding = '8px';
+                    }
+                    if (!firstInvalid) {
+                        firstInvalid = osRadio;
+                    }
+                }
+            }
+
+            return firstInvalid;
+        }
+
+        function validateStep(stepIndex, ignoreVisibility = false) {
+            const steps = getWizardSteps();
+            const stepElement = steps[stepIndex];
+
+            if (!stepElement) {
+                return { valid: true, field: null };
+            }
+
+            clearStepErrors(stepElement);
+
+            let firstInvalidField = getFirstInvalidField(stepElement, ignoreVisibility);
+
+            if (stepIndex === 1) {
+                const specsInvalid = validateSpecificationsStep(stepElement, ignoreVisibility);
+                if (specsInvalid && !firstInvalidField) {
+                    firstInvalidField = specsInvalid;
+                }
+            }
+
+            if (firstInvalidField) {
+                const targetStep = firstInvalidField.closest('.wizard-step') || stepElement;
+                targetStep.classList.add('section-invalid');
+                setFieldError(firstInvalidField);
+                return { valid: false, field: firstInvalidField };
+            }
+
+            return { valid: true, field: null };
+        }
+
+        function validateAllSteps() {
+            const steps = getWizardSteps();
+
+            for (let index = 0; index < steps.length; index++) {
+                const result = validateStep(index, true);
+                if (!result.valid) {
+                    return { valid: false, stepIndex: index, field: result.field };
+                }
+            }
+
+            return { valid: true, stepIndex: -1, field: null };
+        }
+
+        function focusInvalidField(field) {
+            if (!field) {
+                return;
+            }
+
+            setTimeout(() => {
+                if (field.focus) {
+                    field.focus({ preventScroll: true });
+                }
+                field.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }, 50);
+        }
+
+        function goToNextStep() {
+            const result = validateStep(currentWizardStep);
+            if (!result.valid) {
+                focusInvalidField(result.field);
+                return;
+            }
+
+            showStep(currentWizardStep + 1);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function goToPreviousStep() {
+            if (currentWizardStep === 0) {
+                return;
+            }
+
+            showStep(currentWizardStep - 1);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
         // Function to update the brand input field based on dropdown selection
         function updateBrandField() {
             var selectedBrand = document.getElementById("brandSelect").value;
@@ -751,6 +1187,7 @@ $conn->close();
                     const input = document.getElementById(id);
                     if (input) {
                         input.style.display = checkbox.checked ? 'block' : 'none';
+                        input.required = checkbox.checked;
                         if (!checkbox.checked) input.value = '';
                     }
                 });
@@ -758,6 +1195,7 @@ $conn->close();
                 const input = document.getElementById(inputId);
                 if (input) {
                     input.style.display = checkbox.checked ? 'block' : 'none';
+                    input.required = checkbox.checked;
                     if (!checkbox.checked) input.value = '';
                 }
             }
@@ -770,12 +1208,36 @@ $conn->close();
                     if (!checkbox.checked) {
                         document.querySelectorAll('input[name="os-status"]').forEach(radio => {
                             radio.checked = false;
+                            radio.required = false;
+                        });
+                    } else {
+                        document.querySelectorAll('input[name="os-status"]').forEach(radio => {
+                            radio.required = true;
                         });
                     }
                 }
             }
-            
+
             updateSpecifications();
+        }
+
+        function syncConditionalFieldStates() {
+            const mappings = [
+                ['hdd', 'hdd-capacity'],
+                ['ssd', 'ssd-capacity'],
+                ['ram', 'ram-capacity'],
+                ['processor', 'processor-type'],
+                ['display', ['display-size', 'display-resolution']],
+                ['battery', 'battery-capacity'],
+                ['os', 'os-type']
+            ];
+
+            mappings.forEach(([checkboxId, inputId]) => {
+                const checkbox = document.getElementById(checkboxId);
+                if (checkbox) {
+                    toggleSpecInput(checkbox, inputId);
+                }
+            });
         }
 
         function updateSpecifications() {
@@ -893,21 +1355,172 @@ $conn->close();
             document.getElementById('depreciation_value').value = '₱' + depreciationValue.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
         }
 
+        function escapeHtml(value) {
+            return String(value)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        function getFieldValue(id, fallback = 'N/A') {
+            const field = document.getElementById(id);
+            if (!field) {
+                return fallback;
+            }
+
+            const value = field.value.trim();
+            return value === '' ? fallback : value;
+        }
+
+        function getSelectLabelValue(id, fallback = 'N/A') {
+            const field = document.getElementById(id);
+            if (!field || !field.selectedOptions || !field.selectedOptions.length) {
+                return fallback;
+            }
+
+            const value = field.selectedOptions[0].textContent.trim();
+            return value === '' ? fallback : value;
+        }
+
+        function getRadioValue(name, fallback = 'N/A') {
+            const selected = document.querySelector(`input[name="${name}"]:checked`);
+            if (!selected || !selected.value.trim()) {
+                return fallback;
+            }
+
+            return selected.value.trim();
+        }
+
+        function buildSummaryRow(label, value) {
+            return `
+                <tr>
+                    <th class="bg-light" style="width: 40%;">${escapeHtml(label)}</th>
+                    <td style="white-space: pre-wrap;">${escapeHtml(value)}</td>
+                </tr>
+            `;
+        }
+
+        function updateSaveInventorySummary() {
+            const summaryBody = document.getElementById('saveInventorySummaryBody');
+            if (!summaryBody) {
+                return;
+            }
+
+            const rows = [
+                ['Employee Name', getFieldValue('employeeName')],
+                ['Equipment Type', getFieldValue('equipmentType')],
+                ['Year Acquired', getFieldValue('yearAcquired')],
+                ['Shelf Life', getSelectLabelValue('shelfLife')],
+                ['Brand', getFieldValue('brand')],
+                ['Computer Specs', getFieldValue('computer_specs')],
+                ['Specifications / Descriptions', getFieldValue('specifications')],
+                ['HDD Capacity', getFieldValue('hdd-capacity')],
+                ['SSD Capacity', getFieldValue('ssd-capacity')],
+                ['RAM Capacity', getFieldValue('ram-capacity')],
+                ['Processor Type', getFieldValue('processor-type')],
+                ['Display Size', getFieldValue('display-size')],
+                ['Display Resolution', getFieldValue('display-resolution')],
+                ['Battery Capacity', getFieldValue('battery-capacity')],
+                ['Operating System', getFieldValue('os-type')],
+                ['OS Status', getRadioValue('os-status')],
+                ['Range Category', getSelectLabelValue('rangeCategory')],
+                ['Serial Number', getFieldValue('serialNumber')],
+                ['Property Number', getFieldValue('propertyNumber')],
+                ['Software Installed', getFieldValue('softwareInstalled')],
+                ['Licensing Model', getSelectLabelValue('licensingModel')],
+                ['Accountable Person', getFieldValue('accountablePerson')],
+                ['Gender', getSelectLabelValue('sex')],
+                ['Office / Division', getSelectLabelValue('officeDivision')],
+                ['Status of Employment', getSelectLabelValue('statusOfEmployment')],
+                ['Actual User', getFieldValue('actualUser')],
+                ['Actual User Sex', getSelectLabelValue('actualUserSex')],
+                ['Actual User Status of Employment', getSelectLabelValue('actualUserStatusOfEmployment')],
+                ['Nature of Work', getFieldValue('natureOfWork')],
+                ['Remarks', getFieldValue('remarks')],
+                ['Amount', getFieldValue('amount')],
+                ['Depreciation Value', getFieldValue('depreciation_value')],
+                ['Mark as Complete', document.getElementById('mark_as_done') && document.getElementById('mark_as_done').checked ? 'Yes' : 'No']
+            ];
+
+            summaryBody.innerHTML = rows.map(([label, value]) => buildSummaryRow(label, value)).join('');
+        }
+
+        function openSaveInventoryConfirmModal() {
+            const currentValidation = validateStep(currentWizardStep);
+            if (!currentValidation.valid) {
+                focusInvalidField(currentValidation.field);
+                return;
+            }
+
+            updateSaveInventorySummary();
+            const modalElement = document.getElementById('saveInventoryConfirmModal');
+            if (window.jQuery && typeof $('#saveInventoryConfirmModal').modal === 'function') {
+                $('#saveInventoryConfirmModal').modal('show');
+                return;
+            }
+
+            if (window.bootstrap && bootstrap.Modal) {
+                new bootstrap.Modal(modalElement).show();
+                return;
+            }
+
+            modalElement.classList.add('show');
+            modalElement.style.display = 'block';
+            modalElement.removeAttribute('aria-hidden');
+            document.body.classList.add('modal-open');
+        }
+
+        function confirmSaveInventory() {
+            const validation = validateAllSteps();
+            const form = document.getElementById('ictEquipmentForm');
+
+            if (!validation.valid) {
+                if (window.jQuery && typeof $('#saveInventoryConfirmModal').modal === 'function') {
+                    $('#saveInventoryConfirmModal').modal('hide');
+                } else if (window.bootstrap && bootstrap.Modal) {
+                    const modalElement = document.getElementById('saveInventoryConfirmModal');
+                    bootstrap.Modal.getInstance(modalElement)?.hide();
+                }
+
+                showStep(validation.stepIndex);
+                focusInvalidField(validation.field);
+                return;
+            }
+
+            form.submit();
+        }
+
         // Reset form
         function resetForm() {
             document.getElementById('ictEquipmentForm').reset();
             // Hide all spec inputs
             document.querySelectorAll('.spec-input').forEach(input => {
                 input.style.display = 'none';
+                input.required = false;
+                clearFieldError(input);
             });
             // Uncheck OS status radios
             document.querySelectorAll('input[name="os-status"]').forEach(radio => radio.checked = false);
+            const osStatusContainer = document.getElementById('os-status-container');
+            if (osStatusContainer) {
+                osStatusContainer.classList.remove('is-invalid');
+                osStatusContainer.style.border = '';
+                osStatusContainer.style.borderRadius = '';
+                osStatusContainer.style.padding = '';
+            }
             // Clear depreciation value
             document.getElementById('depreciation_value').value = '';
+            getWizardSteps().forEach(clearStepErrors);
+            showStep(0);
         }
 
         // Initialize form
         document.addEventListener('DOMContentLoaded', function() {
+            syncConditionalFieldStates();
+            showStep(0);
+
             // Attach event listeners to all specification checkboxes and inputs
             const checkboxes = document.querySelectorAll('input[type="checkbox"]');
             checkboxes.forEach(checkbox => {
