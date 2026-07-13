@@ -17,6 +17,12 @@ $conn->set_charset('utf8mb4');
 // Check if there is saved form data from a previous submission
 $saved_data = isset($_SESSION['form_data']) ? $_SESSION['form_data'] : [];
 unset($_SESSION['form_data']); // Clear the saved data after retrieving it
+$initialWizardStep = isset($_SESSION['focus_step']) ? (int)$_SESSION['focus_step'] : 0;
+unset($_SESSION['focus_step']);
+
+function isSavedValueFilled($savedData, $key) {
+    return trim((string)($savedData[$key] ?? '')) !== '';
+}
 
 // --- 1. Fetch employee data for DATALISTS (Searchable Inputs) ---
 $user_options = "";
@@ -432,12 +438,12 @@ $conn->close();
                             <div class="specs-container">
                                 <h6>Storage Options</h6>
                                 <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" id="hdd" name="storage_option" value="HDD" onchange="toggleSpecInput(this, 'hdd-capacity')" <?php echo isset($saved_data['hdd-capacity']) ? 'checked' : ''; ?>>
+                                    <input class="form-check-input" type="checkbox" id="hdd" name="storage_option" value="HDD" onchange="toggleSpecInput(this, 'hdd-capacity')" <?php echo isSavedValueFilled($saved_data, 'hdd-capacity') ? 'checked' : ''; ?>>
                                     <label class="form-check-label" for="hdd">HDD</label>
                                     <input type="text" id="hdd-capacity" class="spec-input form-control mt-2" name="hdd-capacity" placeholder="HDD Capacity (e.g., 1 TB)" value="<?php echo htmlspecialchars($saved_data['hdd-capacity'] ?? ''); ?>" style="<?php echo isset($saved_data['hdd-capacity']) ? 'display: block;' : 'display: none;'; ?>">
                                 </div>
                                 <div class="form-check mt-2">
-                                    <input class="form-check-input" type="checkbox" id="ssd" name="storage_option" value="SSD" onchange="toggleSpecInput(this, 'ssd-capacity')" <?php echo isset($saved_data['ssd-capacity']) ? 'checked' : ''; ?>>
+                                    <input class="form-check-input" type="checkbox" id="ssd" name="storage_option" value="SSD" onchange="toggleSpecInput(this, 'ssd-capacity')" <?php echo isSavedValueFilled($saved_data, 'ssd-capacity') ? 'checked' : ''; ?>>
                                     <label class="form-check-label" for="ssd">SSD</label>
                                     <input type="text" id="ssd-capacity" class="spec-input form-control mt-2" name="ssd-capacity" placeholder="SSD Capacity (e.g., 512 GB)" value="<?php echo htmlspecialchars($saved_data['ssd-capacity'] ?? ''); ?>" style="<?php echo isset($saved_data['ssd-capacity']) ? 'display: block;' : 'display: none;'; ?>">
                                 </div>
@@ -448,16 +454,25 @@ $conn->close();
                             <div class="specs-container">
                                 <h6>RAM Options</h6>
                                 <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" id="ram" name="ram_option" onchange="toggleSpecInput(this, 'ram-capacity')" <?php echo isset($saved_data['ram-capacity']) ? 'checked' : ''; ?>>
+                                    <input class="form-check-input" type="checkbox" id="ram" name="ram_option" onchange="toggleSpecInput(this, 'ram-capacity')" <?php echo isSavedValueFilled($saved_data, 'ram-capacity') ? 'checked' : ''; ?>>
                                     <label class="form-check-label" for="ram">RAM</label>
                                     <input type="text" id="ram-capacity" class="spec-input form-control mt-2" name="ram-capacity" placeholder="RAM Capacity (e.g., 16 GB)" value="<?php echo htmlspecialchars($saved_data['ram-capacity'] ?? ''); ?>" style="<?php echo isset($saved_data['ram-capacity']) ? 'display: block;' : 'display: none;'; ?>">
                                 </div>
                             </div>
-                            
+
+                            <div class="specs-container mt-3">
+                                <h6>Memory Options</h6>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="memory" name="memory_option" onchange="toggleSpecInput(this, 'memory-capacity')" <?php echo isSavedValueFilled($saved_data, 'memory-capacity') ? 'checked' : ''; ?>>
+                                    <label class="form-check-label" for="memory">Memory</label>
+                                    <input type="text" id="memory-capacity" class="spec-input form-control mt-2" name="memory-capacity" placeholder="Memory Capacity (e.g., 8 GB)" value="<?php echo htmlspecialchars($saved_data['memory-capacity'] ?? ''); ?>" style="<?php echo isset($saved_data['memory-capacity']) ? 'display: block;' : 'display: none;'; ?>">
+                                </div>
+                            </div>
+                             
                             <div class="specs-container mt-3">
                                 <h6>Processor Options</h6>
                                 <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" id="processor" name="processor_option" onchange="toggleSpecInput(this, 'processor-type')" <?php echo isset($saved_data['processor-type']) ? 'checked' : ''; ?>>
+                                    <input class="form-check-input" type="checkbox" id="processor" name="processor_option" onchange="toggleSpecInput(this, 'processor-type')" <?php echo isSavedValueFilled($saved_data, 'processor-type') ? 'checked' : ''; ?>>
                                     <label class="form-check-label" for="processor">Processor</label>
                                     <input type="text" id="processor-type" class="spec-input form-control mt-2" name="processor-type" placeholder="Processor (e.g., Intel i7, M1)" value="<?php echo htmlspecialchars($saved_data['processor-type'] ?? ''); ?>" style="<?php echo isset($saved_data['processor-type']) ? 'display: block;' : 'display: none;'; ?>">
                                 </div>
@@ -468,7 +483,7 @@ $conn->close();
                             <div class="specs-container">
                                 <h6>Display Options</h6>
                                 <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" id="display" name="display_option" onchange="toggleSpecInput(this, ['display-size', 'display-resolution'])" <?php echo (isset($saved_data['display-size']) || isset($saved_data['display-resolution'])) ? 'checked' : ''; ?>>
+                                    <input class="form-check-input" type="checkbox" id="display" name="display_option" onchange="toggleSpecInput(this, ['display-size', 'display-resolution'])" <?php echo (isSavedValueFilled($saved_data, 'display-size') || isSavedValueFilled($saved_data, 'display-resolution')) ? 'checked' : ''; ?>>
                                     <label class="form-check-label" for="display">Display</label>
                                     <input type="text" id="display-size" class="spec-input form-control mt-2" name="display-size" placeholder="Display Size (e.g., 15.6 inch)" value="<?php echo htmlspecialchars($saved_data['display-size'] ?? ''); ?>" style="<?php echo (isset($saved_data['display-size']) || isset($saved_data['display-resolution'])) ? 'display: block;' : 'display: none;'; ?>">
                                     <input type="text" id="display-resolution" class="spec-input form-control mt-2" name="display-resolution" placeholder="Resolution (e.g., 1920x1080)" value="<?php echo htmlspecialchars($saved_data['display-resolution'] ?? ''); ?>" style="<?php echo (isset($saved_data['display-size']) || isset($saved_data['display-resolution'])) ? 'display: block;' : 'display: none;'; ?>">
@@ -478,7 +493,7 @@ $conn->close();
                             <div class="specs-container mt-3">
                                 <h6>Battery Options</h6>
                                 <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" id="battery" name="battery_option" onchange="toggleSpecInput(this, 'battery-capacity')" <?php echo isset($saved_data['battery-capacity']) ? 'checked' : ''; ?>>
+                                    <input class="form-check-input" type="checkbox" id="battery" name="battery_option" onchange="toggleSpecInput(this, 'battery-capacity')" <?php echo isSavedValueFilled($saved_data, 'battery-capacity') ? 'checked' : ''; ?>>
                                     <label class="form-check-label" for="battery">Battery</label>
                                     <input type="text" id="battery-capacity" class="spec-input form-control mt-2" name="battery-capacity" placeholder="Battery Capacity (e.g., 5000 mAh)" value="<?php echo htmlspecialchars($saved_data['battery-capacity'] ?? ''); ?>" style="<?php echo isset($saved_data['battery-capacity']) ? 'display: block;' : 'display: none;'; ?>">
                                 </div>
@@ -489,7 +504,7 @@ $conn->close();
                     <div class="specs-container">
                         <h6>Operating System</h6>
                         <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="os" name="os_option" onchange="toggleSpecInput(this, 'os-type')" <?php echo isset($saved_data['os-type']) ? 'checked' : ''; ?>>
+                            <input class="form-check-input" type="checkbox" id="os" name="os_option" onchange="toggleSpecInput(this, 'os-type')" <?php echo isSavedValueFilled($saved_data, 'os-type') ? 'checked' : ''; ?>>
                             <label class="form-check-label" for="os">Operating System</label>
                             <input type="text" id="os-type" class="spec-input form-control mt-2" name="os-type" placeholder="OS (e.g., Windows 11, macOS, Android)" value="<?php echo htmlspecialchars($saved_data['os-type'] ?? ''); ?>" style="<?php echo isset($saved_data['os-type']) ? 'display: block;' : 'display: none;'; ?>">
                         </div>
@@ -898,6 +913,8 @@ $conn->close();
             'Additional Information'
         ];
 
+        const initialWizardStep = <?php echo (int)$initialWizardStep; ?>;
+
         let currentWizardStep = 0;
 
         function getWizardSteps() {
@@ -1237,6 +1254,7 @@ $conn->close();
                 ['hdd', 'hdd-capacity'],
                 ['ssd', 'ssd-capacity'],
                 ['ram', 'ram-capacity'],
+                ['memory', 'memory-capacity'],
                 ['processor', 'processor-type'],
                 ['display', ['display-size', 'display-resolution']],
                 ['battery', 'battery-capacity'],
@@ -1270,6 +1288,12 @@ $conn->close();
             const ramCapacity = document.getElementById('ram-capacity');
             if (ram.checked && ramCapacity.value.trim()) {
                 specText.push(`RAM: ${ramCapacity.value}`);
+            }
+
+            const memory = document.getElementById('memory');
+            const memoryCapacity = document.getElementById('memory-capacity');
+            if (memory.checked && memoryCapacity.value.trim()) {
+                specText.push(`Memory: ${memoryCapacity.value}`);
             }
             
             const processor = document.getElementById('processor');
@@ -1306,6 +1330,23 @@ $conn->close();
             }
             
             document.getElementById('specifications').value = specText.join('\n');
+        }
+
+        function hydrateSpecificationsFromSavedState() {
+            const specifications = document.getElementById('specifications');
+            if (!specifications || specifications.value.trim() !== '') {
+                return;
+            }
+
+            const specSelectors = ['hdd', 'ssd', 'ram', 'memory', 'processor', 'display', 'battery', 'os'];
+            const hasSelectedSpec = specSelectors.some((id) => {
+                const field = document.getElementById(id);
+                return field && field.checked;
+            });
+
+            if (hasSelectedSpec) {
+                updateSpecifications();
+            }
         }
 
         // Amount formatting
@@ -1418,7 +1459,7 @@ $conn->close();
         ];
 
         const ictPositiveKeywords = [
-            'keyboard', 'mouse', 'ssd', 'ram', 'processor', 'motherboard', 'network', 'hard drive', 'hdd', 'server', 'access point', 'accesspoint'
+            'keyboard', 'mouse', 'ssd', 'ram', 'memory', 'processor', 'motherboard', 'network', 'hard drive', 'hdd', 'server', 'access point', 'accesspoint'
         ];
 
         const ictNegativeKeywords = [
@@ -1561,6 +1602,7 @@ $conn->close();
                 ['HDD Capacity', getFieldValue('hdd-capacity')],
                 ['SSD Capacity', getFieldValue('ssd-capacity')],
                 ['RAM Capacity', getFieldValue('ram-capacity')],
+                ['Memory Capacity', getFieldValue('memory-capacity')],
                 ['Processor Type', getFieldValue('processor-type')],
                 ['Display Size', getFieldValue('display-size')],
                 ['Display Resolution', getFieldValue('display-resolution')],
@@ -1664,7 +1706,8 @@ $conn->close();
         // Initialize form
         document.addEventListener('DOMContentLoaded', function() {
             syncConditionalFieldStates();
-            showStep(0);
+            showStep(initialWizardStep);
+            hydrateSpecificationsFromSavedState();
 
             // Attach event listeners to all specification checkboxes and inputs
             const checkboxes = document.querySelectorAll('input[type="checkbox"]');

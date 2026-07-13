@@ -242,6 +242,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
             if ($count > 0) {
                 $_SESSION['error'] = "A record with this Property Number or Serial Number already exists!";
+                $_SESSION['focus_step'] = 2;
                 $_SESSION['form_data'] = $_POST;
                 header("Location: " . $_SERVER['HTTP_REFERER']);
                 exit();
