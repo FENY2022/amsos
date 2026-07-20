@@ -126,8 +126,11 @@ require_once 'sidebar.php';
 
 
             }elseif ($_dirlist == 'printform') {
-
-                require_once 'printform.php' ;
+                if (isset($_GET['id']) && $_GET['id'] !== '') {
+                    require_once 'printform-request.php' ;
+                } else {
+                    require_once 'printform-summary.php' ;
+                }
 
             }elseif ($_dirlist == 'recent') {
 
