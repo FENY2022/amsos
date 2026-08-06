@@ -61,6 +61,10 @@ function getOrCreateInventoryPersonId($conn, $name, $officeId, $office, $officeD
     $stmt->bind_result($personId);
     if ($stmt->fetch()) {
         $stmt->close();
+        $stmt = $conn->prepare("UPDATE inventory_people SET office_id = ?, office = ?, officeDivision = ?, employment_status = IF(? = '', employment_status, ?) WHERE id = ?");
+        $stmt->bind_param("issssi", $officeId, $office, $officeDivision, $employmentStatus, $employmentStatus, $personId);
+        $stmt->execute();
+        $stmt->close();
         return (int)$personId;
     }
     $stmt->close();

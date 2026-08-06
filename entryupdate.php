@@ -225,9 +225,13 @@ if (session_status() === PHP_SESSION_NONE) {
 
             <form action="mainmenu.php?dir=edupdate" method="POST" class="search-form" style="margin-bottom: 1rem;">
                 <div class="row">
-                    <div class="col-md-3 mb-3">
+                    <div class="col-md-2 mb-3">
+                        <label for="inventoryId" class="form-label">Inventory ID:</label>
+                        <input type="number" id="inventoryId" name="inventoryId" class="form-control" min="1" placeholder="e.g. 455" value="<?php echo htmlspecialchars($_REQUEST['inventoryId'] ?? ''); ?>" style="padding: 0.375rem 0.75rem; border: 1px solid #ced4da; border-radius: 0.25rem;">
+                    </div>
+                    <div class="col-md-2 mb-3">
                         <label for="officeDivision" class="form-label">Office Division:</label>
-                        <select id="officeDivision" name="officeDivision" class="form-select" required style="padding: 0.375rem 0.75rem; border: 1px solid #ced4da; border-radius: 0.25rem;">
+                        <select id="officeDivision" name="officeDivision" class="form-select" style="padding: 0.375rem 0.75rem; border: 1px solid #ced4da; border-radius: 0.25rem;">
                             <option value="">-- Select Office --</option>
                             <?php echo $office_division_options; ?>
                         </select>
@@ -253,7 +257,7 @@ if (session_status() === PHP_SESSION_NONE) {
                             <option value="name_asc">Employee Name (A-Z)</option>
                         </select>
                     </div>
-                    <div class="col-md-2 d-grid">
+                    <div class="col-md-1 d-grid">
                         <label for="search" class="form-label">&nbsp;</label>
                         <button type="submit" id="search" name="search" class="btn btn-primary" style="padding: 0.375rem 0.75rem; font-weight: 500;">
                             <i class="fas fa-search"></i> Search
@@ -327,12 +331,19 @@ if (session_status() === PHP_SESSION_NONE) {
                 $officeDivision = isset($_REQUEST['officeDivision']) ? $_REQUEST['officeDivision'] : '';
                 $employeeName = isset($_REQUEST['employeeName']) ? $_REQUEST['employeeName'] : '';
                 $statusFilter = isset($_REQUEST['statusFilter']) ? $_REQUEST['statusFilter'] : '';
+                $inventoryId = isset($_REQUEST['inventoryId']) && is_numeric($_REQUEST['inventoryId']) ? (int)$_REQUEST['inventoryId'] : 0;
                 $sortBy = isset($_REQUEST['sortBy']) ? $_REQUEST['sortBy'] : 'id_desc'; // Get Sort By param
 
                 // BUILD THE COUNT QUERY
                 $count_query = "SELECT COUNT(*) as total FROM inv_inventory WHERE Office = ?";
                 $params = [$_SESSION['OfficeSRF']];
                 $types = "s";
+
+                if ($inventoryId > 0) {
+                    $count_query .= " AND id = ?";
+                    $params[] = $inventoryId;
+                    $types .= "i";
+                }
 
                 if (!empty($officeDivision)) {
                     $count_query .= " AND officeDivision = ?";
@@ -371,6 +382,12 @@ if (session_status() === PHP_SESSION_NONE) {
                 $query = "SELECT * FROM inv_inventory WHERE Office = ?";
                 $params_data = [$_SESSION['OfficeSRF']];
                 $types_data = "s";
+
+                if ($inventoryId > 0) {
+                    $query .= " AND id = ?";
+                    $params_data[] = $inventoryId;
+                    $types_data .= "i";
+                }
 
                 if (!empty($officeDivision)) {
                     $query .= " AND officeDivision = ?";
@@ -545,6 +562,7 @@ if (session_status() === PHP_SESSION_NONE) {
                     if ($total_pages > 1) {
                         $query_params = http_build_query([
                             'dir' => 'edupdate',
+                            'inventoryId' => $inventoryId > 0 ? $inventoryId : '',
                             'officeDivision' => $officeDivision,
                             'employeeName' => $employeeName,
                             'statusFilter' => $statusFilter,
