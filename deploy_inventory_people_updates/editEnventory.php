@@ -329,7 +329,7 @@ if ($result->num_rows > 0) {
             </div>
             <div class="card-body">
 
-                <form id="inventoryForm">
+                <form id="inventoryForm" method="POST">
 
                     <input type="hidden" name="id" value="<?php echo $id; ?>" >
                     

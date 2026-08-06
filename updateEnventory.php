@@ -79,9 +79,17 @@ function getOrCreateInventoryPersonId($conn, $name, $officeId, $office, $officeD
 }
 
 // Initialize variables
-$inventory_id = isset($_GET['id']) ? $_GET['id'] : '';
+$inventory_id = $_POST['id'] ?? $_GET['id'] ?? '';
 $error_message = '';
 $success_message = '';
+
+function requestValue($key, $default = '') {
+    return $_POST[$key] ?? $_GET[$key] ?? $default;
+}
+
+function requestHas($key) {
+    return isset($_POST[$key]) || isset($_GET[$key]);
+}
 
 // Fetch inventory details for editing
 if (!empty($inventory_id)) {
@@ -101,34 +109,34 @@ if (!empty($inventory_id)) {
 }
 
 // Handle form submission
-if ($_SERVER["REQUEST_METHOD"] == "GET" && !empty($inventory_id)) {
+if (in_array($_SERVER["REQUEST_METHOD"], ["GET", "POST"], true) && !empty($inventory_id)) {
     // Collect form data
-    $employeeName = $_GET['employeeName'];
-    $equipmentType = $_GET['equipmentType'];
-    $yearAcquired = $_GET['yearAcquired'];
-    $shelfLife = $_GET['shelfLife'];
-    $brand = $_GET['brand'];
-    $specifications = $_GET['specifications'];
-    $rangeCategory = $_GET['rangeCategory'];
-    $softwareInstalled = $_GET['softwareInstalled'];
-    $licensingModel = $_GET['licensingModel'];
-    $softwareInstalled_2 = $_GET['softwareInstalled_2'];
-    $licensingModel_2 = $_GET['licensingModel_2'];
-    $serialNumber = $_GET['serialNumber'];
-    $propertyNumber = $_GET['propertyNumber'];
-    $accountablePerson = $_GET['accountablePerson'];
-    $sex = $_GET['sex'];
-    $officeDivision = $_GET['officeDivision'];
-    $statusOfEmployment = $_GET['statusOfEmployment'];
-    $actualUser = $_GET['actualUser'];
-    $actualUserSex = $_GET['actualUserSex'];
-    $actualUserStatusOfEmployment = $_GET['actualUserStatusOfEmployment'];
-    $natureOfWork = $_GET['natureOfWork'];
-    $remarks = $_GET['remarks'];
-    $office = $_GET['office'];
-    $amount = str_replace(',', '', $_GET['amount']); // Remove commas from amount
-    $depreciation_value = $_GET['depreciation_value'];
-    $mark_as_done = isset($_GET['mark_as_done']) ? 1 : 0;
+    $employeeName = requestValue('employeeName');
+    $equipmentType = requestValue('equipmentType');
+    $yearAcquired = requestValue('yearAcquired');
+    $shelfLife = requestValue('shelfLife');
+    $brand = requestValue('brand');
+    $specifications = requestValue('specifications');
+    $rangeCategory = requestValue('rangeCategory');
+    $softwareInstalled = requestValue('softwareInstalled');
+    $licensingModel = requestValue('licensingModel');
+    $softwareInstalled_2 = requestValue('softwareInstalled_2');
+    $licensingModel_2 = requestValue('licensingModel_2');
+    $serialNumber = requestValue('serialNumber');
+    $propertyNumber = requestValue('propertyNumber');
+    $accountablePerson = requestValue('accountablePerson');
+    $sex = requestValue('sex');
+    $officeDivision = requestValue('officeDivision');
+    $statusOfEmployment = requestValue('statusOfEmployment');
+    $actualUser = requestValue('actualUser');
+    $actualUserSex = requestValue('actualUserSex');
+    $actualUserStatusOfEmployment = requestValue('actualUserStatusOfEmployment');
+    $natureOfWork = requestValue('natureOfWork');
+    $remarks = requestValue('remarks');
+    $office = requestValue('office');
+    $amount = str_replace(',', '', requestValue('amount', '0'));
+    $depreciation_value = requestValue('depreciation_value', '0');
+    $mark_as_done = requestHas('mark_as_done') ? 1 : 0;
     $officeId = getOrCreateOfficeDivisionId($conn, $office, $officeDivision);
     $employeePersonId = getOrCreateInventoryPersonId($conn, $employeeName, $officeId, $office, $officeDivision, $statusOfEmployment, 'employeeName');
     $accountablePersonId = getOrCreateInventoryPersonId($conn, $accountablePerson, $officeId, $office, $officeDivision, $statusOfEmployment, 'accountablePerson');
