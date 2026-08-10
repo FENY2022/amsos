@@ -79,10 +79,44 @@ if (session_status() === PHP_SESSION_NONE) {
             font-weight: 500;
         }
 
+        .search-filters-grid {
+            display: grid;
+            grid-template-columns: minmax(120px, 0.8fr) minmax(160px, 1fr) minmax(220px, 1.4fr) minmax(130px, 0.9fr) minmax(150px, 1fr) minmax(130px, 0.8fr);
+            gap: 1rem;
+            align-items: end;
+        }
+
+        .search-filter-field {
+            min-width: 0;
+        }
+
+        .search-filter-field .form-control,
+        .search-filter-field .form-select {
+            width: 100%;
+        }
+
         .search-form .btn-primary {
             width: 100%;
-            padding: 0.75rem;
+            min-height: 48px;
+            padding: 0.375rem 0.75rem;
             font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.4rem;
+            white-space: nowrap;
+        }
+
+        @media (max-width: 1199.98px) {
+            .search-filters-grid {
+                grid-template-columns: repeat(3, minmax(0, 1fr));
+            }
+        }
+
+        @media (max-width: 767.98px) {
+            .search-filters-grid {
+                grid-template-columns: 1fr;
+            }
         }
 
         .table-responsive {
@@ -224,25 +258,25 @@ if (session_status() === PHP_SESSION_NONE) {
         <div class="card-body">
 
             <form action="mainmenu.php?dir=edupdate" method="POST" class="search-form" style="margin-bottom: 1rem;">
-                <div class="row">
-                    <div class="col-md-2 mb-3">
+                <div class="search-filters-grid">
+                    <div class="search-filter-field">
                         <label for="inventoryId" class="form-label">Inventory ID:</label>
                         <input type="number" id="inventoryId" name="inventoryId" class="form-control" min="1" placeholder="e.g. 455" value="<?php echo htmlspecialchars($_REQUEST['inventoryId'] ?? ''); ?>" style="padding: 0.375rem 0.75rem; border: 1px solid #ced4da; border-radius: 0.25rem;">
                     </div>
-                    <div class="col-md-2 mb-3">
+                    <div class="search-filter-field">
                         <label for="officeDivision" class="form-label">Office Division:</label>
                         <select id="officeDivision" name="officeDivision" class="form-select" style="padding: 0.375rem 0.75rem; border: 1px solid #ced4da; border-radius: 0.25rem;">
                             <option value="">-- Select Office --</option>
                             <?php echo $office_division_options; ?>
                         </select>
                     </div>
-                    <div class="col-md-3 mb-3">
+                    <div class="search-filter-field">
                         <label for="employeeName" class="form-label">Employee Name:</label>
                         <select id="employeeName" name="employeeName" class="form-select" style="padding: 0.375rem 0.75rem; border: 1px solid #ced4da; border-radius: 0.25rem;">
                             <option value="">-- Select Employee --</option>
                             </select>
                     </div>
-                    <div class="col-md-2 mb-3">
+                    <div class="search-filter-field">
                         <label for="statusFilter" class="form-label">Status:</label>
                         <select id="statusFilter" name="statusFilter" class="form-select" style="padding: 0.375rem 0.75rem; border: 1px solid #ced4da; border-radius: 0.25rem;">
                             <option value="">All</option>
@@ -250,16 +284,16 @@ if (session_status() === PHP_SESSION_NONE) {
                             <option value="0">Not Done</option>
                         </select>
                     </div>
-                    <div class="col-md-2 mb-3">
+                    <div class="search-filter-field">
                         <label for="sortBy" class="form-label">Sort By:</label>
                         <select id="sortBy" name="sortBy" class="form-select" style="padding: 0.375rem 0.75rem; border: 1px solid #ced4da; border-radius: 0.25rem;">
                             <option value="id_desc">Newest First</option>
                             <option value="name_asc">Employee Name (A-Z)</option>
                         </select>
                     </div>
-                    <div class="col-md-1 d-grid">
+                    <div class="search-filter-field">
                         <label for="search" class="form-label">&nbsp;</label>
-                        <button type="submit" id="search" name="search" class="btn btn-primary" style="padding: 0.375rem 0.75rem; font-weight: 500;">
+                        <button type="submit" id="search" name="search" class="btn btn-primary">
                             <i class="fas fa-search"></i> Search
                         </button>
                     </div>

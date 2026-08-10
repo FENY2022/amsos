@@ -1,6 +1,63 @@
 <?php
-session_start();
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 require_once 'connect.php';
+
+function tableExists($conn, $table) {
+    static $cache = [];
+
+    if (!preg_match('/^[A-Za-z0-9_]+$/', $table)) {
+        return false;
+    }
+
+    if (array_key_exists($table, $cache)) {
+        return $cache[$table];
+    }
+
+    try {
+        $stmt = $conn->prepare("SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?");
+        $stmt->bind_param("s", $table);
+        $stmt->execute();
+        $stmt->bind_result($count);
+        $stmt->fetch();
+        $cache[$table] = (int)$count > 0;
+        $stmt->close();
+    } catch (Throwable $e) {
+        error_log('tableExists failed for ' . $table . ': ' . $e->getMessage());
+        $cache[$table] = false;
+    }
+
+    return $cache[$table];
+}
+
+function columnExists($conn, $table, $column) {
+    static $cache = [];
+    $key = $table . '.' . $column;
+
+    if (!preg_match('/^[A-Za-z0-9_]+$/', $table) || !preg_match('/^[A-Za-z0-9_]+$/', $column)) {
+        return false;
+    }
+
+    if (array_key_exists($key, $cache)) {
+        return $cache[$key];
+    }
+
+    try {
+        $stmt = $conn->prepare("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?");
+        $stmt->bind_param("ss", $table, $column);
+        $stmt->execute();
+        $stmt->bind_result($count);
+        $stmt->fetch();
+        $cache[$key] = (int)$count > 0;
+        $stmt->close();
+    } catch (Throwable $e) {
+        error_log('columnExists failed for ' . $key . ': ' . $e->getMessage());
+        $cache[$key] = false;
+    }
+
+    return $cache[$key];
+}
 
 function isValidInventoryPersonName($name) {
     $name = trim((string)$name);
@@ -20,7 +77,7 @@ function getOrCreateOfficeDivisionId($conn, $office, $officeDivision) {
     $office = trim((string)$office);
     $officeDivision = trim((string)$officeDivision);
 
-    if ($office === '' || $officeDivision === '') {
+    if ($office === '' || $officeDivision === '' || !tableExists($conn, 'office_divisions')) {
         return null;
     }
 
@@ -46,7 +103,7 @@ function getOrCreateOfficeDivisionId($conn, $office, $officeDivision) {
 function getOrCreateInventoryPersonId($conn, $name, $officeId, $office, $officeDivision, $employmentStatus, $source) {
     $name = trim((string)$name);
 
-    if (!isValidInventoryPersonName($name)) {
+    if (!isValidInventoryPersonName($name) || !tableExists($conn, 'inventory_people') || !columnExists($conn, 'inventory_people', 'full_name')) {
         return null;
     }
 
@@ -55,22 +112,79 @@ function getOrCreateInventoryPersonId($conn, $name, $officeId, $office, $officeD
     $officeDivision = trim((string)$officeDivision);
     $employmentStatus = trim((string)$employmentStatus);
 
-    $stmt = $conn->prepare("SELECT id FROM inventory_people WHERE normalized_name = ? LIMIT 1");
-    $stmt->bind_param("s", $normalizedName);
+    $lookupColumn = columnExists($conn, 'inventory_people', 'normalized_name') ? 'normalized_name' : 'full_name';
+    $lookupValue = $lookupColumn === 'normalized_name' ? $normalizedName : $name;
+
+    $stmt = $conn->prepare("SELECT id FROM inventory_people WHERE $lookupColumn = ? LIMIT 1");
+    $stmt->bind_param("s", $lookupValue);
     $stmt->execute();
     $stmt->bind_result($personId);
     if ($stmt->fetch()) {
         $stmt->close();
-        $stmt = $conn->prepare("UPDATE inventory_people SET office_id = ?, office = ?, officeDivision = ?, employment_status = IF(? = '', employment_status, ?) WHERE id = ?");
-        $stmt->bind_param("issssi", $officeId, $office, $officeDivision, $employmentStatus, $employmentStatus, $personId);
-        $stmt->execute();
-        $stmt->close();
+
+        $updates = [];
+        $types = '';
+        $params = [];
+
+        if (columnExists($conn, 'inventory_people', 'office_id')) {
+            $updates[] = 'office_id = ?';
+            $types .= 'i';
+            $params[] = $officeId;
+        }
+        if (columnExists($conn, 'inventory_people', 'office')) {
+            $updates[] = 'office = ?';
+            $types .= 's';
+            $params[] = $office;
+        }
+        if (columnExists($conn, 'inventory_people', 'officeDivision')) {
+            $updates[] = 'officeDivision = ?';
+            $types .= 's';
+            $params[] = $officeDivision;
+        }
+        if ($employmentStatus !== '' && columnExists($conn, 'inventory_people', 'employment_status')) {
+            $updates[] = 'employment_status = ?';
+            $types .= 's';
+            $params[] = $employmentStatus;
+        }
+
+        if (!empty($updates)) {
+            $types .= 'i';
+            $params[] = $personId;
+            $stmt = $conn->prepare('UPDATE inventory_people SET ' . implode(', ', $updates) . ' WHERE id = ?');
+            $stmt->bind_param($types, ...$params);
+            $stmt->execute();
+            $stmt->close();
+        }
+
         return (int)$personId;
     }
     $stmt->close();
 
-    $stmt = $conn->prepare("INSERT INTO inventory_people (full_name, normalized_name, office_id, office, officeDivision, employment_status, source) VALUES (?, ?, ?, ?, ?, ?, ?)");
-    $stmt->bind_param("ssissss", $name, $normalizedName, $officeId, $office, $officeDivision, $employmentStatus, $source);
+    $columns = ['full_name'];
+    $placeholders = ['?'];
+    $types = 's';
+    $params = [$name];
+
+    $optionalColumns = [
+        'normalized_name' => ['s', $normalizedName],
+        'office_id' => ['i', $officeId],
+        'office' => ['s', $office],
+        'officeDivision' => ['s', $officeDivision],
+        'employment_status' => ['s', $employmentStatus],
+        'source' => ['s', $source],
+    ];
+
+    foreach ($optionalColumns as $column => $definition) {
+        if (columnExists($conn, 'inventory_people', $column)) {
+            $columns[] = $column;
+            $placeholders[] = '?';
+            $types .= $definition[0];
+            $params[] = $definition[1];
+        }
+    }
+
+    $stmt = $conn->prepare('INSERT INTO inventory_people (' . implode(', ', $columns) . ') VALUES (' . implode(', ', $placeholders) . ')');
+    $stmt->bind_param($types, ...$params);
     $stmt->execute();
     $newId = $stmt->insert_id;
     $stmt->close();
@@ -110,6 +224,7 @@ if (!empty($inventory_id)) {
 
 // Handle form submission
 if (in_array($_SERVER["REQUEST_METHOD"], ["GET", "POST"], true) && !empty($inventory_id)) {
+    try {
     // Collect form data
     $employeeName = requestValue('employeeName');
     $equipmentType = requestValue('equipmentType');
@@ -148,81 +263,71 @@ if (in_array($_SERVER["REQUEST_METHOD"], ["GET", "POST"], true) && !empty($inven
     $mark_as_done_str = (string)$mark_as_done;
     $inventory_id_int = (int)$inventory_id;
 
-    // Prepare update statement
-    $update_sql = "UPDATE inv_inventory SET 
-        employeeName = ?,
-        employee_person_id = ?,
-        equipmentType = ?,
-        yearAcquired = ?,
-        shelfLife = ?,
-        brand = ?,
-        specifications = ?,
-        rangeCategory = ?,
-        softwareInstalled = ?,
-        licensingModel = ?,
-        softwareInstalled_2 = ?,
-        licensingModel_2 = ?,
-        serialNumber = ?,
-        propertyNumber = ?,
-        accountablePerson = ?,
-        accountable_person_id = ?,
-        sex = ?,
-        officeDivision = ?,
-        statusOfEmployment = ?,
-        actualUser = ?,
-        actual_user_id = ?,
-        actualUserSex = ?,
-        actualUserStatusOfEmployment = ?,
-        natureOfWork = ?,
-        remarks = ?,
-        office = ?,
-        office_id = ?,
-        amount = ?,
-        depreciation_value = ?,
-        mark_as_done = ?
-    WHERE id = ?";
+    $fields = [
+        'employeeName' => ['s', $employeeName],
+        'employee_person_id' => ['i', $employeePersonId],
+        'equipmentType' => ['s', $equipmentType],
+        'yearAcquired' => ['s', $yearAcquired],
+        'shelfLife' => ['s', $shelfLife],
+        'brand' => ['s', $brand],
+        'specifications' => ['s', $specifications],
+        'rangeCategory' => ['s', $rangeCategory],
+        'softwareInstalled' => ['s', $softwareInstalled],
+        'licensingModel' => ['s', $licensingModel],
+        'softwareInstalled_2' => ['s', $softwareInstalled_2],
+        'licensingModel_2' => ['s', $licensingModel_2],
+        'serialNumber' => ['s', $serialNumber],
+        'propertyNumber' => ['s', $propertyNumber],
+        'accountablePerson' => ['s', $accountablePerson],
+        'accountable_person_id' => ['i', $accountablePersonId],
+        'sex' => ['s', $sex],
+        'officeDivision' => ['s', $officeDivision],
+        'statusOfEmployment' => ['s', $statusOfEmployment],
+        'actualUser' => ['s', $actualUser],
+        'actual_user_id' => ['i', $actualUserId],
+        'actualUserSex' => ['s', $actualUserSex],
+        'actualUserStatusOfEmployment' => ['s', $actualUserStatusOfEmployment],
+        'natureOfWork' => ['s', $natureOfWork],
+        'remarks' => ['s', $remarks],
+        'office' => ['s', $office],
+        'office_id' => ['i', $officeId],
+        'amount' => ['i', $amount_int],
+        'depreciation_value' => ['i', $depreciation_value_int],
+        'mark_as_done' => ['i', $mark_as_done],
+    ];
+
+    $assignments = [];
+    $types = '';
+    $params = [];
+    foreach ($fields as $column => $definition) {
+        if (columnExists($conn, 'inv_inventory', $column)) {
+            $assignments[] = "$column = ?";
+            $types .= $definition[0];
+            $params[] = $definition[1];
+        }
+    }
+
+    if (empty($assignments)) {
+        throw new RuntimeException('No matching inv_inventory columns found for update.');
+    }
+
+    $types .= 'i';
+    $params[] = $inventory_id_int;
+    $update_sql = 'UPDATE inv_inventory SET ' . implode(', ', $assignments) . ' WHERE id = ?';
 
     $update_stmt = $conn->prepare($update_sql);
-    $types = "si" . str_repeat("s", 13) . "i" . str_repeat("s", 4) . "i" . str_repeat("s", 5) . "i" . "sssi";
-    $update_stmt->bind_param(
-        $types,
-        $employeeName,
-        $employeePersonId,
-        $equipmentType,
-        $yearAcquired,
-        $shelfLife,
-        $brand,
-        $specifications,
-        $rangeCategory,
-        $softwareInstalled,
-        $licensingModel,
-        $softwareInstalled_2,
-        $licensingModel_2,
-        $serialNumber,
-        $propertyNumber,
-        $accountablePerson,
-        $accountablePersonId,
-        $sex,
-        $officeDivision,
-        $statusOfEmployment,
-        $actualUser,
-        $actualUserId,
-        $actualUserSex,
-        $actualUserStatusOfEmployment,
-        $natureOfWork,
-        $remarks,
-        $office,
-        $officeId,
-        $amount,
-        $depreciation_value,
-        $mark_as_done_str,
-        $inventory_id_int
-    );
+    $update_stmt->bind_param($types, ...$params);
 
     if ($update_stmt->execute()) {
         $_SESSION['success_message'] = "Inventory record updated successfully!";
         header("Location: editEnventory.php?id=$inventory_id_int");
     } else {
         $_SESSION['error_message'] = "Error updating inventory record: " . $conn->error;    }
+    } catch (Throwable $e) {
+        error_log('updateEnventory.php failed for ID ' . $inventory_id . ': ' . $e->getMessage());
+        $_SESSION['error_message'] = 'Error updating inventory record. Please check the server error log.';
+        header('Location: editEnventory.php?id=' . (int)$inventory_id);
+        exit;
+    }
 }
 ?>
