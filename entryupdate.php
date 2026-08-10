@@ -367,6 +367,7 @@ if (session_status() === PHP_SESSION_NONE) {
                 $statusFilter = isset($_REQUEST['statusFilter']) ? $_REQUEST['statusFilter'] : '';
                 $inventoryId = isset($_REQUEST['inventoryId']) && is_numeric($_REQUEST['inventoryId']) ? (int)$_REQUEST['inventoryId'] : 0;
                 $sortBy = isset($_REQUEST['sortBy']) ? $_REQUEST['sortBy'] : 'id_desc'; // Get Sort By param
+                $employeeNameParts = array_filter(preg_split('/\s+/', trim($employeeName)));
 
                 // BUILD THE COUNT QUERY
                 $count_query = "SELECT COUNT(*) as total FROM inv_inventory WHERE Office = ?";
@@ -384,10 +385,12 @@ if (session_status() === PHP_SESSION_NONE) {
                     $params[] = $officeDivision;
                     $types .= "s";
                 }
-                if (!empty($employeeName)) {
-                    $count_query .= " AND employeeName LIKE ?";
-                    $params[] = '%' . $employeeName . '%';
-                    $types .= "s";
+                if (!empty($employeeNameParts)) {
+                    foreach ($employeeNameParts as $employeeNamePart) {
+                        $count_query .= " AND employeeName LIKE ?";
+                        $params[] = '%' . $employeeNamePart . '%';
+                        $types .= "s";
+                    }
                 }
                 if ($statusFilter !== '') { 
                     $count_query .= " AND mark_as_done = ?";
@@ -428,10 +431,12 @@ if (session_status() === PHP_SESSION_NONE) {
                     $params_data[] = $officeDivision;
                     $types_data .= "s";
                 }
-                if (!empty($employeeName)) {
-                    $query .= " AND employeeName LIKE ?";
-                    $params_data[] = '%' . $employeeName . '%';
-                    $types_data .= "s";
+                if (!empty($employeeNameParts)) {
+                    foreach ($employeeNameParts as $employeeNamePart) {
+                        $query .= " AND employeeName LIKE ?";
+                        $params_data[] = '%' . $employeeNamePart . '%';
+                        $types_data .= "s";
+                    }
                 }
                 if ($statusFilter !== '') {
                     $query .= " AND mark_as_done = ?";
