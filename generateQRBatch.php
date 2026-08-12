@@ -172,8 +172,8 @@ $baseUrl = $scheme . '://' . $_SERVER['HTTP_HOST'] . ($basePath === '' ? '' : $b
 
         .sticker-details {
             min-width: 0;
-            font-size: 7pt;
-            line-height: 1.2;
+            font-size: 8.5pt;
+            line-height: 1.25;
         }
 
         .detail-line {

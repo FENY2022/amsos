@@ -22,8 +22,8 @@ function isSavedValueFilled($savedData, $key) {
     return trim((string)($savedData[$key] ?? '')) !== '';
 }
 
-// --- 1. Fetch employee data for DATALISTS (Searchable Inputs) ---
-$user_options = "";
+// --- 1. Fetch employee data for modal name search fields ---
+$user_names = [];
 $officeSRF = isset($_SESSION['OfficeSRF']) ? $_SESSION['OfficeSRF'] : 'DefaultOffice';
 
 $sql_employees = "SELECT id, full_name FROM inventory_people WHERE office = ? ORDER BY full_name ASC";
@@ -35,13 +35,11 @@ if ($stmt_employees) {
 
     if ($result_employees->num_rows > 0) {
         while ($row_employee = $result_employees->fetch_assoc()) {
-            // For datalists, we only need the option value, no 'selected' logic needed here
-            $user_options .= "<option value='" . htmlspecialchars($row_employee['full_name']) . "'>";
+            $user_names[] = $row_employee['full_name'];
         }
     }
     $stmt_employees->close();
 } else {
-    $user_options = "<option value='Unable to load employee list'>";
     error_log('entrydata.php employee query prepare failed: ' . $conn->error);
 }
 
@@ -263,11 +261,10 @@ $conn->close();
                         <div class="col-md-6">
                             <div class="form-group">
                                 <label class="form-label required">Employee's Name</label>
-                                <input type="text" class="form-control" id="employeeName" name="employeeName" list="employeeList" placeholder="Type to search..." value="<?php echo htmlspecialchars($saved_data['employeeName'] ?? ''); ?>" required autocomplete="off">
-                                <datalist id="employeeList">
-                                    <option value="N/A">
-                                    <?php echo $user_options; ?>
-                                </datalist>
+                                <div class="input-group">
+                                    <input type="text" class="form-control" id="employeeName" name="employeeName" value="<?php echo htmlspecialchars($saved_data['employeeName'] ?? ''); ?>" placeholder="-- Select Employee --" readonly required>
+                                    <button class="btn btn-info" type="button" onclick="openNameSearchModal('employeeName', 'Employee')">Search</button>
+                                </div>
                             </div>
                         </div>
                         <div class="col-md-6">
@@ -500,11 +497,10 @@ $conn->close();
                         <div class="col-md-6">
                             <div class="form-group">
                                 <label class="form-label required">Accountable Person</label>
-                                <input type="text" class="form-control" id="accountablePerson" name="accountablePerson" list="accountablePersonList" placeholder="Type to search..." value="<?php echo htmlspecialchars($saved_data['accountablePerson'] ?? ''); ?>" required autocomplete="off">
-                                <datalist id="accountablePersonList">
-                                    <option value="N/A">
-                                    <?php echo $user_options; ?>
-                                </datalist>
+                                <div class="input-group">
+                                    <input type="text" class="form-control" id="accountablePerson" name="accountablePerson" value="<?php echo htmlspecialchars($saved_data['accountablePerson'] ?? ''); ?>" placeholder="-- Select Accountable Person --" readonly required>
+                                    <button class="btn btn-info" type="button" onclick="openNameSearchModal('accountablePerson', 'Accountable Person')">Search</button>
+                                </div>
                             </div>
                         </div>
                         <div class="col-md-6">
@@ -554,11 +550,10 @@ $conn->close();
                             <div class="col-md-6">
                                 <div class="form-group">
                                     <label class="form-label required">Actual User</label>
-                                    <input type="text" class="form-control" id="actualUser" name="actualUser" list="actualUserList" placeholder="Type to search..." value="<?php echo htmlspecialchars($saved_data['actualUser'] ?? ''); ?>" required autocomplete="off">
-                                    <datalist id="actualUserList">
-                                        <option value="N/A">
-                                        <?php echo $user_options; ?>
-                                    </datalist>
+                                    <div class="input-group">
+                                        <input type="text" class="form-control" id="actualUser" name="actualUser" value="<?php echo htmlspecialchars($saved_data['actualUser'] ?? ''); ?>" placeholder="-- Select Actual User --" readonly required>
+                                        <button class="btn btn-info" type="button" onclick="openNameSearchModal('actualUser', 'Actual User')">Search</button>
+                                    </div>
                                 </div>
                             </div>
                             <div class="col-md-6">
@@ -648,6 +643,25 @@ $conn->close();
         </form>
     </div>
 
+    <div class="modal fade" id="nameSearchModal" tabindex="-1" aria-labelledby="nameSearchModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header bg-info text-white">
+                    <h5 class="modal-title" id="nameSearchModalLabel">Search Name</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="text" class="form-control mb-3" id="nameSearchInput" placeholder="Search name..." autocomplete="off">
+                    <div class="list-group" id="nameSearchResults" style="max-height: 360px; overflow-y: auto;"></div>
+                    <div class="text-muted small mt-2" id="nameSearchEmpty" style="display: none;">No matching names found.</div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <?php
     echo "<div class='modal fade' id='addEquipmentModal' tabindex='-1' aria-hidden='true'>
         <div class='modal-dialog'>
@@ -731,6 +745,113 @@ $conn->close();
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script>
+        const inventoryUserNames = <?php echo json_encode(array_values($user_names), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT); ?>;
+        const searchableNameOptions = ['N/A', ...inventoryUserNames];
+        let activeNameTargetId = '';
+
+        function escapeHtml(value) {
+            return String(value)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        function escapeJsString(value) {
+            return String(value).replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/\r?\n/g, ' ');
+        }
+
+        function renderNameSearchResults(filter = '') {
+            const resultsContainer = document.getElementById('nameSearchResults');
+            const emptyMessage = document.getElementById('nameSearchEmpty');
+            if (!resultsContainer || !emptyMessage) {
+                return;
+            }
+
+            const normalizedFilter = filter.trim().toLowerCase();
+            const matches = searchableNameOptions.filter((name) => name.toLowerCase().includes(normalizedFilter));
+
+            resultsContainer.innerHTML = matches.map((name) => `
+                <button type="button" class="list-group-item list-group-item-action" onclick="selectNameOption('${escapeJsString(name)}')">
+                    ${escapeHtml(name)}
+                </button>
+            `).join('');
+            emptyMessage.style.display = matches.length ? 'none' : 'block';
+        }
+
+        function openNameSearchModal(targetFieldId, label) {
+            activeNameTargetId = targetFieldId;
+            const modalLabel = document.getElementById('nameSearchModalLabel');
+            const searchInput = document.getElementById('nameSearchInput');
+
+            if (modalLabel) {
+                modalLabel.textContent = `Search ${label}`;
+            }
+            if (searchInput) {
+                searchInput.value = '';
+            }
+
+            renderNameSearchResults();
+            showModalById('nameSearchModal');
+            setTimeout(() => searchInput?.focus(), 200);
+        }
+
+        function showModalById(modalId) {
+            const modalElement = document.getElementById(modalId);
+            if (!modalElement) {
+                return;
+            }
+
+            if (window.jQuery && typeof $(`#${modalId}`).modal === 'function') {
+                $(`#${modalId}`).modal('show');
+                return;
+            }
+
+            if (window.bootstrap && bootstrap.Modal && typeof bootstrap.Modal.getOrCreateInstance === 'function') {
+                bootstrap.Modal.getOrCreateInstance(modalElement).show();
+                return;
+            }
+
+            if (window.bootstrap && bootstrap.Modal) {
+                new bootstrap.Modal(modalElement).show();
+            }
+        }
+
+        function hideModalById(modalId) {
+            const modalElement = document.getElementById(modalId);
+            if (!modalElement) {
+                return;
+            }
+
+            if (window.jQuery && typeof $(`#${modalId}`).modal === 'function') {
+                $(`#${modalId}`).modal('hide');
+                return;
+            }
+
+            if (window.bootstrap && bootstrap.Modal && typeof bootstrap.Modal.getOrCreateInstance === 'function') {
+                bootstrap.Modal.getOrCreateInstance(modalElement).hide();
+                return;
+            }
+
+            if (window.bootstrap && bootstrap.Modal && typeof bootstrap.Modal.getInstance === 'function') {
+                const instance = bootstrap.Modal.getInstance(modalElement);
+                if (instance) {
+                    instance.hide();
+                }
+            }
+        }
+
+        function selectNameOption(name) {
+            const targetField = document.getElementById(activeNameTargetId);
+            if (targetField) {
+                targetField.value = name;
+                targetField.classList.remove('is-invalid');
+            }
+
+            hideModalById('nameSearchModal');
+        }
+
         // Function to update the brand input field based on dropdown selection
         function updateBrandField() {
             var selectedBrand = document.getElementById("brandSelect").value;
@@ -945,6 +1066,13 @@ $conn->close();
         // Initialize form
         document.addEventListener('DOMContentLoaded', function() {
             hydrateSpecificationsFromSavedState();
+
+            const nameSearchInput = document.getElementById('nameSearchInput');
+            if (nameSearchInput) {
+                nameSearchInput.addEventListener('input', function() {
+                    renderNameSearchResults(this.value);
+                });
+            }
 
             // Attach event listeners to all specification checkboxes and inputs
             const checkboxes = document.querySelectorAll('input[type="checkbox"]');

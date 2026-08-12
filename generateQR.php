@@ -12,7 +12,45 @@ $employeeName = trim($_GET['employeeName'] ?? '');
 $statusFilter = $_GET['statusFilter'] ?? '';
 $sortBy = $_GET['sortBy'] ?? 'id_desc';
 
+$pmdDivisionAliases = ['PMD', 'PLANNING AND MANAGEMENT DIVISION', 'PMD RICTU'];
+
+function normalizeQrOfficeDivision($division) {
+    return preg_replace('/\s+/', ' ', strtoupper(trim((string) $division)));
+}
+
+function getQrOfficeDivisionAliases($division, $pmdDivisionAliases) {
+    $normalizedDivision = normalizeQrOfficeDivision($division);
+
+    if (in_array($normalizedDivision, $pmdDivisionAliases, true)) {
+        return $pmdDivisionAliases;
+    }
+
+    return [$normalizedDivision];
+}
+
+function getQrOfficeDivisionOptionValue($division, $pmdDivisionAliases) {
+    $normalizedDivision = normalizeQrOfficeDivision($division);
+
+    return in_array($normalizedDivision, $pmdDivisionAliases, true) ? 'PMD' : $normalizedDivision;
+}
+
+function appendQrOfficeDivisionFilter(&$query, &$params, &$types, $officeDivision, $pmdDivisionAliases) {
+    if ($officeDivision === '') {
+        return;
+    }
+
+    $divisionAliases = getQrOfficeDivisionAliases($officeDivision, $pmdDivisionAliases);
+    $placeholders = implode(',', array_fill(0, count($divisionAliases), '?'));
+
+    $query .= " AND UPPER(TRIM(officeDivision)) IN ($placeholders)";
+    foreach ($divisionAliases as $divisionAlias) {
+        $params[] = $divisionAlias;
+        $types .= 's';
+    }
+}
+
 $divisionOptions = '';
+$seenDivisionOptions = [];
 if ($office !== '') {
     $divisionStmt = $conn->prepare("SELECT officeDivision FROM office_divisions WHERE office = ? ORDER BY officeDivision ASC");
     if ($divisionStmt) {
@@ -20,11 +58,38 @@ if ($office !== '') {
         $divisionStmt->execute();
         $divisionResult = $divisionStmt->get_result();
         while ($divisionRow = $divisionResult->fetch_assoc()) {
-            $divisionName = strtoupper($divisionRow['officeDivision']);
-            $selected = ($officeDivision === $divisionName) ? ' selected' : '';
+            $divisionName = getQrOfficeDivisionOptionValue($divisionRow['officeDivision'], $pmdDivisionAliases);
+            if (isset($seenDivisionOptions[$divisionName])) {
+                continue;
+            }
+            $seenDivisionOptions[$divisionName] = true;
+            $selected = (getQrOfficeDivisionOptionValue($officeDivision, $pmdDivisionAliases) === $divisionName) ? ' selected' : '';
             $divisionOptions .= '<option value="' . htmlspecialchars($divisionName) . '"' . $selected . '>' . htmlspecialchars($divisionName) . '</option>';
         }
         $divisionStmt->close();
+    }
+}
+
+$employeeOptions = '';
+if ($office !== '') {
+    $employeeQuery = "SELECT DISTINCT employeeName FROM inv_inventory WHERE Office = ? AND employeeName IS NOT NULL AND TRIM(employeeName) <> ''";
+    $employeeParams = [$office];
+    $employeeTypes = 's';
+
+    appendQrOfficeDivisionFilter($employeeQuery, $employeeParams, $employeeTypes, $officeDivision, $pmdDivisionAliases);
+    $employeeQuery .= " ORDER BY employeeName ASC";
+
+    $employeeStmt = $conn->prepare($employeeQuery);
+    if ($employeeStmt) {
+        $employeeStmt->bind_param($employeeTypes, ...$employeeParams);
+        $employeeStmt->execute();
+        $employeeResult = $employeeStmt->get_result();
+        while ($employeeRow = $employeeResult->fetch_assoc()) {
+            $employeeOptionName = $employeeRow['employeeName'];
+            $selected = ($employeeName === $employeeOptionName) ? ' selected' : '';
+            $employeeOptions .= '<option value="' . htmlspecialchars($employeeOptionName) . '"' . $selected . '>' . htmlspecialchars($employeeOptionName) . '</option>';
+        }
+        $employeeStmt->close();
     }
 }
 
@@ -38,16 +103,11 @@ if ($inventoryId > 0) {
     $types .= 'i';
 }
 
-if ($officeDivision !== '') {
-    $query .= " AND officeDivision = ?";
-    $params[] = $officeDivision;
-    $types .= 's';
-}
+appendQrOfficeDivisionFilter($query, $params, $types, $officeDivision, $pmdDivisionAliases);
 
-$employeeNameParts = array_filter(preg_split('/\s+/', $employeeName));
-foreach ($employeeNameParts as $employeeNamePart) {
-    $query .= " AND employeeName LIKE ?";
-    $params[] = '%' . $employeeNamePart . '%';
+if ($employeeName !== '') {
+    $query .= " AND employeeName = ?";
+    $params[] = $employeeName;
     $types .= 's';
 }
 
@@ -163,7 +223,10 @@ if ($stmt) {
                     </div>
                     <div>
                         <label for="employeeName">Employee Name:</label>
-                        <input type="text" class="form-control" id="employeeName" name="employeeName" placeholder="Eugreg Baptisma" value="<?php echo htmlspecialchars($employeeName); ?>">
+                        <select class="form-control" id="employeeName" name="employeeName">
+                            <option value="">All</option>
+                            <?php echo $employeeOptions; ?>
+                        </select>
                     </div>
                     <div>
                         <label for="statusFilter">Status:</label>
