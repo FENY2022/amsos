@@ -2,6 +2,70 @@
 session_start();
 require_once 'connect.php';
 
+function tableExists($conn, $table) {
+    static $cache = [];
+
+    if (!preg_match('/^[A-Za-z0-9_]+$/', $table)) {
+        return false;
+    }
+
+    if (array_key_exists($table, $cache)) {
+        return $cache[$table];
+    }
+
+    try {
+        $stmt = $conn->prepare("SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?");
+        $stmt->bind_param("s", $table);
+        $stmt->execute();
+        $stmt->bind_result($count);
+        $stmt->fetch();
+        $cache[$table] = (int)$count > 0;
+        $stmt->close();
+    } catch (Throwable $e) {
+        error_log('tableExists failed for ' . $table . ': ' . $e->getMessage());
+        $cache[$table] = false;
+    }
+
+    return $cache[$table];
+}
+
+function columnExists($conn, $table, $column) {
+    static $cache = [];
+    $key = $table . '.' . $column;
+
+    if (!preg_match('/^[A-Za-z0-9_]+$/', $table) || !preg_match('/^[A-Za-z0-9_]+$/', $column)) {
+        return false;
+    }
+
+    if (array_key_exists($key, $cache)) {
+        return $cache[$key];
+    }
+
+    try {
+        $stmt = $conn->prepare("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?");
+        $stmt->bind_param("ss", $table, $column);
+        $stmt->execute();
+        $stmt->bind_result($count);
+        $stmt->fetch();
+        $cache[$key] = (int)$count > 0;
+        $stmt->close();
+    } catch (Throwable $e) {
+        error_log('columnExists failed for ' . $key . ': ' . $e->getMessage());
+        $cache[$key] = false;
+    }
+
+    return $cache[$key];
+}
+
+function postValue($key, $default = '') {
+    return $_POST[$key] ?? $default;
+}
+
+function redirectBack() {
+    header('Location: ' . ($_SERVER['HTTP_REFERER'] ?? 'entrydata.php'));
+    exit();
+}
+
 function isValidInventoryPersonName($name) {
     $name = trim((string)$name);
     if ($name === '') {
@@ -20,7 +84,7 @@ function getOrCreateOfficeDivisionId($conn, $office, $officeDivision) {
     $office = trim((string)$office);
     $officeDivision = trim((string)$officeDivision);
 
-    if ($office === '' || $officeDivision === '') {
+    if ($office === '' || $officeDivision === '' || !tableExists($conn, 'office_divisions')) {
         return null;
     }
 
@@ -46,7 +110,7 @@ function getOrCreateOfficeDivisionId($conn, $office, $officeDivision) {
 function getOrCreateInventoryPersonId($conn, $name, $officeId, $office, $officeDivision, $employmentStatus, $source) {
     $name = trim((string)$name);
 
-    if (!isValidInventoryPersonName($name)) {
+    if (!isValidInventoryPersonName($name) || !tableExists($conn, 'inventory_people') || !columnExists($conn, 'inventory_people', 'full_name')) {
         return null;
     }
 
@@ -55,22 +119,78 @@ function getOrCreateInventoryPersonId($conn, $name, $officeId, $office, $officeD
     $officeDivision = trim((string)$officeDivision);
     $employmentStatus = trim((string)$employmentStatus);
 
-    $stmt = $conn->prepare("SELECT id FROM inventory_people WHERE normalized_name = ? LIMIT 1");
-    $stmt->bind_param("s", $normalizedName);
+    $lookupColumn = columnExists($conn, 'inventory_people', 'normalized_name') ? 'normalized_name' : 'full_name';
+    $lookupValue = $lookupColumn === 'normalized_name' ? $normalizedName : $name;
+
+    $stmt = $conn->prepare("SELECT id FROM inventory_people WHERE $lookupColumn = ? LIMIT 1");
+    $stmt->bind_param("s", $lookupValue);
     $stmt->execute();
     $stmt->bind_result($personId);
     if ($stmt->fetch()) {
         $stmt->close();
-        $stmt = $conn->prepare("UPDATE inventory_people SET office_id = ?, office = ?, officeDivision = ?, employment_status = IF(? = '', employment_status, ?) WHERE id = ?");
-        $stmt->bind_param("issssi", $officeId, $office, $officeDivision, $employmentStatus, $employmentStatus, $personId);
-        $stmt->execute();
-        $stmt->close();
+        $updates = [];
+        $types = '';
+        $params = [];
+
+        if (columnExists($conn, 'inventory_people', 'office_id')) {
+            $updates[] = 'office_id = ?';
+            $types .= 'i';
+            $params[] = $officeId;
+        }
+        if (columnExists($conn, 'inventory_people', 'office')) {
+            $updates[] = 'office = ?';
+            $types .= 's';
+            $params[] = $office;
+        }
+        if (columnExists($conn, 'inventory_people', 'officeDivision')) {
+            $updates[] = 'officeDivision = ?';
+            $types .= 's';
+            $params[] = $officeDivision;
+        }
+        if ($employmentStatus !== '' && columnExists($conn, 'inventory_people', 'employment_status')) {
+            $updates[] = 'employment_status = ?';
+            $types .= 's';
+            $params[] = $employmentStatus;
+        }
+
+        if (!empty($updates)) {
+            $types .= 'i';
+            $params[] = $personId;
+            $stmt = $conn->prepare('UPDATE inventory_people SET ' . implode(', ', $updates) . ' WHERE id = ?');
+            $stmt->bind_param($types, ...$params);
+            $stmt->execute();
+            $stmt->close();
+        }
+
         return (int)$personId;
     }
     $stmt->close();
 
-    $stmt = $conn->prepare("INSERT INTO inventory_people (full_name, normalized_name, office_id, office, officeDivision, employment_status, source) VALUES (?, ?, ?, ?, ?, ?, ?)");
-    $stmt->bind_param("ssissss", $name, $normalizedName, $officeId, $office, $officeDivision, $employmentStatus, $source);
+    $columns = ['full_name'];
+    $placeholders = ['?'];
+    $types = 's';
+    $params = [$name];
+
+    $optionalColumns = [
+        'normalized_name' => ['s', $normalizedName],
+        'office_id' => ['i', $officeId],
+        'office' => ['s', $office],
+        'officeDivision' => ['s', $officeDivision],
+        'employment_status' => ['s', $employmentStatus],
+        'source' => ['s', $source],
+    ];
+
+    foreach ($optionalColumns as $column => $definition) {
+        if (columnExists($conn, 'inventory_people', $column)) {
+            $columns[] = $column;
+            $placeholders[] = '?';
+            $types .= $definition[0];
+            $params[] = $definition[1];
+        }
+    }
+
+    $stmt = $conn->prepare('INSERT INTO inventory_people (' . implode(', ', $columns) . ') VALUES (' . implode(', ', $placeholders) . ')');
+    $stmt->bind_param($types, ...$params);
     $stmt->execute();
     $newId = $stmt->insert_id;
     $stmt->close();
@@ -152,18 +272,19 @@ function evaluateIctInventoryEntry(array $data) {
 }
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+    try {
     // --- Collect and sanitize form data ---
-    $amount = str_replace(',', '', $_POST['amount']);
-    $depreciation_value = $_POST['depreciation_value'] ?? "";
-    $employeeName = $_POST['employeeName'];
-    $equipmentType = $_POST['equipmentType'];
-    $yearAcquired = $_POST['yearAcquired'];
-    $shelfLife = $_POST['shelfLife'];
-    $brand = $_POST['brand'];
-    $specifications = $_POST['specifications'];
-    $rangeCategory = $_POST['rangeCategory'];
-    $softwareInstalled = $_POST['softwareInstalled'];
-    $licensingModel = $_POST['licensingModel'];
+    $amount = str_replace(',', '', postValue('amount', '0'));
+    $depreciation_value = postValue('depreciation_value', '0');
+    $employeeName = postValue('employeeName');
+    $equipmentType = postValue('equipmentType');
+    $yearAcquired = postValue('yearAcquired');
+    $shelfLife = postValue('shelfLife');
+    $brand = postValue('brand');
+    $specifications = postValue('specifications');
+    $rangeCategory = postValue('rangeCategory');
+    $softwareInstalled = postValue('softwareInstalled');
+    $licensingModel = postValue('licensingModel');
     
     // --- Robust N/A and Whitespace Handling for Serial Number ---
     $serialNumberInput = isset($_POST['serialNumber']) ? trim($_POST['serialNumber']) : '';
@@ -181,22 +302,22 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $propertyNumber = $propertyNumberInput;
     }
 
-    $accountablePerson = $_POST['accountablePerson'];
-    $sex = $_POST['sex'];
-    $officeDivision = $_POST['officeDivision'];
-    $statusOfEmployment = $_POST['statusOfEmployment'];
-    $actualUser = $_POST['actualUser'];
-    $actualUserSex = $_POST['actualUserSex'];
-    $actualUserStatusOfEmployment = $_POST['actualUserStatusOfEmployment'];
-    $natureOfWork = $_POST['natureOfWork'];
-    $remarks = $_POST['remarks'];
+    $accountablePerson = postValue('accountablePerson');
+    $sex = postValue('sex');
+    $officeDivision = postValue('officeDivision');
+    $statusOfEmployment = postValue('statusOfEmployment');
+    $actualUser = postValue('actualUser');
+    $actualUserSex = postValue('actualUserSex');
+    $actualUserStatusOfEmployment = postValue('actualUserStatusOfEmployment');
+    $natureOfWork = postValue('natureOfWork');
+    $remarks = postValue('remarks');
     
     // ---------------------------------------------------------
     // 1. CAPTURE THE NEW VARIABLE
     // ---------------------------------------------------------
-    $computer_specs = $_POST['computer_specs']; 
+    $computer_specs = postValue('computer_specs'); 
     
-    $office = $_SESSION['OfficeSRF'];
+    $office = $_SESSION['OfficeSRF'] ?? '';
     $ictValidation = evaluateIctInventoryEntry([
         'equipmentType' => $equipmentType,
         'computer_specs' => $computer_specs,
@@ -248,33 +369,68 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 $_SESSION['error'] = "A record with this Property Number or Serial Number already exists!";
                 $_SESSION['focus_step'] = 2;
                 $_SESSION['form_data'] = $_POST;
-                header("Location: " . $_SERVER['HTTP_REFERER']);
-                exit();
+                redirectBack();
             }
         } else {
             $_SESSION['error'] = "Error preparing the uniqueness check query.";
             $_SESSION['form_data'] = $_POST;
-            header("Location: " . $_SERVER['HTTP_REFERER']);
-            exit();
+            redirectBack();
         }
     }
 
-    // --- Prepare and execute the insertion query ---
-    
-    // ---------------------------------------------------------
-    // 2. ADD COLUMN TO SQL INSERT
-    // Added 'computer_specs' to columns and '?' to values
-    // ---------------------------------------------------------
-    $sql = "INSERT INTO inv_inventory (employeeName, employee_person_id, equipmentType, yearAcquired, shelfLife, brand, specifications, rangeCategory, softwareInstalled, licensingModel, serialNumber, propertyNumber, accountablePerson, accountable_person_id, sex, officeDivision, statusOfEmployment, actualUser, actual_user_id, actualUserSex, actualUserStatusOfEmployment, natureOfWork, remarks, amount, depreciation_value, office, office_id, computer_specs) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+    $fields = [
+        'employeeName' => ['s', $employeeName],
+        'employee_person_id' => ['i', $employeePersonId],
+        'equipmentType' => ['s', $equipmentType],
+        'yearAcquired' => ['s', $yearAcquired],
+        'shelfLife' => ['s', $shelfLife],
+        'brand' => ['s', $brand],
+        'specifications' => ['s', $specifications],
+        'rangeCategory' => ['s', $rangeCategory],
+        'softwareInstalled' => ['s', $softwareInstalled],
+        'licensingModel' => ['s', $licensingModel],
+        'serialNumber' => ['s', $serialNumber],
+        'propertyNumber' => ['s', $propertyNumber],
+        'accountablePerson' => ['s', $accountablePerson],
+        'accountable_person_id' => ['i', $accountablePersonId],
+        'sex' => ['s', $sex],
+        'officeDivision' => ['s', $officeDivision],
+        'statusOfEmployment' => ['s', $statusOfEmployment],
+        'actualUser' => ['s', $actualUser],
+        'actual_user_id' => ['i', $actualUserId],
+        'actualUserSex' => ['s', $actualUserSex],
+        'actualUserStatusOfEmployment' => ['s', $actualUserStatusOfEmployment],
+        'natureOfWork' => ['s', $natureOfWork],
+        'remarks' => ['s', $remarks],
+        'amount' => ['d', (float)$amount],
+        'depreciation_value' => ['s', $depreciation_value],
+        'office' => ['s', $office],
+        'office_id' => ['i', $officeId],
+        'computer_specs' => ['s', $computer_specs],
+    ];
+
+    $columns = [];
+    $placeholders = [];
+    $types = '';
+    $params = [];
+
+    foreach ($fields as $column => $definition) {
+        if (columnExists($conn, 'inv_inventory', $column)) {
+            $columns[] = $column;
+            $placeholders[] = '?';
+            $types .= $definition[0];
+            $params[] = $definition[1];
+        }
+    }
+
+    if (empty($columns)) {
+        throw new RuntimeException('No matching inv_inventory columns found for insert.');
+    }
+
+    $sql = 'INSERT INTO inv_inventory (' . implode(', ', $columns) . ') VALUES (' . implode(', ', $placeholders) . ')';
 
     if ($stmt = $conn->prepare($sql)) {
-        // ---------------------------------------------------------
-        // 3. UPDATE BIND_PARAM
-        // Added 's' to type string (now 24 chars) and '$computer_specs' to variables
-        // ---------------------------------------------------------
-        $types = "si" . str_repeat("s", 11) . "i" . str_repeat("s", 4) . "i" . str_repeat("s", 4) . "dssis";
-        $stmt->bind_param($types,
-            $employeeName, $employeePersonId, $equipmentType, $yearAcquired, $shelfLife, $brand, $specifications, $rangeCategory, $softwareInstalled, $licensingModel, $serialNumber, $propertyNumber, $accountablePerson, $accountablePersonId, $sex, $officeDivision, $statusOfEmployment, $actualUser, $actualUserId, $actualUserSex, $actualUserStatusOfEmployment, $natureOfWork, $remarks, $amount, $depreciation_value, $office, $officeId, $computer_specs);
+        $stmt->bind_param($types, ...$params);
 
         if ($stmt->execute()) {
             $_SESSION['success'] = "Inventory record saved successfully!";
@@ -293,7 +449,15 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     }
 
     $conn->close();
-    header("Location: " . $_SERVER['HTTP_REFERER']);
-    exit();
+    redirectBack();
+    } catch (Throwable $e) {
+        error_log('entrydatahandler.php failed: ' . $e->getMessage());
+        $_SESSION['error'] = 'Error saving inventory record. Please check the server error log.';
+        $_SESSION['form_data'] = $_POST;
+        if (isset($conn) && $conn instanceof mysqli) {
+            $conn->close();
+        }
+        redirectBack();
+    }
 }
 ?>
