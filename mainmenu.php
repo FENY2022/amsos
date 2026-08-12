@@ -185,6 +185,10 @@ require_once 'sidebar.php';
 
                 require_once 'scanQR.php' ;
 
+            }elseif ($_dirlist == 'generateQR') {
+
+                require_once 'generateQR.php' ;
+
             }elseif ($_dirlist == 'ai') {
 
                 echo '<iframe src="summaryAI.php" style="width:100%; height:100vh; border:none;"></iframe>';
