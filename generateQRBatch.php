@@ -14,6 +14,12 @@ if (empty($ids)) {
     exit;
 }
 
+$allowedPerPage = [4, 6, 8, 10, 12, 15];
+$perPage = isset($_GET['perPage']) ? (int) $_GET['perPage'] : 10;
+if (!in_array($perPage, $allowedPerPage, true)) {
+    $perPage = 10;
+}
+
 $office = $_SESSION['OfficeSRF'] ?? '';
 $placeholders = implode(',', array_fill(0, count($ids), '?'));
 $query = "SELECT employeeName, equipmentType, yearAcquired, brand, amount, propertyNumber, id
@@ -116,6 +122,33 @@ $baseUrl = $scheme . '://' . $_SERVER['HTTP_HOST'] . ($basePath === '' ? '' : $b
             page-break-after: always;
         }
 
+        .qr-per-page-4 .qr-page {
+            grid-template-rows: repeat(2, 1fr);
+        }
+
+        .qr-per-page-6 .qr-page {
+            grid-template-rows: repeat(3, 1fr);
+        }
+
+        .qr-per-page-8 .qr-page {
+            grid-template-rows: repeat(4, 1fr);
+        }
+
+        .qr-per-page-10 .qr-page {
+            grid-template-rows: repeat(5, 1fr);
+        }
+
+        .qr-per-page-12 .qr-page {
+            grid-template-columns: repeat(3, 1fr);
+            grid-template-rows: repeat(4, 1fr);
+        }
+
+        .qr-per-page-15 .qr-page {
+            grid-template-columns: repeat(3, 1fr);
+            grid-template-rows: repeat(5, 1fr);
+            gap: 2mm;
+        }
+
         .sticker {
             border: 1px dashed #555;
             border-radius: 3mm;
@@ -187,6 +220,55 @@ $baseUrl = $scheme . '://' . $_SERVER['HTTP_HOST'] . ($basePath === '' ? '' : $b
             font-weight: 700;
         }
 
+        .qr-per-page-12 .sticker,
+        .qr-per-page-15 .sticker {
+            padding: 1.8mm;
+        }
+
+        .qr-per-page-12 .sticker-header,
+        .qr-per-page-15 .sticker-header {
+            gap: 1mm;
+            min-height: 7mm;
+        }
+
+        .qr-per-page-12 .sticker-logo,
+        .qr-per-page-15 .sticker-logo {
+            width: 16mm;
+            max-height: 6mm;
+        }
+
+        .qr-per-page-12 .sticker-title,
+        .qr-per-page-15 .sticker-title {
+            font-size: 6pt;
+        }
+
+        .qr-per-page-12 .sticker-body,
+        .qr-per-page-15 .sticker-body {
+            grid-template-columns: 22mm 1fr;
+            gap: 1mm;
+        }
+
+        .qr-per-page-12 .qr-code,
+        .qr-per-page-12 .qr-code canvas,
+        .qr-per-page-12 .qr-code img,
+        .qr-per-page-15 .qr-code,
+        .qr-per-page-15 .qr-code canvas,
+        .qr-per-page-15 .qr-code img {
+            width: 22mm !important;
+            height: 22mm !important;
+        }
+
+        .qr-per-page-12 .sticker-details,
+        .qr-per-page-15 .sticker-details {
+            font-size: 6.4pt;
+            line-height: 1.12;
+        }
+
+        .qr-per-page-12 .detail-line,
+        .qr-per-page-15 .detail-line {
+            margin-bottom: 0.45mm;
+        }
+
         @page {
             size: A4 portrait;
             margin: 8mm;
@@ -220,15 +302,15 @@ $baseUrl = $scheme . '://' . $_SERVER['HTTP_HOST'] . ($basePath === '' ? '' : $b
         }
     </style>
 </head>
-<body>
+<body class="qr-per-page-<?php echo $perPage; ?>">
     <div class="toolbar">
-        <span><?php echo count($records); ?> QR sticker(s), 10 per A4 page</span>
+        <span><?php echo count($records); ?> QR sticker(s), <?php echo $perPage; ?> per bond paper</span>
         <button type="button" class="print-button" onclick="window.print()">Print All</button>
         <button type="button" class="back-button" onclick="window.close(); if (!window.closed) history.back();">Back</button>
     </div>
 
     <div class="page-wrap">
-        <?php foreach (array_chunk($records, 10) as $recordChunk): ?>
+        <?php foreach (array_chunk($records, $perPage) as $recordChunk): ?>
             <section class="qr-page">
                 <?php foreach ($recordChunk as $row): ?>
                     <?php $detailsUrl = $baseUrl . '/details.php?id=' . (int) $row['id']; ?>

@@ -200,14 +200,14 @@ if ($stmt) {
 
 <div class="generate-qr-page">
     <div class="generate-qr-header">
-        <h2><i class="fas fa-tags"></i> Generate Equipment QR Stickers</h2>
-        <p class="text-muted mb-0">Filter inventory, mark equipment, then generate a compact A4 sticker sheet.</p>
+        <h2><i class="fas fa-tags"></i> Generate Equipment Stickers</h2>
+        <p class="text-muted mb-0">Filter inventory, mark equipment, then generate QR stickers or editable PPE stickers.</p>
     </div>
 
     <div class="card mb-3">
         <div class="card-header"><i class="fas fa-search"></i> Search Filters</div>
         <div class="card-body">
-            <form action="mainmenu.php" method="GET">
+            <form action="mainmenu.php" method="GET" id="stickerFilterForm">
                 <input type="hidden" name="dir" value="generateQR">
                 <div class="filter-grid">
                     <div>
@@ -258,7 +258,8 @@ if ($stmt) {
                 <div class="table-action-buttons">
                     <button type="button" class="btn btn-outline-primary btn-sm" onclick="setAllQrRows(true)"><i class="fas fa-check-square"></i> Mark All</button>
                     <button type="button" class="btn btn-outline-secondary btn-sm" onclick="setAllQrRows(false)"><i class="far fa-square"></i> Unmark All</button>
-                    <button type="button" class="btn btn-success btn-sm" onclick="generateMarkedQr()"><i class="fas fa-qrcode"></i> Generate QR</button>
+                    <button type="button" class="btn btn-success btn-sm" onclick="showQrStickerModal()"><i class="fas fa-qrcode"></i> Generate QR</button>
+                    <button type="button" class="btn btn-danger btn-sm" onclick="showPpeStickerModal()"><i class="fas fa-id-card"></i> Generate PPE Stickers</button>
                 </div>
             </div>
 
@@ -266,6 +267,7 @@ if ($stmt) {
                 <table class="table table-striped table-hover table-sm">
                     <thead class="thead-dark">
                         <tr>
+                            <th>#</th>
                             <th class="select-cell">Mark</th>
                             <th>ID</th>
                             <th>Employee Name</th>
@@ -278,8 +280,10 @@ if ($stmt) {
                     </thead>
                     <tbody>
                         <?php if ($result && $result->num_rows > 0): ?>
+                            <?php $sequenceNumber = 1; ?>
                             <?php while ($row = $result->fetch_assoc()): ?>
                                 <tr>
+                                    <td><?php echo $sequenceNumber++; ?></td>
                                     <td class="select-cell">
                                         <input type="checkbox" class="qr-checkbox" value="<?php echo htmlspecialchars($row['id']); ?>" onchange="updateSelectedCount()">
                                     </td>
@@ -296,11 +300,68 @@ if ($stmt) {
                             <?php endwhile; ?>
                         <?php else: ?>
                             <tr>
-                                <td colspan="8" class="text-center text-muted py-4">No inventory records found.</td>
+                                <td colspan="9" class="text-center text-muted py-4">No inventory records found.</td>
                             </tr>
                         <?php endif; ?>
                     </tbody>
                 </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="qrStickerModal" tabindex="-1" role="dialog" aria-labelledby="qrStickerModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="qrStickerModalLabel"><i class="fas fa-qrcode"></i> QR Sticker Layout</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <label for="qrPerPage" class="font-weight-bold">How many QR stickers in 1 bond paper?</label>
+                <select class="form-control" id="qrPerPage">
+                    <option value="4">4 stickers</option>
+                    <option value="6">6 stickers</option>
+                    <option value="8">8 stickers</option>
+                    <option value="10" selected>10 stickers</option>
+                    <option value="12">12 stickers</option>
+                    <option value="15">15 stickers</option>
+                </select>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-success" onclick="generateMarkedQr()"><i class="fas fa-print"></i> Continue</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="ppeStickerModal" tabindex="-1" role="dialog" aria-labelledby="ppeStickerModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="ppeStickerModalLabel"><i class="fas fa-id-card"></i> PPE Sticker Layout</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <label for="ppePerPage" class="font-weight-bold">How many PPE stickers in 1 bond paper?</label>
+                <select class="form-control" id="ppePerPage">
+                    <option value="4">4 stickers</option>
+                    <option value="6">6 stickers</option>
+                    <option value="8" selected>8 stickers</option>
+                    <option value="10">10 stickers</option>
+                    <option value="12">12 stickers</option>
+                    <option value="15">15 stickers</option>
+                </select>
+                <small class="text-muted d-block mt-2">Fields are editable before printing and will not be saved to the database.</small>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" onclick="generateMarkedPpeStickers()"><i class="fas fa-print"></i> Continue</button>
             </div>
         </div>
     </div>
@@ -323,7 +384,7 @@ function setAllQrRows(checked) {
     updateSelectedCount();
 }
 
-function generateMarkedQr() {
+function showQrStickerModal() {
     const selectedIds = getQrCheckboxes()
         .filter(checkbox => checkbox.checked)
         .map(checkbox => checkbox.value);
@@ -333,10 +394,130 @@ function generateMarkedQr() {
         return;
     }
 
-    window.open(`generateQRBatch.php?ids=${encodeURIComponent(selectedIds.join(','))}`, '_blank');
+    $('#qrStickerModal').modal('show');
+}
+
+function generateMarkedQr() {
+    const selectedIds = getQrCheckboxes()
+        .filter(checkbox => checkbox.checked)
+        .map(checkbox => checkbox.value);
+    const perPage = document.getElementById('qrPerPage').value;
+
+    if (selectedIds.length === 0) {
+        alert('Please select at least one inventory record.');
+        return;
+    }
+
+    $('#qrStickerModal').modal('hide');
+    window.open(`generateQRBatch.php?ids=${encodeURIComponent(selectedIds.join(','))}&perPage=${encodeURIComponent(perPage)}`, '_blank');
+}
+
+function getSelectedQrIds() {
+    return getQrCheckboxes()
+        .filter(checkbox => checkbox.checked)
+        .map(checkbox => checkbox.value);
+}
+
+function showPpeStickerModal() {
+    const selectedIds = getSelectedQrIds();
+
+    if (selectedIds.length === 0) {
+        alert('Please select at least one inventory record.');
+        return;
+    }
+
+    $('#ppeStickerModal').modal('show');
+}
+
+function generateMarkedPpeStickers() {
+    const selectedIds = getSelectedQrIds();
+    const perPage = document.getElementById('ppePerPage').value;
+
+    if (selectedIds.length === 0) {
+        alert('Please select at least one inventory record.');
+        return;
+    }
+
+    $('#ppeStickerModal').modal('hide');
+    window.open(`generatePPEStickersBatch.php?ids=${encodeURIComponent(selectedIds.join(','))}&perPage=${encodeURIComponent(perPage)}`, '_blank');
 }
 
 document.addEventListener('DOMContentLoaded', updateSelectedCount);
+
+const stickerFilterStorageKey = 'generateStickerFilters';
+const stickerFilterFields = ['inventoryId', 'officeDivision', 'employeeName', 'statusFilter', 'sortBy'];
+
+function getStickerFilterForm() {
+    return document.getElementById('stickerFilterForm');
+}
+
+function getCurrentStickerFilters() {
+    const filters = {};
+    stickerFilterFields.forEach(fieldName => {
+        const field = document.getElementById(fieldName);
+        filters[fieldName] = field ? field.value : '';
+    });
+
+    return filters;
+}
+
+function saveStickerFilters() {
+    localStorage.setItem(stickerFilterStorageKey, JSON.stringify(getCurrentStickerFilters()));
+}
+
+function restoreStickerFiltersFromMemory() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const hasFilterParams = stickerFilterFields.some(fieldName => urlParams.has(fieldName));
+
+    if (hasFilterParams) {
+        saveStickerFilters();
+        return;
+    }
+
+    const savedFilters = localStorage.getItem(stickerFilterStorageKey);
+    if (!savedFilters) {
+        return;
+    }
+
+    let filters;
+    try {
+        filters = JSON.parse(savedFilters);
+    } catch (error) {
+        localStorage.removeItem(stickerFilterStorageKey);
+        return;
+    }
+
+    const hasSavedValue = stickerFilterFields.some(fieldName => (filters[fieldName] || '') !== '');
+    if (!hasSavedValue) {
+        return;
+    }
+
+    const restoredParams = new URLSearchParams(window.location.search);
+    restoredParams.set('dir', 'generateQR');
+    stickerFilterFields.forEach(fieldName => {
+        if ((filters[fieldName] || '') !== '') {
+            restoredParams.set(fieldName, filters[fieldName]);
+        }
+    });
+
+    window.location.replace(`mainmenu.php?${restoredParams.toString()}`);
+}
+
+document.addEventListener('DOMContentLoaded', function () {
+    restoreStickerFiltersFromMemory();
+
+    const filterForm = getStickerFilterForm();
+    if (filterForm) {
+        filterForm.addEventListener('submit', saveStickerFilters);
+    }
+
+    stickerFilterFields.forEach(fieldName => {
+        const field = document.getElementById(fieldName);
+        if (field) {
+            field.addEventListener('change', saveStickerFilters);
+        }
+    });
+});
 </script>
 
 <?php

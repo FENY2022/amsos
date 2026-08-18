@@ -205,7 +205,7 @@ $tracking2 = $tracking2 ?? 0;
                     <a href="mainmenu.php?dir=scanQR"><i class="fas fa-qrcode"></i> Scan QR</a>
                 </li>
                 <li>
-                    <a href="mainmenu.php?dir=generateQR"><i class="fas fa-tags"></i> Generate</a>
+                    <a href="mainmenu.php?dir=generateQR"><i class="fas fa-tags"></i> Generate Stickers</a>
                 </li>
             </ul>
         </li>
