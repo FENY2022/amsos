@@ -22,7 +22,7 @@ if (!in_array($perPage, $allowedPerPage, true)) {
 
 $office = $_SESSION['OfficeSRF'] ?? '';
 $placeholders = implode(',', array_fill(0, count($ids), '?'));
-$query = "SELECT employeeName, equipmentType, yearAcquired, brand, amount, propertyNumber, id
+$query = "SELECT employeeName, equipmentType, yearAcquired, brand, amount, serialNumber, propertyNumber, officeDivision, id
           FROM inv_inventory
           WHERE Office = ? AND id IN ($placeholders)
           ORDER BY FIELD(id, $placeholders)";
@@ -50,6 +50,18 @@ $stmt->close();
 $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
 $basePath = rtrim(str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'])), '/');
 $baseUrl = $scheme . '://' . $_SERVER['HTTP_HOST'] . ($basePath === '' ? '' : $basePath);
+
+function formatQrAmount($amount) {
+    if ($amount === null || $amount === '') {
+        return '';
+    }
+
+    return number_format((float) str_replace(',', '', (string) $amount), 2);
+}
+
+function formatQrSerialNumber($serialNumber) {
+    return trim(preg_replace('/^SN\s*:\s*/i', '', (string) $serialNumber));
+}
 ?>
 
 <!DOCTYPE html>
@@ -176,7 +188,7 @@ $baseUrl = $scheme . '://' . $_SERVER['HTTP_HOST'] . ($basePath === '' ? '' : $b
         }
 
         .sticker-title {
-            font-size: 7.5pt;
+            font-size: 11pt;
             line-height: 1.05;
             font-weight: 700;
             text-transform: uppercase;
@@ -205,8 +217,8 @@ $baseUrl = $scheme . '://' . $_SERVER['HTTP_HOST'] . ($basePath === '' ? '' : $b
 
         .sticker-details {
             min-width: 0;
-            font-size: 8.5pt;
-            line-height: 1.25;
+            font-size: 9.6pt;
+            line-height: 1.28;
         }
 
         .detail-line {
@@ -214,6 +226,17 @@ $baseUrl = $scheme . '://' . $_SERVER['HTTP_HOST'] . ($basePath === '' ? '' : $b
             overflow: hidden;
             text-overflow: ellipsis;
             margin-bottom: 0.8mm;
+        }
+
+        .property-number-line {
+            white-space: normal;
+            overflow: visible;
+            text-overflow: clip;
+            overflow-wrap: anywhere;
+        }
+
+        .property-number-line strong {
+            display: block;
         }
 
         .detail-line strong {
@@ -239,7 +262,7 @@ $baseUrl = $scheme . '://' . $_SERVER['HTTP_HOST'] . ($basePath === '' ? '' : $b
 
         .qr-per-page-12 .sticker-title,
         .qr-per-page-15 .sticker-title {
-            font-size: 6pt;
+            font-size: 8pt;
         }
 
         .qr-per-page-12 .sticker-body,
@@ -260,8 +283,8 @@ $baseUrl = $scheme . '://' . $_SERVER['HTTP_HOST'] . ($basePath === '' ? '' : $b
 
         .qr-per-page-12 .sticker-details,
         .qr-per-page-15 .sticker-details {
-            font-size: 6.4pt;
-            line-height: 1.12;
+            font-size: 7.2pt;
+            line-height: 1.15;
         }
 
         .qr-per-page-12 .detail-line,
@@ -322,13 +345,14 @@ $baseUrl = $scheme . '://' . $_SERVER['HTTP_HOST'] . ($basePath === '' ? '' : $b
                         <div class="sticker-body">
                             <div class="qr-code" data-qr="<?php echo htmlspecialchars($detailsUrl); ?>"></div>
                             <div class="sticker-details">
-                                <div class="detail-line"><strong>ID:</strong> <?php echo htmlspecialchars($row['id']); ?></div>
-                                <div class="detail-line"><strong>PN:</strong> <?php echo htmlspecialchars($row['propertyNumber']); ?></div>
-                                <div class="detail-line"><strong>Name:</strong> <?php echo htmlspecialchars($row['employeeName']); ?></div>
+                                <div class="detail-line"><strong>SN:</strong> <?php echo htmlspecialchars(formatQrSerialNumber($row['serialNumber'])); ?></div>
+                                <div class="detail-line property-number-line"><strong>Property Number:</strong> <?php echo htmlspecialchars($row['propertyNumber']); ?></div>
+                                <div class="detail-line"><strong>Division:</strong> <?php echo htmlspecialchars($row['officeDivision']); ?></div>
+                                <div class="detail-line"><strong>Name:</strong> <strong><?php echo htmlspecialchars($row['employeeName']); ?></strong></div>
                                 <div class="detail-line"><strong>Type:</strong> <?php echo htmlspecialchars($row['equipmentType']); ?></div>
                                 <div class="detail-line"><strong>Brand:</strong> <?php echo htmlspecialchars($row['brand']); ?></div>
                                 <div class="detail-line"><strong>Year:</strong> <?php echo htmlspecialchars($row['yearAcquired']); ?></div>
-                                <div class="detail-line"><strong>Amount:</strong> <?php echo htmlspecialchars($row['amount']); ?></div>
+                                <div class="detail-line"><strong>Amount:</strong> <?php echo htmlspecialchars(formatQrAmount($row['amount'])); ?></div>
                             </div>
                         </div>
                     </article>
