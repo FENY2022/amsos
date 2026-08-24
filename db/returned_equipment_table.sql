@@ -1,0 +1,98 @@
+CREATE TABLE IF NOT EXISTS inv_returned_equipment (
+    id INT(11) NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    original_inventory_id INT(11) NOT NULL,
+    employeeName TEXT NOT NULL,
+    employee_person_id INT(11) NULL,
+    equipmentType TEXT NOT NULL,
+    computer_specs TEXT NULL,
+    yearAcquired TEXT NOT NULL,
+    shelfLife TEXT NOT NULL,
+    brand TEXT NOT NULL,
+    specifications LONGTEXT NOT NULL,
+    rangeCategory TEXT NOT NULL,
+    softwareInstalled TEXT NOT NULL,
+    licensingModel TEXT NOT NULL,
+    softwareInstalled_2 TEXT NOT NULL,
+    licensingModel_2 TEXT NOT NULL,
+    serialNumber LONGTEXT NOT NULL,
+    propertyNumber TEXT NOT NULL,
+    accountablePerson TEXT NOT NULL,
+    accountable_person_id INT(11) NULL,
+    sex TEXT NOT NULL,
+    officeDivision TEXT NOT NULL,
+    statusOfEmployment TEXT NOT NULL,
+    actualUser TEXT NOT NULL,
+    actual_user_id INT(11) NULL,
+    actualUserSex TEXT NOT NULL,
+    actualUserStatusOfEmployment TEXT NOT NULL,
+    natureOfWork TEXT NOT NULL,
+    remarks LONGTEXT NOT NULL,
+    office TEXT NOT NULL,
+    office_id INT(11) NULL,
+    amount INT(11) NOT NULL DEFAULT 0,
+    depreciation_value INT(11) NOT NULL DEFAULT 0,
+    mark_as_done TEXT NOT NULL,
+    inventory_created_at TIMESTAMP NULL,
+    inventory_updated_at TIMESTAMP NULL,
+    return_status ENUM('Returned','Restored') NOT NULL DEFAULT 'Returned',
+    return_reason TEXT NULL,
+    returned_by VARCHAR(255) NULL,
+    returned_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    restored_by VARCHAR(255) NULL,
+    restored_at TIMESTAMP NULL,
+    restore_inventory_id INT(11) NULL,
+    INDEX idx_original_inventory_id (original_inventory_id),
+    INDEX idx_return_status (return_status),
+    INDEX idx_returned_at (returned_at),
+    INDEX idx_restore_inventory_id (restore_inventory_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+CREATE TABLE IF NOT EXISTS inv_return_approvers (
+    id INT(11) NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    user_id INT(11) NOT NULL,
+    full_name VARCHAR(255) NOT NULL,
+    username VARCHAR(255) NULL,
+    office VARCHAR(255) NULL,
+    station VARCHAR(255) NULL,
+    is_default TINYINT(1) NOT NULL DEFAULT 0,
+    is_active TINYINT(1) NOT NULL DEFAULT 1,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY uniq_return_approver_user_id (user_id),
+    INDEX idx_return_approver_active (is_active),
+    INDEX idx_return_approver_default (is_default)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+CREATE TABLE IF NOT EXISTS inv_return_requests (
+    id INT(11) NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    inventory_id INT(11) NOT NULL,
+    requested_by_id INT(11) NULL,
+    requested_by_name VARCHAR(255) NULL,
+    assigned_to_id INT(11) NOT NULL,
+    assigned_to_name VARCHAR(255) NOT NULL,
+    return_reason TEXT NULL,
+    status ENUM('Pending','Approved','Disapproved','Cancelled') NOT NULL DEFAULT 'Pending',
+    reviewed_by_id INT(11) NULL,
+    reviewed_by_name VARCHAR(255) NULL,
+    reviewed_at TIMESTAMP NULL,
+    review_remarks TEXT NULL,
+    returned_equipment_id INT(11) NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_return_request_inventory (inventory_id),
+    INDEX idx_return_request_assigned (assigned_to_id),
+    INDEX idx_return_request_status (status),
+    INDEX idx_return_request_created (created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+INSERT INTO inv_return_approvers (user_id, full_name, username, office, station, is_default, is_active)
+VALUES (1373, 'Rodelo L. Tanudtanud', 'rodelo87tanud', 'REGIONAL OFFICE', 'RO ASD', 1, 1)
+ON DUPLICATE KEY UPDATE
+    full_name = VALUES(full_name),
+    username = VALUES(username),
+    office = VALUES(office),
+    station = VALUES(station),
+    is_default = 1,
+    is_active = 1;
+
+UPDATE inv_return_approvers SET is_default = CASE WHEN user_id = 1373 THEN 1 ELSE 0 END;
