@@ -1,3 +1,23 @@
+<?php
+$imageDir = __DIR__ . '/image';
+$imageWebPath = 'image/';
+$allowedExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'];
+$backgroundImages = [];
+
+if (is_dir($imageDir)) {
+    foreach (scandir($imageDir) as $file) {
+        $filePath = $imageDir . DIRECTORY_SEPARATOR . $file;
+        $extension = strtolower(pathinfo($file, PATHINFO_EXTENSION));
+
+        if (is_file($filePath) && in_array($extension, $allowedExtensions, true)) {
+            $backgroundImages[] = $file;
+        }
+    }
+
+    natcasesort($backgroundImages);
+    $backgroundImages = array_values($backgroundImages);
+}
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -146,18 +166,19 @@
         .input-group input {
             width: 100%;
             padding: 15px 15px 15px 45px; /* Adjust padding for icon */
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
+            border: none;
+            border-bottom: 2px solid var(--border-color);
+            border-radius: 0;
             font-size: 1.1em;
             outline: none;
             transition: border-color 0.3s ease, box-shadow 0.3s ease;
             color: var(--text-color);
-            background-color: var(--background-light);
+            background-color: transparent;
         }
 
         .input-group input:focus {
             border-color: var(--primary-color);
-            box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.25);
+            box-shadow: none;
         }
 
         .input-group input:focus + .input-icon,
@@ -219,6 +240,18 @@
         .login-button:hover {
             background-color: #0056b3; /* Darker shade of primary */
             transform: translateY(-2px);
+        }
+
+        .login-button:disabled {
+            background-color: #9bbce0;
+            cursor: not-allowed;
+            opacity: 0.75;
+            transform: none;
+        }
+
+        .login-button:disabled:hover {
+            background-color: #9bbce0;
+            transform: none;
         }
 
         .login-button:active {
@@ -314,9 +347,9 @@
 <body>
     <div class="container">
         <div class="slideshow">
-            <img class="slide" src="image/image1.jpg" alt="Scenic Background 1">
-            <img class="slide" src="image/image2.jpg" alt="Scenic Background 2">
-            <img class="slide" src="image/image3.jpg" alt="Scenic Background 3">
+            <?php foreach ($backgroundImages as $index => $image): ?>
+                <img class="slide" src="<?= htmlspecialchars($imageWebPath . $image, ENT_QUOTES, 'UTF-8') ?>" alt="Scenic Background <?= $index + 1 ?>">
+            <?php endforeach; ?>
             <div class="overlay"></div> </div>
         
         <div class="login-wrapper">
@@ -386,6 +419,7 @@
         // reCAPTCHA callbacks
         function onRecaptchaSuccess() {
             $('.login-button').prop('disabled', false);
+            $('#loginForm').trigger('submit');
         }
 
         function onRecaptchaExpired() {
