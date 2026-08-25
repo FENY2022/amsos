@@ -52,6 +52,8 @@ function getStarRating($feedback) {
     ];
     return isset($ratings[$feedback]) ? "<span class='{$ratings[$feedback]['color']}'>{$ratings[$feedback]['stars']}</span>" : 'N/A';
 }
+
+$canEditRequests = isset($_SESSION['User_RoleSRF']) && $_SESSION['User_RoleSRF'] === 'Super_admin';
 ?>
 
 <!DOCTYPE html>
@@ -418,15 +420,11 @@ function getStarRating($feedback) {
             </div>
             <div class="card-body bg-white rounded-bottom-4 text-center">
                 <h4 class="text-muted mb-2"><?= $date_label ?></h4>
-                <?php if (isset($_SESSION['User_RoleSRF'])): ?>
                 <div class="badge bg-primary fs-6 py-2 px-3">Total Records: <?= $result->num_rows ?></div>
-                <?php endif; ?>
             </div>
         </div>
 
-        <?php if (isset($_SESSION['User_RoleSRF'])): ?>
-
-        <?php if ($_SESSION['User_RoleSRF'] === 'Super_admin'): ?>
+        <?php if ($canEditRequests): ?>
             <div class="filter-card mb-4">
                 <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
                     <h5 class="mb-0 text-primary"><i class="bi bi-funnel me-2"></i>Filter Results</h5>
@@ -574,10 +572,14 @@ function getStarRating($feedback) {
                                                 data-bs-target="#viewDocumentModal<?= $row['id'] ?>">
                                             <i class="bi bi-eye"></i>
                                         </button>
-                                        <?php if ($_SESSION['User_RoleSRF'] === 'Super_admin'): ?>
+                                        <?php if ($canEditRequests): ?>
                                         <a href="edit-receive.php?id=<?= $row['id'] ?>" target="_blank" class="btn btn-sm btn-outline-warning">
                                             <i class="bi bi-pencil"></i>
                                         </a>
+                                        <?php else: ?>
+                                        <button type="button" class="btn btn-sm btn-outline-secondary" disabled title="Login as Super Admin to edit">
+                                            <i class="bi bi-pencil"></i>
+                                        </button>
                                         <?php endif; ?>
                                     </div>
                                 </td>
@@ -599,10 +601,14 @@ function getStarRating($feedback) {
                                                         data-bs-target="#viewDocumentModal<?= $row['id'] ?>">
                                                     <i class="bi bi-eye me-2"></i>View Document
                                                 </button>
-                                                <?php if ($_SESSION['User_RoleSRF'] === 'Super_admin'): ?>
+                                                <?php if ($canEditRequests): ?>
                                                 <a href="edit-receive.php?id=<?= $row['id'] ?>" target="_blank" class="btn btn-sm btn-outline-warning w-100">
                                                     <i class="bi bi-pencil me-2"></i>Edit
                                                 </a>
+                                                <?php else: ?>
+                                                <button type="button" class="btn btn-sm btn-outline-secondary w-100" disabled title="Login as Super Admin to edit">
+                                                    <i class="bi bi-pencil me-2"></i>Edit
+                                                </button>
                                                 <?php endif; ?>
                                             </div>
                                         </div>
@@ -642,15 +648,6 @@ function getStarRating($feedback) {
             </div>
         </div>
 
-        <?php else: ?>
-        <div class="card custom-card">
-            <div class="card-body text-center py-5">
-                <i class="bi bi-shield-lock fs-1 text-muted"></i>
-                <h4 class="mt-3 text-muted">Please log in to view request data</h4>
-                <a href="login.php" class="btn btn-primary mt-3"><i class="bi bi-box-arrow-in-right me-2"></i>Login</a>
-            </div>
-        </div>
-        <?php endif; ?>
     </div>
 
     <div class="modal fade" id="printModal" tabindex="-1" aria-labelledby="printModalLabel" aria-hidden="true">
@@ -668,7 +665,7 @@ function getStarRating($feedback) {
                         </div>
                     </div>
                     <iframe 
-                        data-src="print-all.php?date_filter=<?= $date_filter ?>&from_date=<?= $from_date ?>&to_date=<?= $to_date ?>&show_rows=<?= $show_rows ?>" 
+                        data-src="print-all-requestdata.php?date_filter=<?= urlencode($date_filter) ?>&from_date=<?= urlencode($from_date) ?>&to_date=<?= urlencode($to_date) ?>&show_rows=<?= (int)$show_rows ?>" 
                         style="width: 100%; height: 70vh; border: none; zoom: 1;" 
                         id="printAllIframe">
                     </iframe>

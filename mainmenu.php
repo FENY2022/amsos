@@ -234,6 +234,34 @@ require_once 'sidebar.php';
         </div>
     </div>
 
+    <div class="modal fade logout-confirm-modal" id="logoutConfirmModal" tabindex="-1" role="dialog" aria-labelledby="logoutConfirmModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content logout-confirm-card">
+                <div class="modal-header logout-confirm-header">
+                    <div class="logout-confirm-title-wrap">
+                        <div class="logout-confirm-icon" aria-hidden="true">
+                            <i class="fas fa-right-from-bracket"></i>
+                        </div>
+                        <div>
+                            <h5 class="modal-title" id="logoutConfirmModalLabel">Confirm Logout</h5>
+                            <p class="logout-confirm-subtitle">Your current session will be ended.</p>
+                        </div>
+                    </div>
+                    <button type="button" class="close logout-modal-cancel" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body logout-confirm-body">
+                    <p>Are you sure you want to log out?</p>
+                </div>
+                <div class="modal-footer logout-confirm-footer">
+                    <button type="button" class="btn logout-cancel-btn logout-modal-cancel" data-dismiss="modal">Cancel</button>
+                    <a class="btn logout-confirm-btn" href="logout.php"><i class="fas fa-sign-out-alt"></i> Log Out</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.4/dist/umd/popper.min.js"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
@@ -296,11 +324,13 @@ require_once 'sidebar.php';
                     $(window).resize(checkSidebar);
 
                     // Confirm logout
-                    $('#logoutLink').on('click', function (e) {
+                    $('.logout-link').on('click', function (e) {
                         e.preventDefault();
-                        if (confirm('Are you sure you want to log out?')) {
-                            window.location.href = 'logout.php'; // Redirect to the logout script
-                        }
+                        $('#logoutConfirmModal').modal('show');
+                    });
+
+                    $('.logout-modal-cancel').on('click', function () {
+                        $('#logoutConfirmModal').modal('hide');
                     });
                 });
 </script>

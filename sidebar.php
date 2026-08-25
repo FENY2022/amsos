@@ -2,27 +2,64 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
 <style>
         .account-picture {
+            width: 122px;
+            height: 122px;
             display: flex;
             align-items: center;
             justify-content: center;
             position: relative;
+            margin: 12px auto 0;
+        }
+
+        .account-img,
+        .temporary-profile-avatar {
+            width: 112px;
+            height: 112px;
+            min-width: 112px;
+            min-height: 112px;
+            max-width: 112px;
+            max-height: 112px;
+            box-sizing: border-box;
+            border-radius: 50%;
+            border: 3px solid rgba(255, 255, 255, 0.95);
+            box-shadow: 0 10px 28px rgba(0, 0, 0, 0.28);
+            overflow: hidden;
         }
 
         .account-img {
-            width: 100px;
-            height: 100px;
-            border-radius: 50%;
+            display: block;
             object-fit: cover;
-            border: 3px solid #000;
+            aspect-ratio: 1 / 1;
+            background: #4b5563;
+        }
+
+        .temporary-profile-avatar {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #ffffff;
+            background: linear-gradient(135deg, #2563eb, #14b8a6);
+            font-size: 2.3rem;
+            font-weight: 800;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
         }
 
         .camera-icon {
+            width: 38px;
+            height: 38px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
             position: absolute;
-            bottom: 0;
-            right: 0;
-            background: white;
+            right: 2px;
+            bottom: 8px;
+            color: #374151;
+            background: #ffffff;
+            border: 3px solid #444;
             border-radius: 50%;
-            padding: 5px;
+            box-shadow: 0 8px 18px rgba(0, 0, 0, 0.25);
+            font-size: 0.95rem;
         }
 
         h4 {
@@ -142,6 +179,23 @@
 <?php
 
 $stationID = $_SESSION['idSRF'];
+$fullName = $_SESSION['Full_NameSRF'] ?? 'User';
+$profileLink = trim($_SESSION['Profile_LinkSRF'] ?? '');
+$profileUrl = $profileLink !== '' ? 'https://otos.e-dats.info/forms/dashboard/' . $profileLink : '';
+$nameParts = preg_split('/\s+/', trim($fullName));
+$temporaryInitials = '';
+
+foreach ($nameParts as $namePart) {
+    if ($namePart !== '') {
+        $temporaryInitials .= strtoupper(substr($namePart, 0, 1));
+    }
+
+    if (strlen($temporaryInitials) >= 2) {
+        break;
+    }
+}
+
+$temporaryInitials = $temporaryInitials !== '' ? $temporaryInitials : 'U';
 
 
                     // if ($_SESSION['OfficeSRF'] != 'REGIONAL OFFICE') {
@@ -181,10 +235,17 @@ $tracking2 = $tracking2 ?? 0;
 <div class="wrapper">
 <nav id="sidebar">
     <div class="sidebar-header">
-        <h4><?php echo $_SESSION['Full_NameSRF'] ; ?></h4>
+        <h4><?php echo htmlspecialchars($fullName); ?></h4>
         <div class="account-picture">
-            <img src="https://otos.e-dats.info/forms/dashboard/<?php echo $_SESSION['Profile_LinkSRF']; ?>" alt="Account Picture" class="account-img">
-            <a type="button"><span class="camera-icon">&#x1F4F7;</span></a>
+            <?php if ($profileUrl !== ''): ?>
+                <img src="<?php echo htmlspecialchars($profileUrl); ?>" alt="Account Picture" class="account-img" onerror="this.replaceWith(document.getElementById('temporaryProfileAvatar').content.cloneNode(true));">
+                <template id="temporaryProfileAvatar">
+                    <div class="temporary-profile-avatar" aria-label="Temporary profile picture"><?php echo htmlspecialchars(substr($temporaryInitials, 0, 2)); ?></div>
+                </template>
+            <?php else: ?>
+                <div class="temporary-profile-avatar" aria-label="Temporary profile picture"><?php echo htmlspecialchars(substr($temporaryInitials, 0, 2)); ?></div>
+            <?php endif; ?>
+            <a type="button"><span class="camera-icon"><i class="fas fa-camera"></i></span></a>
         </div>
     </div>
     <ul class="list-unstyled components">
@@ -446,7 +507,7 @@ if ($_SESSION['User_RoleSRF'] == 'Encoder' || $_SESSION['User_RoleSRF'] == 'Veri
         </li>
         
         <li>
-             <a class="nav-link" href="login.php" id="logoutLink"><i class="fas fa-sign-out-alt"></i> Log Out</a>
+             <a class="nav-link logout-link" href="logout.php"><i class="fas fa-sign-out-alt"></i> Log Out</a>
         </li>
 
        
@@ -508,7 +569,7 @@ document.addEventListener("DOMContentLoaded", function () {
             const linkHref = this.getAttribute("href");
             localStorage.setItem("activeSubmenu", linkHref);
 
-            if (!linkHref || linkHref.startsWith('#') || this.dataset.toggle === 'collapse' || this.getAttribute('target') === '_blank' || this.id === 'logoutLink') {
+            if (!linkHref || linkHref.startsWith('#') || this.dataset.toggle === 'collapse' || this.getAttribute('target') === '_blank' || this.classList.contains('logout-link')) {
                 return;
             }
 

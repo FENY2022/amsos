@@ -428,7 +428,7 @@ $date = date('Y-m-d');
                     <?php
                     require_once 'connect_otos.php';
                     $station = $_SESSION['StationSRF'];
-                    $stmt = $conn_otos->prepare("SELECT full_name, id, Div_Sec_Unit, Position, Contact_Number, Station FROM useremployee WHERE Station = ? ORDER BY full_name");
+                    $stmt = $conn_otos->prepare("SELECT full_name, id, Div_Sec_Unit, Position, Contact_Number, Station FROM useremployee WHERE Station = ? AND status_toggle = 'active' ORDER BY full_name");
                     $stmt->bind_param("s", $station);
                     $stmt->execute();
                     $result = $stmt->get_result();

@@ -32,7 +32,7 @@ if ($_dirlist == 'entrydatahidesidebar') {
                 <a class="nav-link" href="#">Home</a>
             </li>
             <li class="nav-item">
-                <a class="nav-link" href="#" id="logoutLink">Log Out</a>
+                <a class="nav-link logout-link" href="logout.php">Log Out</a>
             </li>
         </ul>
     </div>
