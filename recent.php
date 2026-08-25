@@ -346,7 +346,7 @@ echo "
 
 // Disapproved Modal
 echo "<div class='modal fade' id='disapproved{$srfId}' tabindex='-1' aria-hidden='true'>
-    <div class='modal-dialog'>
+    <div class='modal-dialog modal-dialog-scrollable'>
         <form method='POST' action='disapproved.php'>
             <div class='modal-content'>
                 <div class='modal-header bg-danger text-white'>

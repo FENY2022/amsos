@@ -170,6 +170,33 @@ $totalRows = $result ? $result->num_rows : 0;
             background: #fff;
         }
 
+        .load-status {
+            color: rgba(255, 255, 255, 0.84);
+            font-size: 0.9rem;
+        }
+
+        .document-frame-wrap {
+            position: relative;
+            min-height: 285vh;
+            background: #fff;
+        }
+
+        .document-loader {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: flex-start;
+            justify-content: center;
+            padding-top: 34px;
+            color: #64748b;
+            background: linear-gradient(180deg, #ffffff, #f8fafc);
+            z-index: 1;
+        }
+
+        .document-frame-wrap.is-loaded .document-loader {
+            display: none;
+        }
+
         .empty-state {
             border-radius: 18px;
             background: #fff;
@@ -232,9 +259,10 @@ $totalRows = $result ? $result->num_rows : 0;
                 <div>
                     <h1><i class="bi bi-files me-2"></i>View All Documents</h1>
                     <p>All completed SRF requests currently shown in the Request Data table are listed here for viewing and printing.</p>
+                    <div class="load-status" id="documentLoadStatus">Preparing documents...</div>
                 </div>
                 <div class="d-flex align-items-start gap-2">
-                    <button type="button" class="btn btn-light fw-bold" onclick="window.print()"><i class="bi bi-printer me-1"></i>Print All</button>
+                    <button type="button" class="btn btn-light fw-bold" id="printAllBtn" disabled><i class="bi bi-hourglass-split me-1"></i>Preparing Print...</button>
                 </div>
             </div>
         </div>
@@ -257,7 +285,10 @@ $totalRows = $result ? $result->num_rows : 0;
                             </div>
                             <span class="badge-soft"><?php echo htmlspecialchars(ratingLabel(isset($row['rate']) ? $row['rate'] : '')); ?></span>
                         </div>
-                        <iframe src="printform-request.php?id=<?php echo urlencode((string)$row['id']); ?>"></iframe>
+                        <div class="document-frame-wrap">
+                            <div class="document-loader"><span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>Loading document...</div>
+                            <iframe data-src="printform-request.php?id=<?php echo urlencode((string)$row['id']); ?>" title="SRF Document <?php echo htmlspecialchars(isset($row['ticketNumber']) ? $row['ticketNumber'] : ''); ?>"></iframe>
+                        </div>
                     </section>
                 <?php endwhile; ?>
             </div>
@@ -265,5 +296,85 @@ $totalRows = $result ? $result->num_rows : 0;
             <div class="empty-state">No completed SRF documents are available for this filter.</div>
         <?php endif; ?>
     </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const frames = Array.from(document.querySelectorAll('iframe[data-src]'));
+            const printBtn = document.getElementById('printAllBtn');
+            const status = document.getElementById('documentLoadStatus');
+            const total = frames.length;
+            const maxConcurrentLoads = 2;
+            let nextIndex = 0;
+            let activeLoads = 0;
+            let finishedLoads = 0;
+
+            const updateStatus = function() {
+                if (!status) return;
+
+                if (total === 0) {
+                    status.textContent = 'No documents to load.';
+                    return;
+                }
+
+                status.textContent = 'Loading documents ' + finishedLoads + ' of ' + total + '. Please wait before printing.';
+            };
+
+            const enablePrint = function() {
+                if (status) {
+                    status.textContent = 'All documents loaded. Ready to print.';
+                }
+
+                if (printBtn) {
+                    printBtn.disabled = false;
+                    printBtn.innerHTML = '<i class="bi bi-printer me-1"></i>Print All';
+                }
+            };
+
+            const loadNext = function() {
+                updateStatus();
+
+                if (finishedLoads >= total) {
+                    enablePrint();
+                    return;
+                }
+
+                while (activeLoads < maxConcurrentLoads && nextIndex < total) {
+                    const frame = frames[nextIndex];
+                    nextIndex += 1;
+                    activeLoads += 1;
+
+                    const done = function() {
+                        frame.removeEventListener('load', done);
+                        frame.removeEventListener('error', done);
+                        activeLoads -= 1;
+                        finishedLoads += 1;
+
+                        const wrap = frame.closest('.document-frame-wrap');
+                        if (wrap) {
+                            wrap.classList.add('is-loaded');
+                        }
+
+                        loadNext();
+                    };
+
+                    frame.addEventListener('load', done);
+                    frame.addEventListener('error', done);
+                    frame.src = frame.dataset.src;
+                }
+            };
+
+            if (printBtn) {
+                printBtn.addEventListener('click', function() {
+                    if (finishedLoads < total) {
+                        alert('Please wait until all documents are loaded before printing.');
+                        return;
+                    }
+
+                    window.print();
+                });
+            }
+
+            loadNext();
+        });
+    </script>
 </body>
 </html>

@@ -14,6 +14,17 @@ if ($show_rows < 1) {
     $show_rows = 100; // Set minimum to 100 rows
 }
 
+$shareScheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+$shareHost = isset($_SERVER['HTTP_HOST']) ? $_SERVER['HTTP_HOST'] : (isset($_SERVER['SERVER_NAME']) ? $_SERVER['SERVER_NAME'] : 'localhost');
+$shareBasePath = rtrim(str_replace('\\', '/', dirname(isset($_SERVER['SCRIPT_NAME']) ? $_SERVER['SCRIPT_NAME'] : '')), '/');
+$sharePath = ($shareBasePath === '' || $shareBasePath === '.') ? '/amsos-requestdata.php' : $shareBasePath . '/amsos-requestdata.php';
+$shareUrl = $shareScheme . '://' . $shareHost . $sharePath . '?' . http_build_query(array(
+    'date_filter' => $date_filter,
+    'from_date' => $from_date,
+    'to_date' => $to_date,
+    'show_rows' => $show_rows
+));
+
 // Build query
 $query = "SELECT srf.*, srffeedback.feedback AS rate 
           FROM srf 
@@ -526,22 +537,27 @@ $canEditRequests = isset($_SESSION['User_RoleSRF']) && $_SESSION['User_RoleSRF']
 
         <div class="d-flex justify-content-between align-items-center mb-3">
             <h4><i class="bi bi-table me-2"></i>Records</h4>
-            <div class="dropdown">
-                <button class="btn btn-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                    <i class="bi bi-gear me-2"></i>Actions
+            <div class="d-flex flex-wrap justify-content-end gap-2">
+                <button type="button" class="btn btn-outline-primary" id="copyShareLinkBtn" data-share-url="<?= htmlspecialchars($shareUrl) ?>">
+                    <i class="bi bi-link-45deg me-2"></i>Copy Share Link
                 </button>
-                <ul class="dropdown-menu dropdown-menu-end">
-                    <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#analysisModal">
-                        <i class="bi bi-graph-up me-2"></i>Data Analysis
-                    </a></li>
-                    <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#aiModal">
-                        <i class="bi bi-robot me-2"></i>AI Insights
-                    </a></li>
-                    <li><hr class="dropdown-divider"></li>
-                    <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#printModal">
-                        <i class="bi bi-printer me-2"></i>View All
-                    </a></li>
-                </ul>
+                <div class="dropdown">
+                    <button class="btn btn-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="bi bi-gear me-2"></i>Actions
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#analysisModal">
+                            <i class="bi bi-graph-up me-2"></i>Data Analysis
+                        </a></li>
+                        <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#aiModal">
+                            <i class="bi bi-robot me-2"></i>AI Insights
+                        </a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#printModal">
+                            <i class="bi bi-printer me-2"></i>View All
+                        </a></li>
+                    </ul>
+                </div>
             </div>
         </div>
 
@@ -1129,6 +1145,40 @@ $canEditRequests = isset($_SESSION['User_RoleSRF']) && $_SESSION['User_RoleSRF']
         }
 
         document.addEventListener('DOMContentLoaded', function() {
+            const copyShareLinkBtn = document.getElementById('copyShareLinkBtn');
+            if (copyShareLinkBtn) {
+                const originalHtml = copyShareLinkBtn.innerHTML;
+
+                const copyText = function(text) {
+                    if (navigator.clipboard && window.isSecureContext) {
+                        return navigator.clipboard.writeText(text);
+                    }
+
+                    const textarea = document.createElement('textarea');
+                    textarea.value = text;
+                    textarea.setAttribute('readonly', '');
+                    textarea.style.position = 'fixed';
+                    textarea.style.left = '-9999px';
+                    document.body.appendChild(textarea);
+                    textarea.select();
+                    const copied = document.execCommand('copy');
+                    document.body.removeChild(textarea);
+
+                    return copied ? Promise.resolve() : Promise.reject();
+                };
+
+                copyShareLinkBtn.addEventListener('click', function() {
+                    copyText(copyShareLinkBtn.dataset.shareUrl).then(function() {
+                        copyShareLinkBtn.innerHTML = '<i class="bi bi-check2 me-2"></i>Copied';
+                        setTimeout(function() {
+                            copyShareLinkBtn.innerHTML = originalHtml;
+                        }, 1800);
+                    }).catch(function() {
+                        window.prompt('Copy this report link:', copyShareLinkBtn.dataset.shareUrl);
+                    });
+                });
+            }
+
             document.querySelectorAll('.modal').forEach(function(modal) {
                 modal.addEventListener('shown.bs.modal', function() {
                     const trigger = document.querySelector('[data-bs-target="#' + modal.id + '"][data-loading="1"]');

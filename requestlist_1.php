@@ -397,7 +397,7 @@ echo "</td></tr>";
 
 
     echo "<div class='modal fade' id='assign{$row['id']}' tabindex='-1' aria-hidden='true'>
-    <div class='modal-dialog'>
+    <div class='modal-dialog modal-dialog-scrollable'>
         <form method='GET' action='assign.php'>
             <div class='modal-content'>
                 <div class='modal-header bg-secondary'>
