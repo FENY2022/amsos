@@ -5,6 +5,35 @@ function h($value) {
     return htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8');
 }
 
+function ensureReturnedReceiptSchema(mysqli $conn): void {
+    $columns = [
+        'return_receipt_no' => "VARCHAR(80) NULL",
+        'returned_by_name' => "VARCHAR(255) NULL",
+        'returned_by_position' => "VARCHAR(255) NULL",
+        'returned_by_date' => "DATE NULL",
+        'received_by_name' => "VARCHAR(255) NULL",
+        'received_by_position' => "VARCHAR(255) NULL",
+        'received_by_date' => "DATE NULL",
+        'received_item_by_name' => "VARCHAR(255) NULL",
+        'received_item_by_position' => "VARCHAR(255) NULL",
+        'received_item_by_date' => "DATE NULL",
+        'return_receipt_note' => "TEXT NULL",
+    ];
+
+    foreach ($columns as $column => $definition) {
+        $checkStmt = $conn->prepare("SELECT COUNT(*) AS total FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'inv_returned_equipment' AND COLUMN_NAME = ?");
+        $checkStmt->bind_param('s', $column);
+        $checkStmt->execute();
+        $exists = (int) ($checkStmt->get_result()->fetch_assoc()['total'] ?? 0);
+
+        if ($exists === 0) {
+            $conn->query("ALTER TABLE inv_returned_equipment ADD COLUMN `$column` $definition");
+        }
+    }
+}
+
+ensureReturnedReceiptSchema($conn);
+
 $sessionOffice = $_SESSION['OfficeSRF'] ?? '';
 $canViewAllOffices = $sessionOffice === '' || strtoupper($sessionOffice) === 'REGIONAL OFFICE';
 $currentUserId = isset($_SESSION['idSRF']) ? (int) $_SESSION['idSRF'] : 0;
@@ -17,6 +46,7 @@ $equipmentType = $_GET['equipmentType'] ?? 'All';
 $office = $_GET['office'] ?? ($canViewAllOffices ? 'All' : $sessionOffice);
 $dateFrom = $_GET['date_from'] ?? '';
 $dateTo = $_GET['date_to'] ?? '';
+$printReturnId = isset($_GET['print_return_id']) ? (int) $_GET['print_return_id'] : 0;
 
 if (!in_array($status, ['Returned', 'Restored', 'All'], true)) {
     $status = 'Returned';
@@ -423,23 +453,77 @@ if ($isSuperAdmin && $approverSearch !== '') {
                                 </td>
                                 <td><?= h($request['assigned_to_name']); ?></td>
                                 <td><?= h($request['return_reason'] ?: 'No reason provided.'); ?></td>
-                                <td style="min-width: 280px;">
-                                    <form action="approveReturnEquipment.php" method="POST" class="mb-2" onsubmit="return confirm('Accept this return request?');">
-                                        <input type="hidden" name="request_id" value="<?= (int) $request['id']; ?>">
-                                        <textarea name="review_remarks" class="form-control form-control-sm mb-2" rows="2" placeholder="Approval remarks (optional)"></textarea>
-                                        <button type="submit" class="btn btn-sm btn-success"><i class="fas fa-check mr-1"></i>Accept Return</button>
-                                    </form>
-                                    <form action="disapproveReturnEquipment.php" method="POST" onsubmit="return confirm('Disapprove this return request?');">
-                                        <input type="hidden" name="request_id" value="<?= (int) $request['id']; ?>">
-                                        <textarea name="review_remarks" class="form-control form-control-sm mb-2" rows="2" required placeholder="Reason for disapproval"></textarea>
-                                        <button type="submit" class="btn btn-sm btn-danger"><i class="fas fa-times mr-1"></i>Disapprove</button>
-                                    </form>
+                                <td style="min-width: 220px;">
+                                    <button type="button" class="btn btn-sm btn-success mb-2" data-toggle="modal" data-target="#acceptReturn<?= (int) $request['id']; ?>">
+                                        <i class="fas fa-check mr-1"></i>Accept Return
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-danger mb-2" data-toggle="modal" data-target="#disapproveReturn<?= (int) $request['id']; ?>">
+                                        <i class="fas fa-times mr-1"></i>Disapprove
+                                    </button>
                                 </td>
                             </tr>
                         <?php endforeach; ?>
                     </tbody>
                 </table>
             </div>
+
+            <?php foreach ($pendingRequests as $request): ?>
+                <div class="modal fade" id="acceptReturn<?= (int) $request['id']; ?>" tabindex="-1" role="dialog" aria-labelledby="acceptReturnLabel<?= (int) $request['id']; ?>" aria-hidden="true">
+                    <div class="modal-dialog" role="document">
+                        <form action="approveReturnEquipment.php" method="POST" class="modal-content">
+                            <div class="modal-header bg-success text-white">
+                                <h5 class="modal-title" id="acceptReturnLabel<?= (int) $request['id']; ?>"><i class="fas fa-check-circle mr-2"></i>Accept Return</h5>
+                                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                            </div>
+                            <div class="modal-body">
+                                <p class="mb-2">Accept this return request and move the equipment to returned records?</p>
+                                <div class="border rounded p-3 bg-light mb-3">
+                                    <strong><?= h($request['equipmentType']); ?> - <?= h($request['brand']); ?></strong>
+                                    <div class="muted-small">Property No: <?= h($request['propertyNumber']); ?></div>
+                                    <div class="muted-small">Serial No: <?= h($request['serialNumber']); ?></div>
+                                </div>
+                                <input type="hidden" name="request_id" value="<?= (int) $request['id']; ?>">
+                                <div class="form-group mb-0">
+                                    <label for="acceptRemarks<?= (int) $request['id']; ?>">Remarks</label>
+                                    <textarea name="review_remarks" id="acceptRemarks<?= (int) $request['id']; ?>" class="form-control" rows="3" placeholder="Approval remarks (optional)"></textarea>
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                                <button type="submit" class="btn btn-success"><i class="fas fa-check mr-1"></i>Accept Return</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="modal fade" id="disapproveReturn<?= (int) $request['id']; ?>" tabindex="-1" role="dialog" aria-labelledby="disapproveReturnLabel<?= (int) $request['id']; ?>" aria-hidden="true">
+                    <div class="modal-dialog" role="document">
+                        <form action="disapproveReturnEquipment.php" method="POST" class="modal-content">
+                            <div class="modal-header bg-danger text-white">
+                                <h5 class="modal-title" id="disapproveReturnLabel<?= (int) $request['id']; ?>"><i class="fas fa-times-circle mr-2"></i>Disapprove Return</h5>
+                                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                            </div>
+                            <div class="modal-body">
+                                <p class="mb-2">Disapprove this return request? The equipment will remain in active inventory.</p>
+                                <div class="border rounded p-3 bg-light mb-3">
+                                    <strong><?= h($request['equipmentType']); ?> - <?= h($request['brand']); ?></strong>
+                                    <div class="muted-small">Property No: <?= h($request['propertyNumber']); ?></div>
+                                    <div class="muted-small">Serial No: <?= h($request['serialNumber']); ?></div>
+                                </div>
+                                <input type="hidden" name="request_id" value="<?= (int) $request['id']; ?>">
+                                <div class="form-group mb-0">
+                                    <label for="disapproveRemarks<?= (int) $request['id']; ?>">Remarks <span class="text-danger">*</span></label>
+                                    <textarea name="review_remarks" id="disapproveRemarks<?= (int) $request['id']; ?>" class="form-control" rows="3" required placeholder="Reason for disapproval"></textarea>
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                                <button type="submit" class="btn btn-danger"><i class="fas fa-times mr-1"></i>Disapprove</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            <?php endforeach; ?>
         </section>
     <?php endif; ?>
 
@@ -650,11 +734,13 @@ if ($isSuperAdmin && $approverSearch !== '') {
                                         <?php endif; ?>
                                     </td>
                                     <td class="no-print">
+                                        <button type="button" class="btn btn-sm btn-outline-primary mb-2 js-return-print-preview" data-print-url="printReturnedEquipment.php?id=<?= (int) $record['id']; ?>" data-print-title="Return Receipt - <?= h($record['propertyNumber']); ?>">
+                                            <i class="fas fa-print mr-1"></i>Print Form
+                                        </button>
                                         <?php if ($record['return_status'] === 'Returned'): ?>
-                                            <form action="restoreReturnedEquipment.php" method="POST" onsubmit="return confirm('Restore this equipment to active inventory?');">
-                                                <input type="hidden" name="id" value="<?= (int) $record['id']; ?>">
-                                                <button type="submit" class="btn btn-sm btn-success"><i class="fas fa-history mr-1"></i>Restore</button>
-                                            </form>
+                                            <button type="button" class="btn btn-sm btn-success" data-toggle="modal" data-target="#restoreReturned<?= (int) $record['id']; ?>">
+                                                <i class="fas fa-history mr-1"></i>Restore
+                                            </button>
                                         <?php else: ?>
                                             <span class="text-muted small">Restored to ID <?= h($record['restore_inventory_id']); ?></span>
                                         <?php endif; ?>
@@ -669,12 +755,79 @@ if ($isSuperAdmin && $approverSearch !== '') {
                         </tbody>
                     </table>
                 </div>
+
+                <?php foreach ($records as $record): ?>
+                    <?php if ($record['return_status'] === 'Returned'): ?>
+                        <div class="modal fade" id="restoreReturned<?= (int) $record['id']; ?>" tabindex="-1" role="dialog" aria-labelledby="restoreReturnedLabel<?= (int) $record['id']; ?>" aria-hidden="true">
+                            <div class="modal-dialog" role="document">
+                                <form action="restoreReturnedEquipment.php" method="POST" class="modal-content">
+                                    <div class="modal-header bg-success text-white">
+                                        <h5 class="modal-title" id="restoreReturnedLabel<?= (int) $record['id']; ?>"><i class="fas fa-history mr-2"></i>Restore Equipment</h5>
+                                        <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        <p class="mb-2">Restore this equipment to active inventory?</p>
+                                        <div class="border rounded p-3 bg-light mb-0">
+                                            <strong><?= h($record['equipmentType']); ?> - <?= h($record['brand']); ?></strong>
+                                            <div class="muted-small">Property No: <?= h($record['propertyNumber']); ?></div>
+                                            <div class="muted-small">Serial No: <?= h($record['serialNumber']); ?></div>
+                                        </div>
+                                        <input type="hidden" name="id" value="<?= (int) $record['id']; ?>">
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                                        <button type="submit" class="btn btn-success"><i class="fas fa-history mr-1"></i>Confirm Restore</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    <?php endif; ?>
+                <?php endforeach; ?>
             </section>
         </div>
     </div>
 </div>
 
+<div class="modal fade" id="returnReceiptPreviewModal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered" role="document">
+        <div class="modal-content" style="border:0;border-radius:18px;overflow:hidden;">
+            <div class="modal-header bg-primary text-white">
+                <div>
+                    <h5 class="modal-title mb-0" id="returnReceiptPreviewTitle">Return Receipt</h5>
+                    <small class="text-white-50">Edit signatory details, save, then print.</small>
+                </div>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+            </div>
+            <div class="modal-body p-0 position-relative" style="background:#f8fafc;">
+                <div id="returnReceiptLoading" class="flex-column align-items-center justify-content-center position-absolute w-100 h-100" style="display:none;top:0;left:0;z-index:2;background:rgba(248,250,252,.94);">
+                    <div class="spinner-border text-primary mb-3" role="status" aria-hidden="true"></div>
+                    <div class="font-weight-bold text-primary">Loading Return Receipt...</div>
+                    <small class="text-muted">Please wait while the form is being prepared.</small>
+                </div>
+                <iframe id="returnReceiptPreviewFrame" src="about:blank" onload="hideReturnReceiptLoading()" style="width:100%;height:78vh;border:0;background:#fff;"></iframe>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" id="returnReceiptPrintBtn"><i class="fas fa-print mr-1"></i>Print</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
+    function hideReturnReceiptLoading() {
+        const loadingOverlay = document.getElementById('returnReceiptLoading');
+        const printButton = document.getElementById('returnReceiptPrintBtn');
+
+        if (loadingOverlay) {
+            loadingOverlay.style.display = 'none';
+        }
+
+        if (printButton) {
+            printButton.disabled = false;
+        }
+    }
+
     const returnedChartLabels = <?= json_encode($chartLabels); ?>;
     const returnedChartValues = <?= json_encode($chartValues); ?>;
     const chartCanvas = document.getElementById('returnedEquipmentChart');
@@ -700,4 +853,77 @@ if ($isSuperAdmin && $approverSearch !== '') {
             }
         });
     }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        const previewFrame = document.getElementById('returnReceiptPreviewFrame');
+        const previewTitle = document.getElementById('returnReceiptPreviewTitle');
+        const printButton = document.getElementById('returnReceiptPrintBtn');
+        const loadingOverlay = document.getElementById('returnReceiptLoading');
+        const autoPrintReturnId = <?= (int) $printReturnId; ?>;
+        let receiptLoadingTimer = null;
+
+        function setReceiptLoading(isLoading) {
+            if (loadingOverlay) {
+                loadingOverlay.style.display = isLoading ? 'flex' : 'none';
+            }
+
+            if (printButton) {
+                printButton.disabled = isLoading;
+            }
+        }
+
+        function openReceiptPreview(url, title) {
+            if (!previewFrame || !window.jQuery) {
+                window.open(url, '_blank');
+                return;
+            }
+
+            previewTitle.textContent = title || 'Return Receipt';
+            setReceiptLoading(true);
+            clearTimeout(receiptLoadingTimer);
+            receiptLoadingTimer = setTimeout(function () {
+                hideReturnReceiptLoading();
+            }, 7000);
+            previewFrame.src = url;
+            $('#returnReceiptPreviewModal').modal('show');
+        }
+
+        if (previewFrame) {
+            previewFrame.addEventListener('load', function () {
+                clearTimeout(receiptLoadingTimer);
+                receiptLoadingTimer = setTimeout(function () {
+                    hideReturnReceiptLoading();
+                }, 150);
+            });
+        }
+
+        document.querySelectorAll('.js-return-print-preview').forEach(function (button) {
+            button.addEventListener('click', function () {
+                openReceiptPreview(button.getAttribute('data-print-url'), button.getAttribute('data-print-title'));
+            });
+        });
+
+        if (printButton) {
+            printButton.addEventListener('click', function () {
+                if (previewFrame && previewFrame.contentWindow) {
+                    previewFrame.contentWindow.focus();
+                    previewFrame.contentWindow.print();
+                }
+            });
+        }
+
+        if (window.jQuery) {
+            $('#returnReceiptPreviewModal').on('hidden.bs.modal', function () {
+                clearTimeout(receiptLoadingTimer);
+                if (previewFrame) {
+                    previewFrame.src = 'about:blank';
+                }
+                hideReturnReceiptLoading();
+            });
+        }
+
+        if (autoPrintReturnId > 0) {
+            openReceiptPreview('printReturnedEquipment.php?id=' + encodeURIComponent(autoPrintReturnId), 'Return Receipt');
+        }
+    });
 </script>

@@ -1034,8 +1034,7 @@ ini_set('display_errors', 1);
             $stmt2->execute();
             $result2 = $stmt2->get_result();
             if ($result2->num_rows > 0) { while ($officeRow = $result2->fetch_assoc()) { echo "<option value='" . htmlspecialchars($officeRow['personelid']) . "'>" . strtoupper(htmlspecialchars($officeRow['name'])) . "</option>"; } }
-            echo "<option value='102'>MARK AS DONE</option>";
-            echo "</select></div><input type='hidden' name='assignedperson_1' id='assignedperson_1_{$srfId}'><input type='hidden' name='email' value='{$email}'/><input type='hidden' name='name' value='{$name}'/><input type='hidden' name='ticketNumber' value='{$ticketNumber}'/><input type='hidden' name='requestType' value='{$requestType}'/><input type='hidden' name='otherSpecify' value='{$otherSpecify}'/><input type='hidden' name='equipment_id' value='{$equipment_id}'/><input type='hidden' name='zoom_title' value='{$zoomTitleValue}'/><input type='hidden' name='zoom_schedule_datetime' value='{$zoomScheduleValue}'/><input type='hidden' name='office' value='{$officeValue}'/><input type='hidden' name='divSecUnit' value='{$divSecUnitValue}'/><div class='border rounded-3 p-3 mt-3 bg-light zoom-completion-fields' id='zoomFields_{$srfId}' style='display:none;'><div class='alert alert-warning py-2 mb-3' style='font-size:0.85rem;'><strong>Zoom calendar save:</strong> Meeting ID and password will be saved to Calendar Scheduler with the requested division.</div><div class='mb-2'><label class='form-label'>Meeting ID</label><input type='text' class='form-control' name='zoom_meeting_id' id='zoom_meeting_id_{$srfId}' placeholder='Enter meeting ID' oninput='checkAssignForm({$srfId})'></div><div class='mb-2'><label class='form-label'>Password</label><input type='text' class='form-control' name='zoom_password' id='zoom_password_{$srfId}' placeholder='Enter password' oninput='checkAssignForm({$srfId})'></div><div class='mb-2'><label class='form-label'>Meeting Link (Optional)</label><input type='url' class='form-control' name='zoom_link' id='zoom_link_{$srfId}' placeholder='https://...'></div><div class='small text-muted'>Title: {$zoomTitleValue}<br>Zoom Schedule: {$zoomScheduleValue}<br>Requested Division: {$divisionDisplay}</div></div><div class='alert alert-info mt-3 mb-0' style='font-size:0.85rem;text-align:justify;'><strong>Notice:</strong> {$legal_disclaimer}</div></div><div class='modal-footer'><button type='button' class='btn btn-secondary' data-bs-dismiss='modal'>Close</button><span class='d-inline-block ms-2' tabindex='0' data-bs-toggle='tooltip' title='{$legal_disclaimer}'><button type='submit' id='submitBtn_{$srfId}' class='btn btn-primary' disabled>Affix Signature</button></span></div></div></form></div></div>";
+            echo "</select></div><div class='form-check mt-3'><input class='form-check-input' type='checkbox' name='mark_as_done' id='mark_as_done_{$srfId}' value='1' onchange='checkAssignForm({$srfId})'><label class='form-check-label fw-semibold' for='mark_as_done_{$srfId}'>Mark as Done</label></div><div class='border rounded-3 p-3 mt-3 bg-light mark-done-fields' id='markDoneFields_{$srfId}' style='display:none;'><label class='form-label d-block'>Completion Result</label><div class='form-check form-check-inline'><input class='form-check-input' type='radio' name='completion_result' id='completion_resolved_{$srfId}' value='Resolved' onchange='checkAssignForm({$srfId})'><label class='form-check-label' for='completion_resolved_{$srfId}'>Resolved</label></div><div class='form-check form-check-inline'><input class='form-check-input' type='radio' name='completion_result' id='completion_unserviceable_{$srfId}' value='Unserviceable' onchange='checkAssignForm({$srfId})'><label class='form-check-label' for='completion_unserviceable_{$srfId}'>Unserviceable</label></div><div class='form-check form-check-inline'><input class='form-check-input' type='radio' name='completion_result' id='completion_parts_{$srfId}' value='Needs Parts Replacement' onchange='checkAssignForm({$srfId})'><label class='form-check-label' for='completion_parts_{$srfId}'>Needs Parts Replacement</label></div><div class='mt-3 return-reason-fields' id='returnReasonFields_{$srfId}' style='display:none;'><label class='form-label'>Return Reason</label><textarea class='form-control' name='return_reason' id='return_reason_{$srfId}' rows='3' placeholder='Reason / remarks for return approval' oninput='checkAssignForm({$srfId})'></textarea><div class='form-text'>Unserviceable equipment will be submitted to the existing return approval queue.</div></div></div><input type='hidden' name='assignedperson_1' id='assignedperson_1_{$srfId}'><input type='hidden' name='email' value='{$email}'/><input type='hidden' name='name' value='{$name}'/><input type='hidden' name='ticketNumber' value='{$ticketNumber}'/><input type='hidden' name='requestType' value='{$requestType}'/><input type='hidden' name='otherSpecify' value='{$otherSpecify}'/><input type='hidden' name='equipment_id' value='{$equipment_id}'/><input type='hidden' name='zoom_title' value='{$zoomTitleValue}'/><input type='hidden' name='zoom_schedule_datetime' value='{$zoomScheduleValue}'/><input type='hidden' name='office' value='{$officeValue}'/><input type='hidden' name='divSecUnit' value='{$divSecUnitValue}'/><div class='border rounded-3 p-3 mt-3 bg-light zoom-completion-fields' id='zoomFields_{$srfId}' style='display:none;'><div class='alert alert-warning py-2 mb-3' style='font-size:0.85rem;'><strong>Zoom calendar save:</strong> Meeting ID and password will be saved to Calendar Scheduler with the requested division.</div><div class='mb-2'><label class='form-label'>Meeting ID</label><input type='text' class='form-control' name='zoom_meeting_id' id='zoom_meeting_id_{$srfId}' placeholder='Enter meeting ID' oninput='checkAssignForm({$srfId})'></div><div class='mb-2'><label class='form-label'>Password</label><input type='text' class='form-control' name='zoom_password' id='zoom_password_{$srfId}' placeholder='Enter password' oninput='checkAssignForm({$srfId})'></div><div class='mb-2'><label class='form-label'>Meeting Link (Optional)</label><input type='url' class='form-control' name='zoom_link' id='zoom_link_{$srfId}' placeholder='https://...'></div><div class='small text-muted'>Title: {$zoomTitleValue}<br>Zoom Schedule: {$zoomScheduleValue}<br>Requested Division: {$divisionDisplay}</div></div><div class='alert alert-info mt-3 mb-0' style='font-size:0.85rem;text-align:justify;'><strong>Notice:</strong> {$legal_disclaimer}</div></div><div class='modal-footer'><button type='button' class='btn btn-secondary' data-bs-dismiss='modal'>Close</button><span class='d-inline-block ms-2' tabindex='0' data-bs-toggle='tooltip' title='{$legal_disclaimer}'><button type='submit' id='submitBtn_{$srfId}' class='btn btn-primary' disabled>Affix Signature</button></span></div></div></form></div></div>";
 
             $stmt2->close();
             endforeach; ?>
@@ -1204,21 +1203,41 @@ function checkAssignForm(id) {
     if (!dateVal || !actionVal || !personelVal || !btn) return;
     var form = btn.closest('form');
     var isZoom = form && form.getAttribute('data-is-zoom') === '1';
-    var isMarkDone = personelVal.value === '102';
+    var markAsDone = document.getElementById('mark_as_done_' + id);
+    var isMarkDone = markAsDone && markAsDone.checked;
+    var markDonePanel = document.getElementById('markDoneFields_' + id);
+    var completionResult = document.querySelector('#markDoneFields_' + id + ' input[name="completion_result"]:checked');
+    var completionInputs = document.querySelectorAll('#markDoneFields_' + id + ' input[name="completion_result"]');
+    var returnReasonPanel = document.getElementById('returnReasonFields_' + id);
+    var returnReason = document.getElementById('return_reason_' + id);
     var zoomPanel = document.getElementById('zoomFields_' + id);
     var meetingId = document.getElementById('zoom_meeting_id_' + id);
     var password = document.getElementById('zoom_password_' + id);
     var showZoomFields = isZoom && isMarkDone;
+    var showReturnReason = isMarkDone && completionResult && completionResult.value === 'Unserviceable';
 
+    if (markDonePanel) markDonePanel.style.display = isMarkDone ? 'block' : 'none';
+    personelVal.required = !isMarkDone;
+    personelVal.disabled = isMarkDone;
+    if (isMarkDone) {
+        personelVal.value = '';
+        var assignedPerson = document.getElementById('assignedperson_1_' + id);
+        if (assignedPerson) assignedPerson.value = 'MARK AS DONE';
+    }
+    completionInputs.forEach(function(input) { input.required = isMarkDone; });
+    if (returnReasonPanel) returnReasonPanel.style.display = showReturnReason ? 'block' : 'none';
+    if (returnReason) returnReason.required = showReturnReason;
     if (zoomPanel) zoomPanel.style.display = showZoomFields ? 'block' : 'none';
     if (meetingId) meetingId.required = showZoomFields;
     if (password) password.required = showZoomFields;
 
     var dateOk = dateVal.value.trim() !== '';
     var actionOk = actionVal.value.trim() !== '';
-    var personelOk = personelVal.value !== '';
+    var personelOk = isMarkDone || personelVal.value !== '';
+    var completionOk = !isMarkDone || !!completionResult;
+    var returnOk = !showReturnReason || (returnReason && returnReason.value.trim() !== '');
     var zoomOk = !showZoomFields || ((meetingId && meetingId.value.trim() !== '') && (password && password.value.trim() !== ''));
-    btn.disabled = !(dateOk && actionOk && personelOk && zoomOk);
+    btn.disabled = !(dateOk && actionOk && personelOk && completionOk && returnOk && zoomOk);
 }
 
 async function getAiSuggestion(srfId, requestType, description) {

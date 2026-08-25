@@ -10,6 +10,107 @@ require_once 'calendar_event_helpers.php';
 calendarEnsureEventSchema($conn);
 calendarEnsureSrfZoomSchema($conn);
 
+function ensureReturnApprovalSchema(mysqli $conn): void {
+    $conn->query("CREATE TABLE IF NOT EXISTS inv_returned_equipment (
+        id INT(11) NOT NULL AUTO_INCREMENT PRIMARY KEY,
+        original_inventory_id INT(11) NOT NULL,
+        employeeName TEXT NOT NULL,
+        employee_person_id INT(11) NULL,
+        equipmentType TEXT NOT NULL,
+        computer_specs TEXT NULL,
+        yearAcquired TEXT NOT NULL,
+        shelfLife TEXT NOT NULL,
+        brand TEXT NOT NULL,
+        specifications LONGTEXT NOT NULL,
+        rangeCategory TEXT NOT NULL,
+        softwareInstalled TEXT NOT NULL,
+        licensingModel TEXT NOT NULL,
+        softwareInstalled_2 TEXT NOT NULL,
+        licensingModel_2 TEXT NOT NULL,
+        serialNumber LONGTEXT NOT NULL,
+        propertyNumber TEXT NOT NULL,
+        accountablePerson TEXT NOT NULL,
+        accountable_person_id INT(11) NULL,
+        sex TEXT NOT NULL,
+        officeDivision TEXT NOT NULL,
+        statusOfEmployment TEXT NOT NULL,
+        actualUser TEXT NOT NULL,
+        actual_user_id INT(11) NULL,
+        actualUserSex TEXT NOT NULL,
+        actualUserStatusOfEmployment TEXT NOT NULL,
+        natureOfWork TEXT NOT NULL,
+        remarks LONGTEXT NOT NULL,
+        office TEXT NOT NULL,
+        office_id INT(11) NULL,
+        amount INT(11) NOT NULL DEFAULT 0,
+        depreciation_value INT(11) NOT NULL DEFAULT 0,
+        mark_as_done TEXT NOT NULL,
+        inventory_created_at TIMESTAMP NULL,
+        inventory_updated_at TIMESTAMP NULL,
+        return_status ENUM('Returned','Restored') NOT NULL DEFAULT 'Returned',
+        return_reason TEXT NULL,
+        returned_by VARCHAR(255) NULL,
+        returned_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        restored_by VARCHAR(255) NULL,
+        restored_at TIMESTAMP NULL,
+        restore_inventory_id INT(11) NULL,
+        INDEX idx_original_inventory_id (original_inventory_id),
+        INDEX idx_return_status (return_status),
+        INDEX idx_returned_at (returned_at),
+        INDEX idx_restore_inventory_id (restore_inventory_id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci");
+
+    $conn->query("CREATE TABLE IF NOT EXISTS inv_return_approvers (
+        id INT(11) NOT NULL AUTO_INCREMENT PRIMARY KEY,
+        user_id INT(11) NOT NULL,
+        full_name VARCHAR(255) NOT NULL,
+        username VARCHAR(255) NULL,
+        office VARCHAR(255) NULL,
+        station VARCHAR(255) NULL,
+        is_default TINYINT(1) NOT NULL DEFAULT 0,
+        is_active TINYINT(1) NOT NULL DEFAULT 1,
+        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        UNIQUE KEY uniq_return_approver_user_id (user_id),
+        INDEX idx_return_approver_active (is_active),
+        INDEX idx_return_approver_default (is_default)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci");
+
+    $conn->query("CREATE TABLE IF NOT EXISTS inv_return_requests (
+        id INT(11) NOT NULL AUTO_INCREMENT PRIMARY KEY,
+        inventory_id INT(11) NOT NULL,
+        requested_by_id INT(11) NULL,
+        requested_by_name VARCHAR(255) NULL,
+        assigned_to_id INT(11) NOT NULL,
+        assigned_to_name VARCHAR(255) NOT NULL,
+        return_reason TEXT NULL,
+        status ENUM('Pending','Approved','Disapproved','Cancelled') NOT NULL DEFAULT 'Pending',
+        reviewed_by_id INT(11) NULL,
+        reviewed_by_name VARCHAR(255) NULL,
+        reviewed_at TIMESTAMP NULL,
+        review_remarks TEXT NULL,
+        returned_equipment_id INT(11) NULL,
+        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        INDEX idx_return_request_inventory (inventory_id),
+        INDEX idx_return_request_assigned (assigned_to_id),
+        INDEX idx_return_request_status (status),
+        INDEX idx_return_request_created (created_at)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci");
+
+    $conn->query("INSERT INTO inv_return_approvers (user_id, full_name, username, office, station, is_default, is_active)
+        VALUES (1373, 'Rodelo L. Tanudtanud', 'rodelo87tanud', 'REGIONAL OFFICE', 'RO ASD', 1, 1)
+        ON DUPLICATE KEY UPDATE
+            full_name = VALUES(full_name),
+            username = VALUES(username),
+            office = VALUES(office),
+            station = VALUES(station),
+            is_default = 1,
+            is_active = 1");
+}
+
+ensureReturnApprovalSchema($conn);
+
 
 // Check if the form was submitted and 'assign' parameter exists
 if (isset($_REQUEST['assign'])) {
@@ -37,8 +138,22 @@ if (isset($_REQUEST['assign'])) {
     $ticketNumber = trim((string)($request['ticketNumber'] ?? $srfRow['ticketNumber'] ?? ''));
     $action_taken = trim((string)($request['action_taken'] ?? ''));
     $equipment_id = trim((string)($request['equipment_id'] ?? ($srfRow['equipment_id'] ?? '')));
-    $tracking = intval($request['personelid'] ?? 0);
+    $isMarkAsDone = isset($request['mark_as_done']) && (string) $request['mark_as_done'] === '1';
+    $tracking = $isMarkAsDone ? 102 : intval($request['personelid'] ?? 0);
+    $completionResult = trim((string)($request['completion_result'] ?? ''));
+    $returnReason = trim((string)($request['return_reason'] ?? ''));
+    $returnApprovalMessage = '';
     $NID = 101;
+
+    if ($tracking == 102 && !in_array($completionResult, ['Resolved', 'Unserviceable', 'Needs Parts Replacement'], true)) {
+        echo '<script>window.location.href = "mainmenu.php?dir=requestlist&toast_msg=Please%20select%20a%20completion%20result%20before%20marking%20done.&toast_type=error";</script>';
+        exit();
+    }
+
+    if ($tracking == 102 && $completionResult === 'Unserviceable' && $returnReason === '') {
+        echo '<script>window.location.href = "mainmenu.php?dir=requestlist&toast_msg=Return%20reason%20is%20required%20for%20unserviceable%20equipment.&toast_type=error";</script>';
+        exit();
+    }
 
     $stmt = $conn->prepare("UPDATE srf SET step_counter = step_counter + 1 WHERE id = ?");
     $stmt->bind_param("i", $srfId); 
@@ -137,6 +252,61 @@ if (isset($_REQUEST['assign'])) {
             }
         }
 
+        if ($completionResult === 'Unserviceable') {
+            $inventoryId = (int) $equipment_id;
+            if ($inventoryId <= 0) {
+                echo '<script>window.location.href = "mainmenu.php?dir=requestlist&toast_msg=No%20linked%20equipment%20found%20for%20return%20approval.&toast_type=error";</script>';
+                exit();
+            }
+
+            $inventoryStmt = $conn->prepare('SELECT id FROM inv_inventory WHERE id = ?');
+            $inventoryStmt->bind_param('i', $inventoryId);
+            $inventoryStmt->execute();
+            $inventoryExists = $inventoryStmt->get_result()->num_rows > 0;
+            $inventoryStmt->close();
+
+            if (!$inventoryExists) {
+                echo '<script>window.location.href = "mainmenu.php?dir=requestlist&toast_msg=Linked%20equipment%20was%20not%20found%20in%20active%20inventory.&toast_type=error";</script>';
+                exit();
+            }
+
+            $pendingStmt = $conn->prepare("SELECT id FROM inv_return_requests WHERE inventory_id = ? AND status = 'Pending' LIMIT 1");
+            $pendingStmt->bind_param('i', $inventoryId);
+            $pendingStmt->execute();
+            $hasPendingReturn = $pendingStmt->get_result()->num_rows > 0;
+            $pendingStmt->close();
+
+            if ($hasPendingReturn) {
+                echo '<script>window.location.href = "mainmenu.php?dir=requestlist&toast_msg=This%20equipment%20already%20has%20a%20pending%20return%20request.&toast_type=error";</script>';
+                exit();
+            }
+
+            $approverStmt = $conn->prepare("SELECT user_id, full_name FROM inv_return_approvers WHERE is_active = 1 ORDER BY is_default DESC, id ASC LIMIT 1");
+            $approverStmt->execute();
+            $approver = $approverStmt->get_result()->fetch_assoc();
+            $approverStmt->close();
+
+            if (!$approver) {
+                echo '<script>window.location.href = "mainmenu.php?dir=requestlist&toast_msg=No%20active%20return%20approver%20is%20configured.&toast_type=error";</script>';
+                exit();
+            }
+
+            $requestedById = isset($_SESSION['idSRF']) ? (int) $_SESSION['idSRF'] : null;
+            $requestedByName = $_SESSION['Full_NameSRF'] ?? ($_SESSION['usernameSRF'] ?? 'System');
+            $assignedToId = (int) $approver['user_id'];
+            $assignedToName = $approver['full_name'];
+            $requestStmt = $conn->prepare('INSERT INTO inv_return_requests (inventory_id, requested_by_id, requested_by_name, assigned_to_id, assigned_to_name, return_reason, status) VALUES (?, ?, ?, ?, ?, ?, "Pending")');
+            $requestStmt->bind_param('iisiss', $inventoryId, $requestedById, $requestedByName, $assignedToId, $assignedToName, $returnReason);
+
+            if (!$requestStmt->execute()) {
+                echo '<script>window.location.href = "mainmenu.php?dir=requestlist&toast_msg=Unable%20to%20create%20return%20approval%20request.&toast_type=error";</script>';
+                exit();
+            }
+
+            $requestStmt->close();
+            $returnApprovalMessage = ' Equipment marked unserviceable and submitted to ' . $assignedToName . ' for return approval.';
+        }
+
 
 
 
@@ -217,6 +387,28 @@ if (isset($_REQUEST['assign'])) {
             $stmth->bind_param("isssssis", $trackid, $name_s, $details, $date, $time, $status, $equipment_id, $office);
             $stmth->execute();
             $stmth->close();
+
+        if ($completionResult === 'Unserviceable') {
+            $returnDetails = 'Return Approval';
+            $returnStatus = 'Marked Unserviceable: return approval request submitted.';
+            $returnHistoryStmt = $conn->prepare("INSERT INTO srfhistory (trackid, name, details, date, time, status, equipment_id, office) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+            if ($returnHistoryStmt) {
+                $returnHistoryStmt->bind_param("isssssis", $trackid, $name_s, $returnDetails, $date, $time, $returnStatus, $equipment_id, $office);
+                $returnHistoryStmt->execute();
+                $returnHistoryStmt->close();
+            }
+        }
+
+        if ($completionResult === 'Needs Parts Replacement') {
+            $partsDetails = 'Completion Result';
+            $partsStatus = 'Needs Parts Replacement';
+            $partsHistoryStmt = $conn->prepare("INSERT INTO srfhistory (trackid, name, details, date, time, status, equipment_id, office) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+            if ($partsHistoryStmt) {
+                $partsHistoryStmt->bind_param("isssssis", $trackid, $name_s, $partsDetails, $date, $time, $partsStatus, $equipment_id, $office);
+                $partsHistoryStmt->execute();
+                $partsHistoryStmt->close();
+            }
+        }
 
 
         $stmthi = $conn->prepare("INSERT INTO srfstaff_remarks (track_id, date, time, action_taken, actionstaff) VALUES (?, ?, ?, ?, ?)");
@@ -359,7 +551,8 @@ if (isset($_REQUEST['assign'])) {
         if ($stmt->execute()) {
         
             // Success: redirect to the request list page with a success message
-            echo '<script>window.location.href = "mainmenu.php?dir=requestlist&toast_msg=Record%20Successfully%20Assigned.&toast_type=success";</script>';
+            $successMessage = rawurlencode('Record Successfully Assigned.' . $returnApprovalMessage);
+            echo '<script>window.location.href = "mainmenu.php?dir=requestlist&toast_msg=' . $successMessage . '&toast_type=success";</script>';
             exit();
         } else {
             // Failure: redirect to the request list page with an error message

@@ -7,6 +7,12 @@ function redirect_return_page($message, $isError = false) {
     exit();
 }
 
+function redirect_return_print_page($message, $returnedEquipmentId) {
+    $_SESSION['success_message'] = $message;
+    header('Location: mainmenu.php?dir=returnedequipment&print_return_id=' . (int) $returnedEquipmentId);
+    exit();
+}
+
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     redirect_return_page('Invalid request.', true);
 }
@@ -90,7 +96,7 @@ try {
     }
 
     $conn->commit();
-    redirect_return_page('Return request approved. Equipment moved to Returned Equipment.');
+    redirect_return_print_page('Return request approved. Equipment moved to Returned Equipment.', $returnedEquipmentId);
 } catch (Throwable $e) {
     $conn->rollback();
     redirect_return_page('Approval failed: ' . $e->getMessage(), true);
