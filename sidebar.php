@@ -489,7 +489,7 @@ if ($_SESSION['User_RoleSRF'] == 'Encoder' || $_SESSION['User_RoleSRF'] == 'Veri
                             </li>
 
                             <li>
-                                <a href="amsos-requestdata.php" target="_blank"><i class="fas fa-database"></i> Request Data</a>
+                                <a href="mainmenu.php?dir=amsos_requestdata"><i class="fas fa-database"></i> Request Data</a>
                             </li>
 
                         </ul>

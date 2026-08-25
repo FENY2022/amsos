@@ -1,11 +1,12 @@
 <?php
-require_once 'connect_amsos.php';
+require_once 'amsos-requestdata-connect.php';
+$connectionError = '';
 
 // Fetch filter values
-$date_filter = $_GET['date_filter'] ?? 'this_month';
-$from_date = $_GET['from_date'] ?? '';
-$to_date = $_GET['to_date'] ?? '';
-$show_rows = $_GET['show_rows'] ?? 100; // Default to 100 rows
+$date_filter = isset($_GET['date_filter']) ? $_GET['date_filter'] : 'this_month';
+$from_date = isset($_GET['from_date']) ? $_GET['from_date'] : '';
+$to_date = isset($_GET['to_date']) ? $_GET['to_date'] : '';
+$show_rows = isset($_GET['show_rows']) ? $_GET['show_rows'] : 100; // Default to 100 rows
 
 // Sanitize and validate show_rows
 $show_rows = (int)$show_rows;
@@ -40,16 +41,25 @@ $query .= " GROUP BY srf.id ";
 $query .= " ORDER BY STR_TO_DATE(srf.date, '%Y-%m-%d') ASC LIMIT $show_rows ";
 
 // Execute query
-$result = $conn->query($query);
+$result = false;
+if ($connectionError === '' && $conn) {
+    $result = $conn->query($query);
+    if (!$result) {
+        error_log('AMSOS request data query failed: ' . $conn->error . ' | SQL: ' . $query);
+    }
+} else {
+    error_log('AMSOS request data unavailable: ' . $connectionError);
+}
+$totalRecords = $result ? $result->num_rows : 0;
 
 function getStarRating($feedback) {
-    $ratings = [
-        'Excellent' => ['stars' => '★★★★★', 'color' => 'text-success'],
-        'Very Satisfactory' => ['stars' => '★★★★☆', 'color' => 'text-primary'],
-        'Satisfactory' => ['stars' => '★★★☆☆', 'color' => 'text-info'],
-        'Below Satisfactory' => ['stars' => '★★☆☆☆', 'color' => 'text-warning'],
-        'Poor' => ['stars' => '★☆☆☆☆', 'color' => 'text-danger'],
-    ];
+    $ratings = array(
+        'Excellent' => array('stars' => '&#9733;&#9733;&#9733;&#9733;&#9733;', 'color' => 'text-success'),
+        'Very Satisfactory' => array('stars' => '&#9733;&#9733;&#9733;&#9733;&#9734;', 'color' => 'text-primary'),
+        'Satisfactory' => array('stars' => '&#9733;&#9733;&#9733;&#9734;&#9734;', 'color' => 'text-info'),
+        'Below Satisfactory' => array('stars' => '&#9733;&#9733;&#9734;&#9734;&#9734;', 'color' => 'text-warning'),
+        'Poor' => array('stars' => '&#9733;&#9734;&#9734;&#9734;&#9734;', 'color' => 'text-danger')
+    );
     return isset($ratings[$feedback]) ? "<span class='{$ratings[$feedback]['color']}'>{$ratings[$feedback]['stars']}</span>" : 'N/A';
 }
 
@@ -420,9 +430,15 @@ $canEditRequests = isset($_SESSION['User_RoleSRF']) && $_SESSION['User_RoleSRF']
             </div>
             <div class="card-body bg-white rounded-bottom-4 text-center">
                 <h4 class="text-muted mb-2"><?= $date_label ?></h4>
-                <div class="badge bg-primary fs-6 py-2 px-3">Total Records: <?= $result->num_rows ?></div>
+                <div class="badge bg-primary fs-6 py-2 px-3">Total Records: <?= $totalRecords ?></div>
             </div>
         </div>
+
+        <?php if ($connectionError !== ''): ?>
+        <div class="alert alert-warning">
+            Request data is temporarily unavailable. Please check the live server database connection.
+        </div>
+        <?php endif; ?>
 
         <?php if ($canEditRequests): ?>
             <div class="filter-card mb-4">
@@ -547,6 +563,7 @@ $canEditRequests = isset($_SESSION['User_RoleSRF']) && $_SESSION['User_RoleSRF']
                             </tr>
                         </thead>
                         <tbody>
+                            <?php if ($result && $result->num_rows > 0): ?>
                             <?php $count = 1; while ($row = $result->fetch_assoc()): ?>
                             <tr id="row-<?= $row['id'] ?>" class="align-middle">
                                 <td data-label="#">
@@ -642,6 +659,11 @@ $canEditRequests = isset($_SESSION['User_RoleSRF']) && $_SESSION['User_RoleSRF']
                                 </div>
                             </div>
                             <?php endwhile; ?>
+                            <?php else: ?>
+                            <tr>
+                                <td colspan="9" class="text-center text-muted py-4">No request data available.</td>
+                            </tr>
+                            <?php endif; ?>
                         </tbody>
                     </table>
                 </div>

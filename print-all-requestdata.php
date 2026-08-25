@@ -1,5 +1,5 @@
 <?php
-require_once 'connect_amsos.php';
+require_once 'amsos-requestdata-connect.php';
 
 function validDateOrEmpty($value)
 {
@@ -18,18 +18,18 @@ function ratingLabel($feedback)
     return $feedback !== '' ? $feedback : 'No rating';
 }
 
-$date_filter = $_GET['date_filter'] ?? 'this_month';
-$from_date = validDateOrEmpty($_GET['from_date'] ?? '');
-$to_date = validDateOrEmpty($_GET['to_date'] ?? '');
-$show_rows = (int)($_GET['show_rows'] ?? 100);
+$date_filter = isset($_GET['date_filter']) ? $_GET['date_filter'] : 'this_month';
+$from_date = validDateOrEmpty(isset($_GET['from_date']) ? $_GET['from_date'] : '');
+$to_date = validDateOrEmpty(isset($_GET['to_date']) ? $_GET['to_date'] : '');
+$show_rows = isset($_GET['show_rows']) ? (int)$_GET['show_rows'] : 100;
 
 if ($show_rows < 1) {
     $show_rows = 100;
 }
 
-$conditions = ["srf.status = 'Completed'"];
+$conditions = array("srf.status = 'Completed'");
 $types = '';
-$params = [];
+$params = array();
 $date_label = 'SRF Completed Requests';
 
 if ($date_filter === 'this_month') {
@@ -38,13 +38,14 @@ if ($date_filter === 'this_month') {
     $date_label = 'SRF Completed Requests for ' . date('F Y');
 } elseif ($from_date !== '' && $to_date !== '') {
     if ($from_date > $to_date) {
-        [$from_date, $to_date] = [$to_date, $from_date];
+        $tmpDate = $from_date;
+        $from_date = $to_date;
+        $to_date = $tmpDate;
     }
 
-    $conditions[] = "STR_TO_DATE(srf.date, '%Y-%m-%d') BETWEEN ? AND ?";
-    $types .= 'ss';
-    $params[] = $from_date;
-    $params[] = $to_date;
+    $safeFromDate = $conn->real_escape_string($from_date);
+    $safeToDate = $conn->real_escape_string($to_date);
+    $conditions[] = "STR_TO_DATE(srf.date, '%Y-%m-%d') BETWEEN '$safeFromDate' AND '$safeToDate'";
     $date_label = 'SRF Completed Requests: ' . date('M j', strtotime($from_date)) . ' - ' . date('M j, Y', strtotime($to_date));
 }
 
@@ -58,12 +59,10 @@ $query = "
     LIMIT $show_rows
 ";
 
-$stmt = $conn->prepare($query);
-if ($types !== '') {
-    $stmt->bind_param($types, ...$params);
+$result = $conn->query($query);
+if (!$result) {
+    error_log('AMSOS print all request data query failed: ' . $conn->error . ' | SQL: ' . $query);
 }
-$stmt->execute();
-$result = $stmt->get_result();
 $totalRows = $result ? $result->num_rows : 0;
 ?>
 
@@ -253,10 +252,10 @@ $totalRows = $result ? $result->num_rows : 0;
                     <section class="document-card">
                         <div class="document-head no-print">
                             <div>
-                                <h2>Ticket #<?php echo htmlspecialchars($row['ticketNumber'] ?? ''); ?></h2>
-                                <small><?php echo htmlspecialchars($row['name'] ?? ''); ?> | <?php echo htmlspecialchars($row['office'] ?? ''); ?> | <?php echo htmlspecialchars($row['requestType'] ?? ''); ?></small>
+                                <h2>Ticket #<?php echo htmlspecialchars(isset($row['ticketNumber']) ? $row['ticketNumber'] : ''); ?></h2>
+                                <small><?php echo htmlspecialchars(isset($row['name']) ? $row['name'] : ''); ?> | <?php echo htmlspecialchars(isset($row['office']) ? $row['office'] : ''); ?> | <?php echo htmlspecialchars(isset($row['requestType']) ? $row['requestType'] : ''); ?></small>
                             </div>
-                            <span class="badge-soft"><?php echo htmlspecialchars(ratingLabel($row['rate'] ?? '')); ?></span>
+                            <span class="badge-soft"><?php echo htmlspecialchars(ratingLabel(isset($row['rate']) ? $row['rate'] : '')); ?></span>
                         </div>
                         <iframe src="printform-request.php?id=<?php echo urlencode((string)$row['id']); ?>"></iframe>
                     </section>

@@ -27,7 +27,13 @@ ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 
-require_once 'connect.php';
+$_dirlist = isset($_GET['dir']) && !empty($_GET['dir']) ? $_GET['dir'] : "";
+
+if ($_dirlist == 'amsos_requestdata') {
+    require_once 'amsos-requestdata-connect.php';
+} else {
+    require_once 'connect.php';
+}
 require_once 'session_checker.php';
 require_once 'navbar.php';
 require_once 'sidebar.php';
@@ -40,15 +46,6 @@ require_once 'sidebar.php';
             <?php
             
               
-            if (isset($_GET['dir']) && !empty($_GET['dir'])) {
-                    $_dirlist = $_GET['dir'];
-                } else {
-                    $_dirlist = "";
-                }
-                
-
-
-
                 if ($_dirlist == 'home') {
                 require_once 'analysisandgraph.php' ; 
 
@@ -123,6 +120,10 @@ require_once 'sidebar.php';
             }elseif ($_dirlist == 'division_counts') {
 
                 require_once 'division_counts.php' ;
+
+            }elseif ($_dirlist == 'amsos_requestdata') {
+
+                echo '<iframe src="amsos-requestdata.php" onload="var overlay = window.parent.document.getElementById(\'globalLoadingOverlay\'); if (overlay) { overlay.classList.remove(\'active\'); overlay.setAttribute(\'aria-hidden\', \'true\'); }" style="width:100%; height:100vh; border:none;"></iframe>';
 
 
             }elseif ($_dirlist == 'printform') {
