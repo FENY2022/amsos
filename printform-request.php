@@ -1,5 +1,3 @@
-
-
 <?php
 
 
@@ -67,8 +65,6 @@ $formattedDate = 'No date available';
         $formattedDate = !empty($date_rated) ? (new DateTime($date_rated))->format('F j, Y : g:i a') : 'No date available';
     
     }
-
-
 
 $level = 1 ;
 
@@ -168,16 +164,16 @@ if ($history_result->num_rows >= 2) {
     $row2 = $history_result->fetch_assoc();
 
     $First_date = date("F j, Y", strtotime($row1['date']));
-    $First_time = $row1['time'];
+    $First_time = !empty($row1['time']) ? date('g:i A', strtotime($row1['time'])) : '';
 
     $Second_date = date("F j, Y", strtotime($row2['date']));
-    $Second_time = $row2['time'];
+    $Second_time = !empty($row2['time']) ? date('g:i A', strtotime($row2['time'])) : '';
     $recieve = "recieve.png";
 } elseif ($history_result->num_rows == 1) {
     $row1 = $history_result->fetch_assoc();
 
     $First_date = date("F j, Y", strtotime($row1['date']));
-    $First_time = $row1['time'];
+    $First_time = !empty($row1['time']) ? date('g:i A', strtotime($row1['time'])) : '';
     $recieve = "recieve.png";
 }
 
@@ -406,7 +402,7 @@ $stmt->close();
             padding-right: 50px; /* Adds 10px spacing from the right edge */">
            <?php 
                 if (!empty($First_time)) { 
-                    echo "<center>" . $Second_date . "<br>" . date('g:i:s A', strtotime('-0 minute', strtotime($Second_time))); 
+                    echo "<center>" . $Second_date . "<br>" . $Second_time; 
                 } 
             ?>
         
@@ -580,7 +576,7 @@ $stmt->close();
                                 while ($row = $result->fetch_assoc()) {
                                     echo "<tr>
                                             <td>" . date("F j, Y", strtotime($row['date'])) . "</td>
-                                            <td>" . htmlspecialchars($row['time']) . "</td>
+                                            <td>" . htmlspecialchars(!empty($row['time']) ? date('g:i A', strtotime($row['time'])) : '') . "</td>
                                             <td>" . htmlspecialchars($row['remarks']) . "</td>
                                             <td>" . htmlspecialchars($row['name']) . "</td>
                                              <td><img src='srfsigner/" . htmlspecialchars($row['signature']) . "' alt='Signature' style='width: 100px; height: auto;'></td>

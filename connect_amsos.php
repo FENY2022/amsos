@@ -1,4 +1,3 @@
-
 <?php
 ob_start();
 
@@ -18,4 +17,3 @@ if (session_status() == PHP_SESSION_NONE) {
 }
 
 date_default_timezone_set('Asia/Manila');
-?>

@@ -17,9 +17,15 @@ if (empty($start_date) && empty($end_date)) {
     $end_date = (new DateTime())->format('Y-m-d');
 }
 
-$sql = "SELECT * FROM srf WHERE date BETWEEN ? AND ? AND status = ? AND office = ?";
-$stmt = $conn->prepare($sql);
-$stmt->bind_param("ssss", $start_date, $end_date, $status_search, $_SESSION['OfficeSRF']);
+if ($status_search === '') {
+    $sql = "SELECT * FROM srf WHERE date BETWEEN ? AND ? AND office = ?";
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param("sss", $start_date, $end_date, $_SESSION['OfficeSRF']);
+} else {
+    $sql = "SELECT * FROM srf WHERE date BETWEEN ? AND ? AND status = ? AND office = ?";
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param("ssss", $start_date, $end_date, $status_search, $_SESSION['OfficeSRF']);
+}
 $stmt->execute();
 $result = $stmt->get_result();
 ?>
@@ -82,8 +88,8 @@ $result = $stmt->get_result();
         </div>
         <div class="col-md-3">
             <label for="status_search" class="form-label"><i class="fas fa-tag me-1"></i> Status</label>
-            <select id="status_search" name="status_search" class="form-select" required>
-                <option value="">All Status</option>
+            <select id="status_search" name="status_search" class="form-select">
+                <option value="" <?php echo $status_search === '' ? 'selected' : ''; ?>>All Status</option>
                 <option value="completed" <?php echo (isset($_GET['status_search']) && $_GET['status_search'] == 'completed') ? 'selected' : ''; ?>>Completed</option>
                 <option value="Assigned RICTU staff" <?php echo (isset($_GET['status_search']) && $_GET['status_search'] == 'Assigned RICTU staff') ? 'selected' : ''; ?>>Assigned RICTU staff</option>
                 <option value="Now Serving" <?php echo (isset($_GET['status_search']) && $_GET['status_search'] == 'Now Serving') ? 'selected' : ''; ?>>Now Serving</option>
