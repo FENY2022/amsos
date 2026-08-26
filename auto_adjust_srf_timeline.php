@@ -398,7 +398,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 
 $input = json_decode(file_get_contents('php://input'), true);
 $trackid = isset($input['trackid']) ? (int)$input['trackid'] : 0;
-$selectedModel = trim((string)($input['model'] ?? 'deepseek-r1:latest'));
+$selectedModel = trim((string)($input['model'] ?? 'tinyllama:latest'));
 
 if ($trackid <= 0) {
     respond(false, ['error' => 'Invalid SRF ID.']);

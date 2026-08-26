@@ -2,17 +2,31 @@
 require_once 'amsos-requestdata-connect.php';
 $connectionError = '';
 
+$filterMemoryKey = 'amsos_requestdata_filters';
+$rememberedFilters = isset($_SESSION[$filterMemoryKey]) && is_array($_SESSION[$filterMemoryKey]) ? $_SESSION[$filterMemoryKey] : array();
+
 // Fetch filter values
-$date_filter = isset($_GET['date_filter']) ? $_GET['date_filter'] : 'this_month';
-$from_date = isset($_GET['from_date']) ? $_GET['from_date'] : '';
-$to_date = isset($_GET['to_date']) ? $_GET['to_date'] : '';
-$show_rows = isset($_GET['show_rows']) ? $_GET['show_rows'] : 100; // Default to 100 rows
+$date_filter = isset($_GET['date_filter']) ? $_GET['date_filter'] : (isset($rememberedFilters['date_filter']) ? $rememberedFilters['date_filter'] : 'this_month');
+$from_date = isset($_GET['from_date']) ? $_GET['from_date'] : (isset($rememberedFilters['from_date']) ? $rememberedFilters['from_date'] : '');
+$to_date = isset($_GET['to_date']) ? $_GET['to_date'] : (isset($rememberedFilters['to_date']) ? $rememberedFilters['to_date'] : '');
+$show_rows = isset($_GET['show_rows']) ? $_GET['show_rows'] : (isset($rememberedFilters['show_rows']) ? $rememberedFilters['show_rows'] : 100); // Default to 100 rows
+
+if ($date_filter !== 'this_month' && $date_filter !== 'custom') {
+    $date_filter = 'custom';
+}
 
 // Sanitize and validate show_rows
 $show_rows = (int)$show_rows;
 if ($show_rows < 1) {
     $show_rows = 100; // Set minimum to 100 rows
 }
+
+$_SESSION[$filterMemoryKey] = array(
+    'date_filter' => $date_filter,
+    'from_date' => $from_date,
+    'to_date' => $to_date,
+    'show_rows' => $show_rows
+);
 
 $shareScheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
 $shareHost = isset($_SERVER['HTTP_HOST']) ? $_SERVER['HTTP_HOST'] : (isset($_SERVER['SERVER_NAME']) ? $_SERVER['SERVER_NAME'] : 'localhost');

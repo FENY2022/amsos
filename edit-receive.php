@@ -86,7 +86,7 @@ if (!$stmt_action->execute()) {
 $action_result = $stmt_action->get_result();
 
 $ollamaModels = fetchOllamaModels();
-$defaultModel = in_array('deepseek-r1:latest', $ollamaModels, true) ? 'deepseek-r1:latest' : ($ollamaModels[0] ?? 'deepseek-r1:latest');
+$defaultModel = in_array('tinyllama:latest', $ollamaModels, true) ? 'tinyllama:latest' : ($ollamaModels[0] ?? 'tinyllama:latest');
 
 ?>
 

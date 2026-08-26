@@ -123,7 +123,25 @@ require_once 'sidebar.php';
 
             }elseif ($_dirlist == 'amsos_requestdata') {
 
-                echo '<iframe src="amsos-requestdata.php" onload="var overlay = window.parent.document.getElementById(\'globalLoadingOverlay\'); if (overlay) { overlay.classList.remove(\'active\'); overlay.setAttribute(\'aria-hidden\', \'true\'); }" style="width:100%; height:100vh; border:none;"></iframe>';
+                $requestDataFilterKeys = array('date_filter', 'from_date', 'to_date', 'show_rows');
+                $requestDataQuery = array();
+
+                foreach ($requestDataFilterKeys as $filterKey) {
+                    if (isset($_GET[$filterKey])) {
+                        $requestDataQuery[$filterKey] = $_GET[$filterKey];
+                    }
+                }
+
+                if (empty($requestDataQuery) && isset($_SESSION['amsos_requestdata_filters']) && is_array($_SESSION['amsos_requestdata_filters'])) {
+                    foreach ($requestDataFilterKeys as $filterKey) {
+                        if (isset($_SESSION['amsos_requestdata_filters'][$filterKey])) {
+                            $requestDataQuery[$filterKey] = $_SESSION['amsos_requestdata_filters'][$filterKey];
+                        }
+                    }
+                }
+
+                $requestDataSrc = 'amsos-requestdata.php' . (!empty($requestDataQuery) ? '?' . http_build_query($requestDataQuery) : '');
+                echo '<iframe src="' . htmlspecialchars($requestDataSrc, ENT_QUOTES, 'UTF-8') . '" onload="var overlay = window.parent.document.getElementById(\'globalLoadingOverlay\'); if (overlay) { overlay.classList.remove(\'active\'); overlay.setAttribute(\'aria-hidden\', \'true\'); }" style="width:100%; height:100vh; border:none;"></iframe>';
 
 
             }elseif ($_dirlist == 'printform') {
