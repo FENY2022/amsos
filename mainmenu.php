@@ -35,6 +35,12 @@ if ($_dirlist == 'amsos_requestdata') {
     require_once 'connect.php';
 }
 require_once 'session_checker.php';
+
+if ($_dirlist == 'requestlist' && isset($_SESSION['idSRF'])) {
+    require_once 'srf_request_notification_helpers.php';
+    markAllSrfRequestNotificationsRead($conn, (int)$_SESSION['idSRF']);
+}
+
 require_once 'navbar.php';
 require_once 'sidebar.php';
 ?>

@@ -5,6 +5,7 @@
 
     // Include database connection
     require_once 'connect.php'; // Replace with your actual connection file
+    require_once 'srf_request_notification_helpers.php';
  
 
   
@@ -124,6 +125,8 @@ $details = "Received By: " .  $_SESSION['Full_NameSRF'] . "";
     $stmt->bind_param("isii", $tracking, $status, $NID, $srfId,  );
 
     if ($stmt->execute()) {
+
+        triggerSrfRequestNotification($conn, (int)$tracking, $srfId, $status);
 
 
         $stmt = $conn->prepare("UPDATE srf SET step_counter = step_counter + 1 WHERE id = ?");

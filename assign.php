@@ -6,6 +6,7 @@
 require_once 'connect.php'; // Replace with your actual connection file
 require_once 'repair_history_helpers.php';
 require_once 'calendar_event_helpers.php';
+require_once 'srf_request_notification_helpers.php';
 
 calendarEnsureEventSchema($conn);
 calendarEnsureSrfZoomSchema($conn);
@@ -549,6 +550,10 @@ if (isset($_REQUEST['assign'])) {
         $stmt->bind_param("isiss", $tracking, $status, $NID, $remarks, $srfId);
 
         if ($stmt->execute()) {
+
+            if ($tracking > 0 && $tracking !== 102) {
+                triggerSrfRequestNotification($conn, (int)$tracking, $srfId, $status);
+            }
         
             // Success: redirect to the request list page with a success message
             $successMessage = rawurlencode('Record Successfully Assigned.' . $returnApprovalMessage);

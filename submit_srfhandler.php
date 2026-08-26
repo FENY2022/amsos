@@ -13,6 +13,7 @@ require_once 'connect.php';
 require_once 'session_checker.php';
 require_once 'repair_history_helpers.php';
 require_once 'calendar_event_helpers.php';
+require_once 'srf_request_notification_helpers.php';
 
 calendarEnsureSrfZoomSchema($conn);
 
@@ -150,6 +151,8 @@ $stmt->execute();
 
 if ($stmt->affected_rows > 0) {
     $srfId = $stmt->insert_id; // Get the last inserted ID
+
+    triggerSrfRequestNotification($conn, (int)$tracking, $srfId, $status);
 
     if ($requestType === 'Technical Assistance' && $equipmentId > 0) {
         repairHistoryInsertSrfRepair($conn, $srfId, $equipmentId, $name, $requestType, $description, $status, $date);
