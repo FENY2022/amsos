@@ -32,6 +32,119 @@ if ($result->num_rows > 0) {
     }
 }
 
+function srfWaitingGetSignerByPersonelId($conn, $personelId)
+{
+    $stmt = $conn->prepare("SELECT name, role, position, station FROM srfsigner WHERE personelid = ? ORDER BY level ASC LIMIT 1");
+    if (!$stmt) {
+        return null;
+    }
+
+    $stmt->bind_param("i", $personelId);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $row = $result->fetch_assoc();
+    $stmt->close();
+
+    return $row ?: null;
+}
+
+function srfWaitingGetActionStaffByPersonelId($conn, $personelId)
+{
+    $stmt = $conn->prepare("SELECT name, role, station FROM srfactionstaff WHERE personelid = ? LIMIT 1");
+    if (!$stmt) {
+        return null;
+    }
+
+    $stmt->bind_param("i", $personelId);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $row = $result->fetch_assoc();
+    $stmt->close();
+
+    return $row ?: null;
+}
+
+function srfWaitingGetNextSigner($conn, $office, $station, $level)
+{
+    $nextLevel = (int)$level + 1;
+    $stmt = $conn->prepare("SELECT name, role, position, station FROM srfsigner WHERE office = ? AND station = ? AND level = ? ORDER BY id ASC LIMIT 1");
+    if (!$stmt) {
+        return null;
+    }
+
+    $stmt->bind_param("ssi", $office, $station, $nextLevel);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $row = $result->fetch_assoc();
+    $stmt->close();
+
+    return $row ?: null;
+}
+
+function srfWaitingFormatPerson($person)
+{
+    if (!$person) {
+        return '';
+    }
+
+    $name = trim((string)($person['name'] ?? ''));
+    $position = trim((string)($person['position'] ?? ''));
+    $role = trim((string)($person['role'] ?? ''));
+    $station = trim((string)($person['station'] ?? ''));
+    $details = array_filter([$position ?: $role, $station]);
+
+    return $name . (!empty($details) ? ' (' . implode(' - ', $details) . ')' : '');
+}
+
+function srfWaitingBuildRouteInfo($conn, $row)
+{
+    $status = (string)($row['status'] ?? '');
+    $level = (int)($row['level'] ?? 0);
+    $tracking = (int)($row['tracking'] ?? 0);
+    $office = (string)($row['office'] ?? '');
+    $station = (string)($row['station'] ?? '');
+
+    if (stripos($status, 'Disapproved') !== false) {
+        return ['current' => 'Request disapproved', 'next' => 'No next destination'];
+    }
+
+    if (stripos($status, 'Completed') !== false || $tracking === 102) {
+        return ['current' => 'Request completed', 'next' => 'Released/closed'];
+    }
+
+    if ($level >= 101) {
+        $staff = srfWaitingGetActionStaffByPersonelId($conn, $tracking);
+        $staffName = srfWaitingFormatPerson($staff);
+
+        if (stripos($status, 'Now Serving') !== false) {
+            return [
+                'current' => $staffName ? 'Now serving at RICTU - ' . $staffName : 'Now serving at RICTU Help Desk',
+                'next' => 'Action taken / completion of request'
+            ];
+        }
+
+        if (stripos($status, 'Assigned') !== false) {
+            return [
+                'current' => $staffName ? 'Assigned to RICTU staff - ' . $staffName : 'Assigned to RICTU staff',
+                'next' => 'Receive request, perform action, then complete'
+            ];
+        }
+
+        return [
+            'current' => 'At RICTU / Chief RICTU queue',
+            'next' => 'Assign to RICTU action staff'
+        ];
+    }
+
+    $currentSigner = srfWaitingFormatPerson(srfWaitingGetSignerByPersonelId($conn, $tracking));
+    $nextSigner = srfWaitingFormatPerson(srfWaitingGetNextSigner($conn, $office, $station, $level));
+
+    return [
+        'current' => $currentSigner ? 'For approval/signature of ' . $currentSigner : 'For approval/signature',
+        'next' => $nextSigner ? 'Forward to ' . $nextSigner : 'Forward to ICT/RICTU'
+    ];
+}
+
 // Calculate initial statistics (based on the fetched data for the selected month/all)
 // This will now operate on ALL pending requests initially, which is correct for dashboard stats
 $totalPending = count($requests);
@@ -283,6 +396,47 @@ krsort($months); // Sort months by key (YYYY-MM) in reverse chronological order 
             color: #aeb6bf;
         }
 
+        .route-info {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 12px;
+            margin-top: 14px;
+        }
+
+        .route-step {
+            background: #f8fafc;
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            padding: 12px 14px;
+        }
+
+        .route-label {
+            color: #64748b;
+            font-size: 0.72rem;
+            font-weight: 800;
+            letter-spacing: 0.6px;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+        }
+
+        .route-value {
+            color: var(--secondary-dark);
+            font-size: 0.9rem;
+            font-weight: 700;
+            line-height: 1.35;
+        }
+
+        .route-step i {
+            color: var(--primary-blue);
+            margin-right: 6px;
+        }
+
+        @media (max-width: 768px) {
+            .route-info {
+                grid-template-columns: 1fr;
+            }
+        }
+
         .action-btn {
             border-radius: 25px;
             padding: 8px 20px;
@@ -370,7 +524,7 @@ krsort($months); // Sort months by key (YYYY-MM) in reverse chronological order 
         .section-title {
             position: relative;
             padding-bottom: 10px;
-            margin-bottom: 30px;
+            margin-bottom: 0;
             font-weight: 700;
             color: var(--secondary-dark);
             font-size: 1.8rem;
@@ -385,6 +539,45 @@ krsort($months); // Sort months by key (YYYY-MM) in reverse chronological order 
             height: 4px;
             background: var(--primary-blue);
             border-radius: 3px;
+        }
+
+        .request-section-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            margin-bottom: 30px;
+        }
+
+        .expand-btn {
+            border-radius: 999px;
+            font-weight: 700;
+            padding: 8px 16px;
+        }
+
+        .request-section:fullscreen {
+            background: var(--light-grey);
+            overflow: auto;
+            padding: 30px;
+        }
+
+        .request-section.is-expanded {
+            background: var(--light-grey);
+            bottom: 0;
+            left: 0;
+            overflow: auto;
+            padding: 30px;
+            position: fixed;
+            right: 0;
+            top: 0;
+            z-index: 9999;
+        }
+
+        @media (max-width: 576px) {
+            .request-section-header {
+                align-items: flex-start;
+                flex-direction: column;
+            }
         }
 
         .empty-state {
@@ -544,9 +737,14 @@ krsort($months); // Sort months by key (YYYY-MM) in reverse chronological order 
             </div>
         </div>
         
-        <div class="row">
+        <div class="row request-section" id="requestSection">
             <div class="col-md-12">
-                <h3 class="section-title">Pending Service Requests</h3>
+                <div class="request-section-header">
+                    <h3 class="section-title">Pending Service Requests</h3>
+                    <button type="button" class="btn btn-outline-primary expand-btn" id="expandRequestSection">
+                        <i class="fas fa-expand me-1"></i> Expand
+                    </button>
+                </div>
                 
                 <div id="requestList" class="list-group">
                     <?php if (!empty($requests)): ?>
@@ -598,13 +796,16 @@ krsort($months); // Sort months by key (YYYY-MM) in reverse chronological order 
                                     $priorityText = 'URGENT';
                                     $cardBorderClass = 'priority-high-border'; // Urgent gets highest priority border
                                 }
+
+                                $routeInfo = srfWaitingBuildRouteInfo($conn, $row);
                             ?>
-                            
+                             
                             <div class="request-card card <?php echo $cardBorderClass; ?>" 
                                 data-status="<?php echo htmlspecialchars($row['status']); ?>" 
                                 data-name="<?php echo htmlspecialchars($row['name']); ?>" 
                                 data-ticket="<?php echo htmlspecialchars($row['ticketNumber']); ?>" 
                                 data-type="<?php echo htmlspecialchars($row['requestType']); ?>"
+                                data-route="<?php echo htmlspecialchars($routeInfo['current'] . ' ' . $routeInfo['next']); ?>"
                                 data-days-old="<?php echo $daysOld; ?>"
                                 data-date-month="<?php echo (new DateTime($row['date']))->format('Y-m'); ?>">
                                 <div class="card-body p-4">
@@ -616,14 +817,24 @@ krsort($months); // Sort months by key (YYYY-MM) in reverse chronological order 
                                                 </div>
                                                 <div>
                                                     <h5 class="request-title mb-1"><?php echo htmlspecialchars($row['ticketNumber']); ?></h5>
-                                                    <div class="request-details d-flex flex-wrap">
-                                                        <span><i class="fas fa-user me-1"></i> <?php echo htmlspecialchars($row['name']); ?></span>
-                                                        <span><i class="fas fa-building me-1"></i> <?php echo htmlspecialchars($row['divSecUnit']); ?></span>
-                                                        <span><i class="fas fa-tag me-1"></i> <?php echo htmlspecialchars($row['requestType']); ?></span>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
+                                                     <div class="request-details d-flex flex-wrap">
+                                                         <span><i class="fas fa-user me-1"></i> <?php echo htmlspecialchars($row['name']); ?></span>
+                                                         <span><i class="fas fa-building me-1"></i> <?php echo htmlspecialchars($row['divSecUnit']); ?></span>
+                                                         <span><i class="fas fa-tag me-1"></i> <?php echo htmlspecialchars($row['requestType']); ?></span>
+                                                     </div>
+                                                     <div class="route-info">
+                                                         <div class="route-step">
+                                                             <div class="route-label"><i class="fas fa-location-dot"></i>Current Request Status</div>
+                                                             <div class="route-value"><?php echo htmlspecialchars($routeInfo['current']); ?></div>
+                                                         </div>
+                                                         <div class="route-step">
+                                                             <div class="route-label"><i class="fas fa-arrow-right-long"></i>Next Document Destination</div>
+                                                             <div class="route-value"><?php echo htmlspecialchars($routeInfo['next']); ?></div>
+                                                         </div>
+                                                     </div>
+                                                 </div>
+                                             </div>
+                                         </div>
                                         <div class="col-lg-5 col-md-12 text-lg-end">
                                             <div class="d-flex flex-wrap justify-content-lg-end align-items-center mt-3 mt-lg-0">
                                                 <span class="status-badge <?php echo $statusClass; ?> me-2 mb-2 mb-lg-0">
@@ -679,6 +890,8 @@ krsort($months); // Sort months by key (YYYY-MM) in reverse chronological order 
             const searchInput = document.getElementById('searchInput');
             const monthFilter = document.getElementById('monthFilter');
             const requestList = document.getElementById('requestList');
+            const requestSection = document.getElementById('requestSection');
+            const expandRequestSection = document.getElementById('expandRequestSection');
             const paginationControls = document.getElementById('paginationControls');
             const paginationUl = paginationControls.querySelector('.pagination');
 
@@ -792,12 +1005,14 @@ krsort($months); // Sort months by key (YYYY-MM) in reverse chronological order 
                     const name = card.dataset.name.toLowerCase();
                     const ticket = card.dataset.ticket.toLowerCase();
                     const type = card.dataset.type.toLowerCase();
+                    const route = card.dataset.route.toLowerCase();
                     const daysOld = parseInt(card.dataset.daysOld);
                     const cardMonth = card.dataset.dateMonth;
 
                     const matchesSearch = name.includes(searchTerm) || 
                                             ticket.includes(searchTerm) || 
                                             type.includes(searchTerm) ||
+                                            route.includes(searchTerm) ||
                                             status.toLowerCase().includes(searchTerm);
 
                     let matchesStatusFilter = false;
@@ -859,6 +1074,35 @@ krsort($months); // Sort months by key (YYYY-MM) in reverse chronological order 
 
             searchInput.addEventListener('keyup', filterRequests);
             monthFilter.addEventListener('change', filterRequests);
+
+            function setExpandButtonState(isExpanded) {
+                expandRequestSection.innerHTML = isExpanded
+                    ? '<i class="fas fa-compress me-1"></i> Exit Full Screen'
+                    : '<i class="fas fa-expand me-1"></i> Expand';
+            }
+
+            expandRequestSection.addEventListener('click', async function() {
+                if (document.fullscreenElement === requestSection || requestSection.classList.contains('is-expanded')) {
+                    if (document.fullscreenElement && document.exitFullscreen) {
+                        await document.exitFullscreen();
+                    } else {
+                        requestSection.classList.remove('is-expanded');
+                        setExpandButtonState(false);
+                    }
+                    return;
+                }
+
+                if (requestSection.requestFullscreen) {
+                    await requestSection.requestFullscreen();
+                } else {
+                    requestSection.classList.add('is-expanded');
+                    setExpandButtonState(true);
+                }
+            });
+
+            document.addEventListener('fullscreenchange', function() {
+                setExpandButtonState(document.fullscreenElement === requestSection);
+            });
 
             // Set the month filter dropdown to reflect the initial PHP selection
             // This ensures that if you navigate to ?month=2025-06, the dropdown shows June selected.

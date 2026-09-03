@@ -177,6 +177,7 @@ $receiptUsers = load_receipt_users($conn);
         .signature-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 48px; margin-top: 0; }
         .signature-box { padding-top: 4px; }
         .signature-label { margin-bottom: 24px; }
+        .signature-label.spaced { margin-bottom: 48px; }
         .date-line { margin-top: 12px; }
         .small-print { font-size: 13px; }
         .alert { font-family: Arial, sans-serif; }
@@ -255,7 +256,7 @@ $receiptUsers = load_receipt_users($conn);
                     <td colspan="5" style="padding:0;">
                         <div class="signature-grid">
                             <div class="signature-box">
-                                <div class="signature-label">Returned by:</div>
+                                <div class="signature-label spaced">Returned by:</div>
                                 <select class="line-select js-signatory-select" name="returned_by_name" data-position-target="returned_by_position">
                                     <?php render_name_options($receiptUsers, $returnedByName); ?>
                                 </select>
@@ -263,7 +264,7 @@ $receiptUsers = load_receipt_users($conn);
                                 <div class="date-line"><input class="line-input position" type="date" name="returned_by_date" value="<?= h($returnedByDate); ?>"><div class="center small-print">Date</div></div>
                             </div>
                             <div class="signature-box">
-                                <div class="signature-label">Received by:</div>
+                                <div class="signature-label spaced">Received by:</div>
                                 <select class="line-select js-signatory-select" name="received_by_name" data-position-target="received_by_position">
                                     <?php render_name_options($receiptUsers, $receivedByName); ?>
                                 </select>
@@ -283,7 +284,7 @@ $receiptUsers = load_receipt_users($conn);
                 </tr>
                 <tr>
                     <td colspan="5">
-                        Received Item by:<br><br>
+                        <div class="signature-label spaced">Received Item by:</div>
                         <div style="max-width:360px;">
                             <select class="line-select js-signatory-select" name="received_item_by_name" data-position-target="received_item_by_position">
                                 <?php render_name_options($receiptUsers, $receivedItemByName); ?>
