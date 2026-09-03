@@ -1131,6 +1131,50 @@ krsort($months); // Sort months by key (YYYY-MM) in reverse chronological order 
                 setExpandButtonState(document.fullscreenElement === requestSection);
             });
 
+            function setLiveStatus(text, icon, isUpdating) {
+                if (!waitingListLiveStatus) return;
+
+                waitingListLiveStatus.classList.toggle('updating', Boolean(isUpdating));
+                waitingListLiveStatus.innerHTML = '<i class="fas fa-' + icon + '"></i> ' + text;
+            }
+
+            async function refreshWaitingList() {
+                setLiveStatus('Updating list...', 'rotate', true);
+
+                try {
+                    const response = await fetch(window.location.href, {
+                        cache: 'no-store',
+                        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                    });
+
+                    if (!response.ok) {
+                        throw new Error('Unable to fetch latest waiting list.');
+                    }
+
+                    const html = await response.text();
+                    const doc = new DOMParser().parseFromString(html, 'text/html');
+                    const latestRequestList = doc.getElementById('requestList');
+
+                    if (!latestRequestList) {
+                        throw new Error('Latest waiting list markup was not found.');
+                    }
+
+                    document.querySelectorAll('.empty-state').forEach(function (emptyState) {
+                        if (!requestList.contains(emptyState)) {
+                            emptyState.remove();
+                        }
+                    });
+
+                    requestList.innerHTML = latestRequestList.innerHTML;
+                    allRequestCards = Array.from(document.querySelectorAll('.request-card'));
+                    filterRequests();
+                    setLiveStatus('Live updates on', 'signal', false);
+                } catch (error) {
+                    console.error(error);
+                    setLiveStatus('Update failed, refresh manually', 'triangle-exclamation', true);
+                }
+            }
+
             if (pusherKey && pusherCluster && typeof Pusher !== 'undefined') {
                 const pusher = new Pusher(pusherKey, {
                     cluster: pusherCluster,
@@ -1139,22 +1183,16 @@ krsort($months); // Sort months by key (YYYY-MM) in reverse chronological order 
                 });
 
                 const waitingChannel = pusher.subscribe(waitingListChannel);
-                let reloadTimer = null;
+                let refreshTimer = null;
 
                 waitingChannel.bind('srf-waiting-list-updated', function () {
-                    if (waitingListLiveStatus) {
-                        waitingListLiveStatus.classList.add('updating');
-                        waitingListLiveStatus.innerHTML = '<i class="fas fa-rotate"></i> Updating list...';
-                    }
-
-                    clearTimeout(reloadTimer);
-                    reloadTimer = setTimeout(function () {
-                        window.location.reload();
+                    clearTimeout(refreshTimer);
+                    refreshTimer = setTimeout(function () {
+                        refreshWaitingList();
                     }, 700);
                 });
             } else if (waitingListLiveStatus) {
-                waitingListLiveStatus.classList.add('updating');
-                waitingListLiveStatus.innerHTML = '<i class="fas fa-triangle-exclamation"></i> Live updates unavailable';
+                setLiveStatus('Live updates unavailable', 'triangle-exclamation', true);
             }
 
             // Set the month filter dropdown to reflect the initial PHP selection
