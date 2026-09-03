@@ -153,6 +153,7 @@ if ($stmt->affected_rows > 0) {
     $srfId = $stmt->insert_id; // Get the last inserted ID
 
     triggerSrfRequestNotification($conn, (int)$tracking, $srfId, $status);
+    triggerSrfWaitingListUpdate($conn, (int)$srfId, 'created');
 
     if ($requestType === 'Technical Assistance' && $equipmentId > 0) {
         repairHistoryInsertSrfRepair($conn, $srfId, $equipmentId, $name, $requestType, $description, $status, $date);

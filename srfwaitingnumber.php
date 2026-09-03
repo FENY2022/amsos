@@ -13,6 +13,8 @@ $selectedMonth = isset($_GET['month']) ? $_GET['month'] : $defaultMonthKey; // D
 
 // Fetch pending requests for the selected office
 $office = $_SESSION['OfficeSRF'];
+$pusherConfig = is_file(__DIR__ . '/pusher_config.php') ? require __DIR__ . '/pusher_config.php' : null;
+$waitingListChannel = 'private-srf-waiting-office-' . sha1($office);
 
 // Start with the base query for all pending requests for the office.
 // The month filtering will now primarily happen on the client-side via JavaScript.
@@ -555,6 +557,23 @@ krsort($months); // Sort months by key (YYYY-MM) in reverse chronological order 
             padding: 8px 16px;
         }
 
+        .live-status {
+            background: #dcfce7;
+            border-radius: 999px;
+            color: #166534;
+            display: inline-flex;
+            align-items: center;
+            font-size: 0.78rem;
+            font-weight: 800;
+            gap: 6px;
+            padding: 7px 12px;
+        }
+
+        .live-status.updating {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
         .request-section:fullscreen {
             background: var(--light-grey);
             overflow: auto;
@@ -741,9 +760,12 @@ krsort($months); // Sort months by key (YYYY-MM) in reverse chronological order 
             <div class="col-md-12">
                 <div class="request-section-header">
                     <h3 class="section-title">Pending Service Requests</h3>
-                    <button type="button" class="btn btn-outline-primary expand-btn" id="expandRequestSection">
-                        <i class="fas fa-expand me-1"></i> Expand
-                    </button>
+                    <div class="d-flex flex-wrap align-items-center gap-2">
+                        <span class="live-status" id="waitingListLiveStatus"><i class="fas fa-signal"></i> Live updates on</span>
+                        <button type="button" class="btn btn-outline-primary expand-btn" id="expandRequestSection">
+                            <i class="fas fa-expand me-1"></i> Expand
+                        </button>
+                    </div>
                 </div>
                 
                 <div id="requestList" class="list-group">
@@ -884,6 +906,7 @@ krsort($months); // Sort months by key (YYYY-MM) in reverse chronological order 
     </div>
     
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://js.pusher.com/8.4.0/pusher.min.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             const filterButtons = document.querySelectorAll('.filter-btn');
@@ -892,8 +915,12 @@ krsort($months); // Sort months by key (YYYY-MM) in reverse chronological order 
             const requestList = document.getElementById('requestList');
             const requestSection = document.getElementById('requestSection');
             const expandRequestSection = document.getElementById('expandRequestSection');
+            const waitingListLiveStatus = document.getElementById('waitingListLiveStatus');
             const paginationControls = document.getElementById('paginationControls');
             const paginationUl = paginationControls.querySelector('.pagination');
+            const pusherKey = <?php echo json_encode($pusherConfig['app_key'] ?? ''); ?>;
+            const pusherCluster = <?php echo json_encode($pusherConfig['cluster'] ?? ''); ?>;
+            const waitingListChannel = <?php echo json_encode($waitingListChannel); ?>;
 
             let allRequestCards = Array.from(document.querySelectorAll('.request-card')); // Store all cards initially
             let filteredCards = []; // Cards that pass status, month, and search filters
@@ -1103,6 +1130,32 @@ krsort($months); // Sort months by key (YYYY-MM) in reverse chronological order 
             document.addEventListener('fullscreenchange', function() {
                 setExpandButtonState(document.fullscreenElement === requestSection);
             });
+
+            if (pusherKey && pusherCluster && typeof Pusher !== 'undefined') {
+                const pusher = new Pusher(pusherKey, {
+                    cluster: pusherCluster,
+                    forceTLS: true,
+                    authEndpoint: 'pusher_auth.php'
+                });
+
+                const waitingChannel = pusher.subscribe(waitingListChannel);
+                let reloadTimer = null;
+
+                waitingChannel.bind('srf-waiting-list-updated', function () {
+                    if (waitingListLiveStatus) {
+                        waitingListLiveStatus.classList.add('updating');
+                        waitingListLiveStatus.innerHTML = '<i class="fas fa-rotate"></i> Updating list...';
+                    }
+
+                    clearTimeout(reloadTimer);
+                    reloadTimer = setTimeout(function () {
+                        window.location.reload();
+                    }, 700);
+                });
+            } else if (waitingListLiveStatus) {
+                waitingListLiveStatus.classList.add('updating');
+                waitingListLiveStatus.innerHTML = '<i class="fas fa-triangle-exclamation"></i> Live updates unavailable';
+            }
 
             // Set the month filter dropdown to reflect the initial PHP selection
             // This ensures that if you navigate to ?month=2025-06, the dropdown shows June selected.

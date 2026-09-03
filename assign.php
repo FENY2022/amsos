@@ -554,6 +554,8 @@ if (isset($_REQUEST['assign'])) {
             if ($tracking > 0 && $tracking !== 102) {
                 triggerSrfRequestNotification($conn, (int)$tracking, $srfId, $status);
             }
+
+            triggerSrfWaitingListUpdate($conn, (int)$srfId, $tracking === 102 ? 'completed' : 'assigned');
         
             // Success: redirect to the request list page with a success message
             $successMessage = rawurlencode('Record Successfully Assigned.' . $returnApprovalMessage);

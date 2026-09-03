@@ -189,3 +189,60 @@ function triggerSrfRequestNotification(mysqli $conn, int $userId, int $srfId, st
         return false;
     }
 }
+
+function triggerSrfWaitingListUpdate(mysqli $conn, int $srfId, string $action = 'updated'): bool
+{
+    if ($srfId <= 0) {
+        return false;
+    }
+
+    $sql = 'SELECT id, ticketNumber, name, requestType, status, office FROM srf WHERE id = ? LIMIT 1';
+    $stmt = $conn->prepare($sql);
+    if (!$stmt) {
+        error_log('Unable to prepare SRF waiting list payload query: ' . $conn->error);
+        return false;
+    }
+
+    $stmt->bind_param('i', $srfId);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $row = $result ? $result->fetch_assoc() : null;
+    $stmt->close();
+
+    if (!$row || trim((string)$row['office']) === '') {
+        return false;
+    }
+
+    try {
+        require_once __DIR__ . '/vendor/autoload.php';
+
+        if (!class_exists('Pusher\Pusher')) {
+            return false;
+        }
+
+        $pusherConfig = require __DIR__ . '/pusher_config.php';
+        $pusher = new Pusher\Pusher(
+            $pusherConfig['app_key'],
+            $pusherConfig['app_secret'],
+            $pusherConfig['app_id'],
+            array(
+                'cluster' => $pusherConfig['cluster'],
+                'useTLS' => $pusherConfig['useTLS'],
+            )
+        );
+
+        $pusher->trigger('private-srf-waiting-office-' . sha1($row['office']), 'srf-waiting-list-updated', array(
+            'action' => $action,
+            'srf_id' => (int)$row['id'],
+            'ticketNumber' => $row['ticketNumber'],
+            'name' => $row['name'],
+            'requestType' => $row['requestType'],
+            'status' => $row['status'],
+        ));
+
+        return true;
+    } catch (Exception $e) {
+        error_log('Pusher SRF waiting list update error: ' . $e->getMessage());
+        return false;
+    }
+}

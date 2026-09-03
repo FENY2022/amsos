@@ -127,6 +127,7 @@ $details = "Received By: " .  $_SESSION['Full_NameSRF'] . "";
     if ($stmt->execute()) {
 
         triggerSrfRequestNotification($conn, (int)$tracking, $srfId, $status);
+        triggerSrfWaitingListUpdate($conn, (int)$srfId, 'approved');
 
 
         $stmt = $conn->prepare("UPDATE srf SET step_counter = step_counter + 1 WHERE id = ?");

@@ -1,6 +1,7 @@
 <?php
 // Include the database connection
 require_once 'connect.php'; // Adjust the path if necessary
+require_once 'srf_request_notification_helpers.php';
 
 // Check if the form is submitted
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -30,6 +31,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmth->bind_param("isssssis", $srfId, $name, $details, $date, $time, $status, $equipment_id, $office);
             $stmth->execute();
             $stmth->close();
+
+            triggerSrfWaitingListUpdate($conn, (int)$srfId, 'received');
 
 
         // Redirect with toast

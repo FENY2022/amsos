@@ -17,9 +17,14 @@ require_once $autoload;
 $socketId = $_POST['socket_id'] ?? '';
 $channelName = $_POST['channel_name'] ?? '';
 $userId = isset($_SESSION['idSRF']) ? (int)$_SESSION['idSRF'] : 0;
-$allowedChannel = 'private-srf-request-user-' . $userId;
+$office = trim((string)($_SESSION['OfficeSRF'] ?? ''));
+$allowedChannels = array('private-srf-request-user-' . $userId);
 
-if ($userId <= 0 || $socketId === '' || $channelName !== $allowedChannel) {
+if ($office !== '') {
+    $allowedChannels[] = 'private-srf-waiting-office-' . sha1($office);
+}
+
+if ($userId <= 0 || $socketId === '' || !in_array($channelName, $allowedChannels, true)) {
     http_response_code(403);
     echo json_encode(array('error' => 'Forbidden'));
     exit;
