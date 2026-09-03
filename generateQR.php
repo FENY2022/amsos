@@ -325,9 +325,10 @@ if ($stmt) {
                     <option value="4">4 stickers</option>
                     <option value="6">6 stickers</option>
                     <option value="8">8 stickers</option>
-                    <option value="10" selected>10 stickers</option>
+                    <option value="10">10 stickers</option>
                     <option value="12">12 stickers</option>
                     <option value="15">15 stickers</option>
+                    <option value="18" selected>18 stickers</option>
                 </select>
             </div>
             <div class="modal-footer">

@@ -14,10 +14,10 @@ if (empty($ids)) {
     exit;
 }
 
-$allowedPerPage = [4, 6, 8, 10, 12, 15];
-$perPage = isset($_GET['perPage']) ? (int) $_GET['perPage'] : 10;
+$allowedPerPage = [4, 6, 8, 10, 12, 15, 18];
+$perPage = isset($_GET['perPage']) ? (int) $_GET['perPage'] : 18;
 if (!in_array($perPage, $allowedPerPage, true)) {
-    $perPage = 10;
+    $perPage = 18;
 }
 
 $office = $_SESSION['OfficeSRF'] ?? '';
@@ -139,7 +139,9 @@ function formatQrSerialNumber($serialNumber) {
         }
 
         .qr-per-page-10 .qr-page {
-            grid-template-rows: repeat(5, 1fr);
+            grid-template-columns: repeat(3, 1fr);
+            grid-template-rows: repeat(4, 40mm);
+            align-content: start;
         }
 
         .qr-per-page-12 .qr-page {
@@ -150,6 +152,12 @@ function formatQrSerialNumber($serialNumber) {
         .qr-per-page-15 .qr-page {
             grid-template-columns: repeat(3, 1fr);
             grid-template-rows: repeat(5, 1fr);
+            gap: 2mm;
+        }
+
+        .qr-per-page-18 .qr-page {
+            grid-template-columns: repeat(3, 1fr);
+            grid-template-rows: repeat(6, 1fr);
             gap: 2mm;
         }
 
@@ -227,6 +235,13 @@ function formatQrSerialNumber($serialNumber) {
             overflow-wrap: anywhere;
         }
 
+        .name-line {
+            white-space: normal;
+            overflow: visible;
+            text-overflow: clip;
+            overflow-wrap: anywhere;
+        }
+
         .property-number-line strong {
             display: block;
         }
@@ -235,34 +250,70 @@ function formatQrSerialNumber($serialNumber) {
             font-weight: 700;
         }
 
+        .qr-per-page-10 .sticker,
         .qr-per-page-12 .sticker,
-        .qr-per-page-15 .sticker {
+        .qr-per-page-15 .sticker,
+        .qr-per-page-18 .sticker {
             padding: 1.8mm;
         }
 
+        .qr-per-page-18 .sticker {
+            padding: 1.6mm;
+        }
+
+        .qr-per-page-10 .sticker-header,
         .qr-per-page-12 .sticker-header,
-        .qr-per-page-15 .sticker-header {
+        .qr-per-page-15 .sticker-header,
+        .qr-per-page-18 .sticker-header {
             gap: 1mm;
             min-height: 7mm;
         }
 
+        .qr-per-page-18 .sticker-header {
+            min-height: 6mm;
+            padding-bottom: 0.7mm;
+        }
+
+        .qr-per-page-10 .sticker-logo,
         .qr-per-page-12 .sticker-logo,
-        .qr-per-page-15 .sticker-logo {
+        .qr-per-page-15 .sticker-logo,
+        .qr-per-page-18 .sticker-logo {
             width: 16mm;
             max-height: 6mm;
         }
 
+        .qr-per-page-18 .sticker-logo {
+            width: 15mm;
+            max-height: 5.5mm;
+        }
+
+        .qr-per-page-10 .sticker-title,
         .qr-per-page-12 .sticker-title,
-        .qr-per-page-15 .sticker-title {
+        .qr-per-page-15 .sticker-title,
+        .qr-per-page-18 .sticker-title {
             font-size: 8pt;
         }
 
+        .qr-per-page-18 .sticker-title {
+            font-size: 7.5pt;
+        }
+
+        .qr-per-page-10 .sticker-body,
         .qr-per-page-12 .sticker-body,
-        .qr-per-page-15 .sticker-body {
+        .qr-per-page-15 .sticker-body,
+        .qr-per-page-18 .sticker-body {
             grid-template-columns: 22mm 1fr;
             gap: 1mm;
         }
 
+        .qr-per-page-18 .sticker-body {
+            grid-template-columns: 21mm 1fr;
+            gap: 1mm;
+        }
+
+        .qr-per-page-10 .qr-code,
+        .qr-per-page-10 .qr-code canvas,
+        .qr-per-page-10 .qr-code img,
         .qr-per-page-12 .qr-code,
         .qr-per-page-12 .qr-code canvas,
         .qr-per-page-12 .qr-code img,
@@ -273,15 +324,35 @@ function formatQrSerialNumber($serialNumber) {
             height: 22mm !important;
         }
 
+        .qr-per-page-18 .qr-code,
+        .qr-per-page-18 .qr-code canvas,
+        .qr-per-page-18 .qr-code img {
+            width: 21mm !important;
+            height: 21mm !important;
+        }
+
+        .qr-per-page-10 .sticker-details,
         .qr-per-page-12 .sticker-details,
-        .qr-per-page-15 .sticker-details {
+        .qr-per-page-15 .sticker-details,
+        .qr-per-page-18 .sticker-details {
             font-size: 7.2pt;
             line-height: 1.15;
         }
 
+        .qr-per-page-18 .sticker-details {
+            font-size: 6.9pt;
+            line-height: 1.1;
+        }
+
+        .qr-per-page-10 .detail-line,
         .qr-per-page-12 .detail-line,
-        .qr-per-page-15 .detail-line {
+        .qr-per-page-15 .detail-line,
+        .qr-per-page-18 .detail-line {
             margin-bottom: 0.45mm;
+        }
+
+        .qr-per-page-18 .detail-line {
+            margin-bottom: 0.25mm;
         }
 
         @page {
@@ -340,7 +411,7 @@ function formatQrSerialNumber($serialNumber) {
                                 <div class="detail-line"><strong>SN:</strong> <?php echo htmlspecialchars(formatQrSerialNumber($row['serialNumber'])); ?></div>
                                 <div class="detail-line property-number-line"><strong>Property Number:</strong> <?php echo htmlspecialchars($row['propertyNumber']); ?></div>
                                 <div class="detail-line"><strong>Division:</strong> <?php echo htmlspecialchars($row['officeDivision']); ?></div>
-                                <div class="detail-line"><strong>Name:</strong> <strong><?php echo htmlspecialchars($row['employeeName']); ?></strong></div>
+                                <div class="detail-line name-line"><strong>Name:</strong> <strong><?php echo htmlspecialchars($row['employeeName']); ?></strong></div>
                                 <div class="detail-line"><strong>Type:</strong> <?php echo htmlspecialchars($row['equipmentType']); ?></div>
                                 <div class="detail-line"><strong>Brand:</strong> <?php echo htmlspecialchars($row['brand']); ?></div>
                                 <div class="detail-line"><strong>Year:</strong> <?php echo htmlspecialchars($row['yearAcquired']); ?></div>
