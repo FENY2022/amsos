@@ -2,9 +2,17 @@
 
 require_once 'connect.php';
 require_once 'session_checker.php';
-require_once __DIR__ . '/vendor/autoload.php';
 
 header('Content-Type: application/json');
+
+$autoload = __DIR__ . '/vendor/autoload.php';
+if (!is_file($autoload)) {
+    http_response_code(503);
+    echo json_encode(array('error' => 'Pusher dependency is not installed'));
+    exit;
+}
+
+require_once $autoload;
 
 $socketId = $_POST['socket_id'] ?? '';
 $channelName = $_POST['channel_name'] ?? '';
@@ -18,14 +26,26 @@ if ($userId <= 0 || $socketId === '' || $channelName !== $allowedChannel) {
 }
 
 $config = require 'pusher_config.php';
-$pusher = new Pusher\Pusher(
-    $config['app_key'],
-    $config['app_secret'],
-    $config['app_id'],
-    array(
-        'cluster' => $config['cluster'],
-        'useTLS' => $config['useTLS'],
-    )
-);
+if (!class_exists('Pusher\Pusher')) {
+    http_response_code(503);
+    echo json_encode(array('error' => 'Pusher dependency is not available'));
+    exit;
+}
 
-echo $pusher->authorizeChannel($channelName, $socketId);
+try {
+    $pusher = new Pusher\Pusher(
+        $config['app_key'],
+        $config['app_secret'],
+        $config['app_id'],
+        array(
+            'cluster' => $config['cluster'],
+            'useTLS' => $config['useTLS'],
+        )
+    );
+
+    echo $pusher->authorizeChannel($channelName, $socketId);
+} catch (Throwable $e) {
+    http_response_code(503);
+    error_log('Pusher auth failed: ' . $e->getMessage());
+    echo json_encode(array('error' => 'Pusher authentication failed'));
+}

@@ -22,7 +22,7 @@ if (!in_array($perPage, $allowedPerPage, true)) {
 
 $office = $_SESSION['OfficeSRF'] ?? '';
 $placeholders = implode(',', array_fill(0, count($ids), '?'));
-$query = "SELECT employeeName, equipmentType, yearAcquired, brand, amount, serialNumber, propertyNumber, officeDivision, id
+$query = "SELECT employeeName, equipmentType, yearAcquired, brand, serialNumber, propertyNumber, officeDivision, id
           FROM inv_inventory
           WHERE Office = ? AND id IN ($placeholders)
           ORDER BY FIELD(id, $placeholders)";
@@ -50,14 +50,6 @@ $stmt->close();
 $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
 $basePath = rtrim(str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'])), '/');
 $baseUrl = $scheme . '://' . $_SERVER['HTTP_HOST'] . ($basePath === '' ? '' : $basePath);
-
-function formatQrAmount($amount) {
-    if ($amount === null || $amount === '') {
-        return '';
-    }
-
-    return number_format((float) str_replace(',', '', (string) $amount), 2);
-}
 
 function formatQrSerialNumber($serialNumber) {
     return trim(preg_replace('/^SN\s*:\s*/i', '', (string) $serialNumber));
@@ -352,7 +344,6 @@ function formatQrSerialNumber($serialNumber) {
                                 <div class="detail-line"><strong>Type:</strong> <?php echo htmlspecialchars($row['equipmentType']); ?></div>
                                 <div class="detail-line"><strong>Brand:</strong> <?php echo htmlspecialchars($row['brand']); ?></div>
                                 <div class="detail-line"><strong>Year:</strong> <?php echo htmlspecialchars($row['yearAcquired']); ?></div>
-                                <div class="detail-line"><strong>Amount:</strong> <?php echo htmlspecialchars(formatQrAmount($row['amount'])); ?></div>
                             </div>
                         </div>
                     </article>

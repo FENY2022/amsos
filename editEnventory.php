@@ -3,127 +3,13 @@
 require_once 'connect.php';
 
 
-if (isset($_GET['id'])) {
-    $inventory_id = $_GET['id'];
-} else 
-
-exit();
-
-
-{
-
-
-
-
-    // Fetch inventory details
-    $sql = "SELECT * FROM inv_inventory WHERE id = ?";
-    $stmt = $conn->prepare($sql);
-    $stmt->bind_param("i", $inventory_id);
-    $stmt->execute();
-    $result = $stmt->get_result();
-
-    $inventory = $result->fetch_assoc();
-
-    // Handle form submission
-    if ($_SERVER["REQUEST_METHOD"] == "POST") {
-        $employeeName = $_POST['employeeName'];
-        $equipmentType = $_POST['equipmentType'];
-        $yearAcquired = $_POST['yearAcquired'];
-        $shelfLife = $_POST['shelfLife'];
-        $brand = $_POST['brand'];
-        $specifications = $_POST['specifications'];
-        $rangeCategory = $_POST['rangeCategory'];
-        $softwareInstalled = $_POST['softwareInstalled'];
-        $licensingModel = $_POST['licensingModel'];
-        $softwareInstalled_2 = $_POST['softwareInstalled_2'];
-        $licensingModel_2 = $_POST['licensingModel_2'];
-        $serialNumber = $_POST['serialNumber'];
-        $propertyNumber = $_POST['propertyNumber'];
-        $accountablePerson = $_POST['accountablePerson'];
-        $sex = $_POST['sex'];
-        $officeDivision = $_POST['officeDivision'];
-        $statusOfEmployment = $_POST['statusOfEmployment'];
-        $actualUser = $_POST['actualUser'];
-        $actualUserSex = $_POST['actualUserSex'];
-        $actualUserStatusOfEmployment = $_POST['actualUserStatusOfEmployment'];
-        $natureOfWork = $_POST['natureOfWork'];
-        $remarks = $_POST['remarks'];
-        $office = $_POST['office'];
-        $amount = $_POST['amount'];
-        $depreciation_value = $_POST['depreciation_value'];
-        $mark_as_done = $_POST['mark_as_done'];
-
-        $update_sql = "UPDATE inv_inventory SET 
-                   employeeName = ?,
-                   equipmentType = ?,
-                   yearAcquired = ?,
-                   shelfLife = ?,
-                   brand = ?,
-                   specifications = ?,
-                   rangeCategory = ?,
-                   softwareInstalled = ?,
-                   licensingModel = ?,
-                   softwareInstalled_2 = ?,
-                   licensingModel_2 = ?,
-                   serialNumber = ?,
-                   propertyNumber = ?,
-                   accountablePerson = ?,
-                   sex = ?,
-                   officeDivision = ?,
-                   statusOfEmployment = ?,
-                   actualUser = ?,
-                   actualUserSex = ?,
-                   actualUserStatusOfEmployment = ?,
-                   natureOfWork = ?,
-                   remarks = ?,
-                   office = ?,
-                   amount = ?,
-                   depreciation_value = ?,
-                   mark_as_done = ?
-                   WHERE id = ?";
-
-        $update_stmt = $conn->prepare($update_sql);
-        $update_stmt->bind_param(
-            "sssssssssssssssssssssssiiis",
-            $employeeName,
-            $equipmentType,
-            $yearAcquired,
-            $shelfLife,
-            $brand,
-            $specifications,
-            $rangeCategory,
-            $softwareInstalled,
-            $licensingModel,
-            $softwareInstalled_2,
-            $licensingModel_2,
-            $serialNumber,
-            $propertyNumber,
-            $accountablePerson,
-            $sex,
-            $officeDivision,
-            $statusOfEmployment,
-            $actualUser,
-            $actualUserSex,
-            $actualUserStatusOfEmployment,
-            $natureOfWork,
-            $remarks,
-            $office,
-            $amount,
-            $depreciation_value,
-            $mark_as_done,
-            $inventory_id
-        );
-
-        if ($update_stmt->execute()) {
-            $_SESSION['success_message'] = "Inventory record updated successfully!";
-            header("Location: inventory.php");
-            exit();
-        } else {
-            $_SESSION['error_message'] = "Error updating inventory record: " . $conn->error;
-        }
-    }
+if (!isset($_GET['id']) || !ctype_digit((string)$_GET['id'])) {
+    http_response_code(400);
+    echo "Invalid inventory ID.";
+    exit();
 }
 
+$inventory_id = (int)$_GET['id'];
 
 ?>
 
@@ -131,16 +17,21 @@ exit();
 <?php
 
 
-// Replace 'your_table_name' with your actual table name
-$table_name = "inv_inventory";
+$sql = "SELECT * FROM inv_inventory WHERE id = ? LIMIT 1";
+$stmt = $conn->prepare($sql);
+if (!$stmt) {
+    http_response_code(500);
+    error_log('Failed to prepare inventory edit query: ' . $conn->error);
+    echo "Unable to load inventory record.";
+    exit();
+}
 
+$stmt->bind_param("i", $inventory_id);
+$stmt->execute();
+$result = $stmt->get_result();
 
-$sql = "SELECT * FROM $table_name where id = '$inventory_id'";
-$result = $conn->query($sql);
-
-if ($result->num_rows > 0) {
-
-    while ($row = $result->fetch_assoc()) {
+if ($result && $result->num_rows > 0) {
+    $row = $result->fetch_assoc();
 
 
 
@@ -173,10 +64,13 @@ if ($result->num_rows > 0) {
         $mark_as_done = $row['mark_as_done'];
         $inventory_id = $row['id'];
         $officeEscaped = $conn->real_escape_string($office);
-    }
 } else {
-    echo "0 results";
+    http_response_code(404);
+    echo "Inventory record not found.";
+    exit();
 }
+
+$stmt->close();
 
 
 ?>
