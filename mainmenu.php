@@ -87,6 +87,10 @@ require_once 'sidebar.php';
 
                 require_once 'returnedequipment.php' ;
 
+            }elseif ($_dirlist == 'deletedinventory') {
+
+                require_once 'deletedinventory.php' ;
+
             }elseif ($_dirlist == 'srfrequestform') {
 
                 echo '<iframe src="srfrequestform.php" onload="var overlay = window.parent.document.getElementById(\'globalLoadingOverlay\'); if (overlay) { overlay.classList.remove(\'active\'); overlay.setAttribute(\'aria-hidden\', \'true\'); }" style="width:100%; height:100vh; border:none;"></iframe>';

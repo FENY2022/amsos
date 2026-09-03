@@ -682,10 +682,42 @@ $stmt->close();
                     <button type="button" class="btn btn-lg btn-outline-warning me-2" data-bs-toggle="modal" data-bs-target="#deleteModal">
                         <i class="fas fa-undo me-2"></i>Return Equipment
                     </button>
+                    <button type="button" class="btn btn-lg btn-danger me-2" data-bs-toggle="modal" data-bs-target="#deleteInventoryModal">
+                        <i class="fas fa-trash me-2"></i>Delete
+                    </button>
                     <button type="submit" form="inventoryForm" class="btn btn-lg btn-primary">
                         <i class="fas fa-save me-2"></i>Update Inventory Record
                     </button>
                 </div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- Delete Confirmation Modal -->
+    <div class="modal fade" id="deleteInventoryModal" tabindex="-1" aria-labelledby="deleteInventoryModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title" id="deleteInventoryModalLabel">Confirm Delete Inventory</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form action="deleteEnventory.php" method="POST">
+                    <div class="modal-body">
+                        <p class="mb-3">Delete this equipment? The record will move to Deleted Inventory and can be restored later.</p>
+                        <div class="border rounded p-3 bg-light mb-3">
+                            <strong><?php echo htmlspecialchars($equipmentType . ' - ' . $brand); ?></strong>
+                            <div class="text-muted small">Property No: <?php echo htmlspecialchars($propertyNumber); ?></div>
+                            <div class="text-muted small">Serial No: <?php echo htmlspecialchars($serialNumber); ?></div>
+                        </div>
+                        <input type="hidden" name="id" value="<?php echo $id; ?>">
+                        <textarea name="delete_reason" class="form-control" rows="3" placeholder="Reason / remarks for delete (optional)"></textarea>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-danger">Delete Inventory</button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>

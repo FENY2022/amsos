@@ -284,6 +284,9 @@ $tracking2 = $tracking2 ?? 0;
             <a href="mainmenu.php?dir=returnedequipment"><i class="fas fa-undo"></i> Returned Equipment</a>
         </li>
         <li>
+            <a href="mainmenu.php?dir=deletedinventory"><i class="fas fa-trash-alt"></i> Deleted Inventory</a>
+        </li>
+        <li>
             <a href="mainmenu.php?dir=analysis_of_device"><i class="fas fa-laptop"></i> All Devices</a>
         </li>
         <li>
