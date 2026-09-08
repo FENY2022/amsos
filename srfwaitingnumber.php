@@ -216,53 +216,58 @@ krsort($months); // Sort months by key (YYYY-MM) in reverse chronological order 
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root {
-            --primary-blue: #1f7a3f;
-            --denr-green: #0f5f2f;
-            --denr-green-soft: #e7f4ec;
-            --denr-gold: #f3c969;
-            --milk-bg: #0f2747;
-            --milk-bg-soft: #1e3a5f;
+            --primary-blue: #a7cf37;
+            --denr-green: #1fa84a;
+            --denr-green-soft: #37b957;
+            --denr-gold: #d7df23;
+            --milk-bg: #54c34a;
+            --milk-bg-soft: #20ad4c;
             --secondary-dark: #183326;
             --success-green: #2ecc71;
             --warning-orange: #f39c12;
             --danger-red: #e74c3c;
-            --info-purple: #9b59b6;
-            --light-grey: #eef6f1;
+            --info-purple: #9b5cff;
+            --light-grey: #0b1020;
             --dark-text: #34495e;
             --card-border-radius: 12px;
-            --shadow-light: 0 4px 15px rgba(0,0,0,0.08);
-            --shadow-hover: 0 8px 25px rgba(0,0,0,0.12);
+            --shadow-light: 0 20px 50px rgba(0, 0, 0, 0.28);
+            --shadow-hover: 0 24px 58px rgba(0, 0, 0, 0.36);
         }
 
         body {
             background:
-                radial-gradient(circle at 12% 8%, rgba(96, 165, 250, 0.24), transparent 24%),
-                radial-gradient(circle at 85% 18%, rgba(14, 116, 144, 0.18), transparent 28%),
-                linear-gradient(135deg, #07182f 0%, #0f2747 42%, #1e3a5f 74%, #284b73 100%);
+                radial-gradient(circle at 20% 88%, rgba(174, 218, 73, 0.62), transparent 34%),
+                radial-gradient(circle at 76% 16%, rgba(38, 174, 82, 0.46), transparent 36%),
+                linear-gradient(135deg, #78c847 0%, #4fc34a 34%, #27b858 68%, #1ca84e 100%);
             background-attachment: fixed;
             font-family: 'Inter', sans-serif; /* Using a more modern font */
             color: var(--dark-text);
         }
 
         .header {
-            background: linear-gradient(105deg, rgba(15, 95, 47, 0.96), rgba(31, 122, 63, 0.9));
+            background: transparent;
             color: white;
             padding: 24px 0;
             margin-bottom: 28px;
-            box-shadow: var(--shadow-light);
-            border-bottom-left-radius: 25px;
-            border-bottom-right-radius: 25px;
-            border-bottom: 4px solid rgba(243, 201, 105, 0.8);
+            box-shadow: none;
+            border-bottom-left-radius: 0;
+            border-bottom-right-radius: 0;
+            border-bottom: 0;
         }
 
         .header h1 {
-            font-weight: 700;
-            font-size: 2.5rem;
+            color: #f8fbff;
+            font-weight: 800;
+            font-size: 2.8rem;
+            letter-spacing: -1.5px;
+            text-shadow: 0 3px 10px rgba(0, 67, 35, 0.46), 0 1px 1px rgba(0, 0, 0, 0.28);
         }
 
         .header p {
             font-size: 1.1rem;
-            opacity: 0.9;
+            color: #aebbe0;
+            opacity: 1;
+            text-shadow: 0 2px 7px rgba(0, 67, 35, 0.42), 0 1px 1px rgba(0, 0, 0, 0.24);
         }
 
         .stats-card {
@@ -273,7 +278,7 @@ krsort($months); // Sort months by key (YYYY-MM) in reverse chronological order 
             border: none;
             overflow: hidden;
             background: rgba(255, 255, 255, 0.94);
-            border: 1px solid rgba(15, 95, 47, 0.08);
+            border: 1px solid rgba(0, 107, 63, 0.12);
             position: relative;
         }
 
@@ -304,6 +309,7 @@ krsort($months); // Sort months by key (YYYY-MM) in reverse chronological order 
             font-weight: 800;
             line-height: 1;
             margin-top: 10px;
+            color: #183326 !important;
         }
 
         .status-badge {
@@ -367,15 +373,15 @@ krsort($months); // Sort months by key (YYYY-MM) in reverse chronological order 
 
         .request-card {
             border-radius: 10px;
-            box-shadow: 0 8px 22px rgba(15, 95, 47, 0.12);
+            box-shadow: var(--shadow-light);
             transition: all 0.3s ease;
             border-left: 5px solid var(--primary-blue);
             background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 252, 249, 0.98));
             overflow: hidden;
             height: 100%;
-            border-top: 1px solid rgba(15, 95, 47, 0.08);
-            border-right: 1px solid rgba(15, 95, 47, 0.08);
-            border-bottom: 1px solid rgba(15, 95, 47, 0.08);
+            border-top: 1px solid rgba(0, 107, 63, 0.12);
+            border-right: 1px solid rgba(0, 107, 63, 0.12);
+            border-bottom: 1px solid rgba(0, 107, 63, 0.12);
         }
 
         .request-card:hover {
@@ -401,12 +407,12 @@ krsort($months); // Sort months by key (YYYY-MM) in reverse chronological order 
         @keyframes forwardedSoftFlash {
             0%, 100% {
                 background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 252, 249, 0.98));
-                box-shadow: 0 8px 22px rgba(15, 95, 47, 0.12);
+                box-shadow: var(--shadow-light);
                 transform: translateY(0);
             }
             50% {
-                background: linear-gradient(180deg, rgba(255, 250, 232, 0.98), rgba(231, 244, 236, 0.98));
-                box-shadow: 0 0 0 3px rgba(243, 201, 105, 0.45), 0 12px 28px rgba(15, 95, 47, 0.18);
+                background: linear-gradient(180deg, rgba(250, 255, 229, 0.98), rgba(238, 248, 231, 0.98));
+                box-shadow: 0 0 0 3px rgba(215, 223, 35, 0.38), 0 18px 38px rgba(0, 59, 36, 0.2);
                 transform: translateY(-2px);
             }
         }
@@ -427,7 +433,7 @@ krsort($months); // Sort months by key (YYYY-MM) in reverse chronological order 
         }
         .request-details span i {
             margin-right: 5px;
-            color: #aeb6bf;
+            color: var(--denr-green);
         }
 
         .route-info {
@@ -438,14 +444,14 @@ krsort($months); // Sort months by key (YYYY-MM) in reverse chronological order 
         }
 
         .route-step {
-            background: rgba(231, 244, 236, 0.7);
-            border: 1px solid rgba(15, 95, 47, 0.12);
+            background: rgba(238, 248, 231, 0.8);
+            border: 1px solid rgba(0, 107, 63, 0.12);
             border-radius: 9px;
             padding: 8px 10px;
         }
 
         .route-label {
-            color: #64748b;
+            color: var(--denr-green);
             font-size: 0.62rem;
             font-weight: 800;
             letter-spacing: 0.45px;
@@ -490,16 +496,16 @@ krsort($months); // Sort months by key (YYYY-MM) in reverse chronological order 
             margin-bottom: 10px;
             font-size: 0.9rem;
             font-weight: 600;
-            background-color: white;
+            background-color: rgba(0, 59, 36, 0.86);
             color: var(--primary-blue);
-            border: 1px solid var(--primary-blue);
+            border: 1px solid rgba(167, 207, 55, 0.4);
             transition: all 0.2s ease;
         }
         .filter-btn.active, .filter-btn:hover {
             background-color: var(--primary-blue);
-            color: white;
+            color: #002416;
             border-color: var(--primary-blue);
-            box-shadow: 0 2px 8px rgba(74, 105, 189, 0.3);
+            box-shadow: 0 8px 22px rgba(167, 207, 55, 0.22);
             transform: translateY(-2px);
         }
         .filter-btn-group {
@@ -518,21 +524,22 @@ krsort($months); // Sort months by key (YYYY-MM) in reverse chronological order 
             left: 18px;
             top: 50%;
             transform: translateY(-50%);
-            color: #aeb6bf;
+            color: #c7ddb2;
         }
 
         .search-container input, .month-select {
             padding-left: 45px;
             border-radius: 25px;
-            border: 1px solid #ced4da;
+            border: 1px solid rgba(167, 207, 55, 0.22);
             height: 45px;
             font-size: 1rem;
             transition: all 0.2s ease;
-            background-color: white; /* Ensure consistent background */
+            background-color: rgba(0, 59, 36, 0.86); /* Ensure consistent background */
+            color: #f8fbff;
         }
         .search-container input:focus, .month-select:focus {
             border-color: var(--primary-blue);
-            box-shadow: 0 0 0 0.25rem rgba(74, 105, 189, 0.25);
+            box-shadow: 0 0 0 0.25rem rgba(167, 207, 55, 0.2);
             outline: none; /* Remove default outline */
         }
         .month-select {
@@ -550,7 +557,7 @@ krsort($months); // Sort months by key (YYYY-MM) in reverse chronological order 
             left: 15px;
             top: 50%;
             transform: translateY(-50%);
-            color: #6c757d;
+            color: #c7ddb2;
             pointer-events: none; /* Make icon unclickable */
         }
 
@@ -569,6 +576,9 @@ krsort($months); // Sort months by key (YYYY-MM) in reverse chronological order 
             width: 42px;
             height: 42px;
             flex-shrink: 0;
+            background: rgba(238, 248, 231, 0.92) !important;
+            border: 1px solid rgba(0, 107, 63, 0.14);
+            color: var(--denr-green);
         }
 
         #requestList {
@@ -589,7 +599,7 @@ krsort($months); // Sort months by key (YYYY-MM) in reverse chronological order 
         }
 
         .request-card-footer {
-            border-top: 1px solid #edf2f7;
+            border-top: 1px solid rgba(0, 107, 63, 0.1);
             padding-top: 10px;
         }
 
@@ -611,7 +621,7 @@ krsort($months); // Sort months by key (YYYY-MM) in reverse chronological order 
             left: 0;
             width: 70px;
             height: 4px;
-            background: var(--primary-blue);
+            background: linear-gradient(90deg, #d7df23, #a7cf37);
             border-radius: 3px;
         }
 
@@ -624,15 +634,28 @@ krsort($months); // Sort months by key (YYYY-MM) in reverse chronological order 
         }
 
         .expand-btn {
+            background: linear-gradient(135deg, #ffffff, #f0ffb8);
+            border: 2px solid rgba(0, 67, 35, 0.28);
             border-radius: 999px;
+            box-shadow: 0 10px 24px rgba(0, 67, 35, 0.22), 0 0 0 3px rgba(255, 255, 255, 0.22);
+            color: #064b2f;
             font-weight: 700;
-            padding: 8px 16px;
+            padding: 9px 18px;
+        }
+
+        .expand-btn:hover,
+        .expand-btn:focus {
+            background: linear-gradient(135deg, #f8fff0, #d7df23);
+            border-color: rgba(0, 67, 35, 0.46);
+            color: #003b24;
+            transform: translateY(-1px);
         }
 
         .live-status {
-            background: #dcfce7;
+            background: rgba(0, 59, 36, 0.88);
             border-radius: 999px;
-            color: #166534;
+            border: 1px solid rgba(167, 207, 55, 0.32);
+            color: #f0ff9c;
             display: inline-flex;
             align-items: center;
             font-size: 0.78rem;
@@ -642,15 +665,16 @@ krsort($months); // Sort months by key (YYYY-MM) in reverse chronological order 
         }
 
         .live-status.updating {
-            background: #fef3c7;
-            color: #92400e;
+            background: rgba(251, 191, 36, 0.14);
+            border-color: rgba(251, 191, 36, 0.35);
+            color: #fde68a;
         }
 
         .request-section:fullscreen {
             background:
-                radial-gradient(circle at 10% 8%, rgba(96, 165, 250, 0.24), transparent 26%),
-                radial-gradient(circle at 86% 14%, rgba(14, 116, 144, 0.18), transparent 30%),
-                linear-gradient(135deg, #07182f 0%, #0f2747 42%, #1e3a5f 74%, #284b73 100%);
+                radial-gradient(circle at 20% 88%, rgba(174, 218, 73, 0.62), transparent 34%),
+                radial-gradient(circle at 76% 16%, rgba(38, 174, 82, 0.46), transparent 36%),
+                linear-gradient(135deg, #78c847 0%, #4fc34a 34%, #27b858 68%, #1ca84e 100%);
             overflow: auto;
             padding: 30px;
         }
@@ -662,9 +686,9 @@ krsort($months); // Sort months by key (YYYY-MM) in reverse chronological order 
 
         .request-section.is-expanded {
             background:
-                radial-gradient(circle at 10% 8%, rgba(96, 165, 250, 0.24), transparent 26%),
-                radial-gradient(circle at 86% 14%, rgba(14, 116, 144, 0.18), transparent 30%),
-                linear-gradient(135deg, #07182f 0%, #0f2747 42%, #1e3a5f 74%, #284b73 100%);
+                radial-gradient(circle at 20% 88%, rgba(174, 218, 73, 0.62), transparent 34%),
+                radial-gradient(circle at 76% 16%, rgba(38, 174, 82, 0.46), transparent 36%),
+                linear-gradient(135deg, #78c847 0%, #4fc34a 34%, #27b858 68%, #1ca84e 100%);
             bottom: 0;
             left: 0;
             overflow: auto;
