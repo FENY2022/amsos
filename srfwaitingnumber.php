@@ -216,13 +216,18 @@ krsort($months); // Sort months by key (YYYY-MM) in reverse chronological order 
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root {
-            --primary-blue: #4a69bd; /* A slightly softer blue */
-            --secondary-dark: #2c3e50;
+            --primary-blue: #1f7a3f;
+            --denr-green: #0f5f2f;
+            --denr-green-soft: #e7f4ec;
+            --denr-gold: #f3c969;
+            --milk-bg: #0f2747;
+            --milk-bg-soft: #1e3a5f;
+            --secondary-dark: #183326;
             --success-green: #2ecc71;
             --warning-orange: #f39c12;
             --danger-red: #e74c3c;
             --info-purple: #9b59b6;
-            --light-grey: #ecf0f1;
+            --light-grey: #eef6f1;
             --dark-text: #34495e;
             --card-border-radius: 12px;
             --shadow-light: 0 4px 15px rgba(0,0,0,0.08);
@@ -230,19 +235,24 @@ krsort($months); // Sort months by key (YYYY-MM) in reverse chronological order 
         }
 
         body {
-            background-color: var(--light-grey);
+            background:
+                radial-gradient(circle at 12% 8%, rgba(96, 165, 250, 0.24), transparent 24%),
+                radial-gradient(circle at 85% 18%, rgba(14, 116, 144, 0.18), transparent 28%),
+                linear-gradient(135deg, #07182f 0%, #0f2747 42%, #1e3a5f 74%, #284b73 100%);
+            background-attachment: fixed;
             font-family: 'Inter', sans-serif; /* Using a more modern font */
             color: var(--dark-text);
         }
 
         .header {
-            background: linear-gradient(105deg, var(--primary-blue), #6a89cc);
+            background: linear-gradient(105deg, rgba(15, 95, 47, 0.96), rgba(31, 122, 63, 0.9));
             color: white;
-            padding: 30px 0;
-            margin-bottom: 40px;
+            padding: 24px 0;
+            margin-bottom: 28px;
             box-shadow: var(--shadow-light);
             border-bottom-left-radius: 25px;
             border-bottom-right-radius: 25px;
+            border-bottom: 4px solid rgba(243, 201, 105, 0.8);
         }
 
         .header h1 {
@@ -262,7 +272,8 @@ krsort($months); // Sort months by key (YYYY-MM) in reverse chronological order 
             margin-bottom: 25px;
             border: none;
             overflow: hidden;
-            background-color: white;
+            background: rgba(255, 255, 255, 0.94);
+            border: 1px solid rgba(15, 95, 47, 0.08);
             position: relative;
         }
 
@@ -355,13 +366,16 @@ krsort($months); // Sort months by key (YYYY-MM) in reverse chronological order 
         }
 
         .request-card {
-            border-radius: var(--card-border-radius);
-            box-shadow: var(--shadow-light);
+            border-radius: 10px;
+            box-shadow: 0 8px 22px rgba(15, 95, 47, 0.12);
             transition: all 0.3s ease;
-            margin-bottom: 20px;
-            border-left: 6px solid var(--primary-blue);
-            background-color: white;
+            border-left: 5px solid var(--primary-blue);
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 252, 249, 0.98));
             overflow: hidden;
+            height: 100%;
+            border-top: 1px solid rgba(15, 95, 47, 0.08);
+            border-right: 1px solid rgba(15, 95, 47, 0.08);
+            border-bottom: 1px solid rgba(15, 95, 47, 0.08);
         }
 
         .request-card:hover {
@@ -379,17 +393,35 @@ krsort($months); // Sort months by key (YYYY-MM) in reverse chronological order 
             border-left-color: var(--success-green);
         }
 
+        .request-card.forwarded-flash {
+            animation: forwardedSoftFlash 4s ease-in-out 8;
+            border-left-color: var(--denr-gold);
+        }
+
+        @keyframes forwardedSoftFlash {
+            0%, 100% {
+                background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 252, 249, 0.98));
+                box-shadow: 0 8px 22px rgba(15, 95, 47, 0.12);
+                transform: translateY(0);
+            }
+            50% {
+                background: linear-gradient(180deg, rgba(255, 250, 232, 0.98), rgba(231, 244, 236, 0.98));
+                box-shadow: 0 0 0 3px rgba(243, 201, 105, 0.45), 0 12px 28px rgba(15, 95, 47, 0.18);
+                transform: translateY(-2px);
+            }
+        }
+
         .request-title {
             font-weight: 700;
             color: var(--secondary-dark);
-            font-size: 1.25rem;
-            margin-bottom: 8px;
+            font-size: 1.05rem;
+            margin-bottom: 4px;
         }
 
         .request-details span {
-            font-size: 0.9rem;
+            font-size: 0.78rem;
             color: #6c757d;
-            margin-right: 15px;
+            margin-right: 12px;
             display: inline-flex;
             align-items: center;
         }
@@ -401,31 +433,31 @@ krsort($months); // Sort months by key (YYYY-MM) in reverse chronological order 
         .route-info {
             display: grid;
             grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 12px;
-            margin-top: 14px;
+            gap: 8px;
+            margin-top: 8px;
         }
 
         .route-step {
-            background: #f8fafc;
-            border: 1px solid #e5e7eb;
-            border-radius: 12px;
-            padding: 12px 14px;
+            background: rgba(231, 244, 236, 0.7);
+            border: 1px solid rgba(15, 95, 47, 0.12);
+            border-radius: 9px;
+            padding: 8px 10px;
         }
 
         .route-label {
             color: #64748b;
-            font-size: 0.72rem;
+            font-size: 0.62rem;
             font-weight: 800;
-            letter-spacing: 0.6px;
-            margin-bottom: 5px;
+            letter-spacing: 0.45px;
+            margin-bottom: 3px;
             text-transform: uppercase;
         }
 
         .route-value {
             color: var(--secondary-dark);
-            font-size: 0.9rem;
+            font-size: 0.78rem;
             font-weight: 700;
-            line-height: 1.35;
+            line-height: 1.25;
         }
 
         .route-step i {
@@ -528,8 +560,48 @@ krsort($months); // Sort months by key (YYYY-MM) in reverse chronological order 
             padding-bottom: 10px;
             margin-bottom: 0;
             font-weight: 700;
-            color: var(--secondary-dark);
+            color: #ffffff;
             font-size: 1.8rem;
+            text-shadow: 0 2px 8px rgba(0, 0, 0, 0.24);
+        }
+
+        .request-avatar {
+            width: 42px;
+            height: 42px;
+            flex-shrink: 0;
+        }
+
+        #requestList {
+            display: grid;
+            gap: 14px;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+        }
+
+        .request-card .card-body {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .request-card-top {
+            display: flex;
+            align-items: flex-start;
+        }
+
+        .request-card-footer {
+            border-top: 1px solid #edf2f7;
+            padding-top: 10px;
+        }
+
+        .compact-meta {
+            gap: 6px;
+        }
+
+        .compact-meta .status-badge,
+        .compact-meta .priority-label,
+        .compact-meta .date-badge {
+            font-size: 0.68rem;
+            padding: 5px 9px;
         }
 
         .section-title:after {
@@ -575,13 +647,24 @@ krsort($months); // Sort months by key (YYYY-MM) in reverse chronological order 
         }
 
         .request-section:fullscreen {
-            background: var(--light-grey);
+            background:
+                radial-gradient(circle at 10% 8%, rgba(96, 165, 250, 0.24), transparent 26%),
+                radial-gradient(circle at 86% 14%, rgba(14, 116, 144, 0.18), transparent 30%),
+                linear-gradient(135deg, #07182f 0%, #0f2747 42%, #1e3a5f 74%, #284b73 100%);
             overflow: auto;
             padding: 30px;
         }
 
+        .request-section:fullscreen .section-title {
+            color: #ffffff;
+            text-shadow: 0 2px 8px rgba(0, 0, 0, 0.24);
+        }
+
         .request-section.is-expanded {
-            background: var(--light-grey);
+            background:
+                radial-gradient(circle at 10% 8%, rgba(96, 165, 250, 0.24), transparent 26%),
+                radial-gradient(circle at 86% 14%, rgba(14, 116, 144, 0.18), transparent 30%),
+                linear-gradient(135deg, #07182f 0%, #0f2747 42%, #1e3a5f 74%, #284b73 100%);
             bottom: 0;
             left: 0;
             overflow: auto;
@@ -590,6 +673,11 @@ krsort($months); // Sort months by key (YYYY-MM) in reverse chronological order 
             right: 0;
             top: 0;
             z-index: 9999;
+        }
+
+        .request-section.is-expanded .section-title {
+            color: #ffffff;
+            text-shadow: 0 2px 8px rgba(0, 0, 0, 0.24);
         }
 
         @media (max-width: 576px) {
@@ -602,7 +690,7 @@ krsort($months); // Sort months by key (YYYY-MM) in reverse chronological order 
         .empty-state {
             text-align: center;
             padding: 60px 20px;
-            background-color: white;
+            background: rgba(255, 255, 255, 0.94);
             border-radius: var(--card-border-radius);
             box-shadow: var(--shadow-light);
             margin-top: 30px;
@@ -820,9 +908,10 @@ krsort($months); // Sort months by key (YYYY-MM) in reverse chronological order 
                                 }
 
                                 $routeInfo = srfWaitingBuildRouteInfo($conn, $row);
+                                $forwardedFlashClass = stripos($statusText, 'Forwarded to ICT') !== false || stripos($statusText, 'Forwarded to RICTU') !== false || stripos($statusText, 'Forwarded to ICT/RICTU') !== false ? 'forwarded-flash' : '';
                             ?>
                              
-                            <div class="request-card card <?php echo $cardBorderClass; ?>" 
+                            <div class="request-card card <?php echo $cardBorderClass . ' ' . $forwardedFlashClass; ?>" 
                                 data-status="<?php echo htmlspecialchars($row['status']); ?>" 
                                 data-name="<?php echo htmlspecialchars($row['name']); ?>" 
                                 data-ticket="<?php echo htmlspecialchars($row['ticketNumber']); ?>" 
@@ -830,56 +919,41 @@ krsort($months); // Sort months by key (YYYY-MM) in reverse chronological order 
                                 data-route="<?php echo htmlspecialchars($routeInfo['current'] . ' ' . $routeInfo['next']); ?>"
                                 data-days-old="<?php echo $daysOld; ?>"
                                 data-date-month="<?php echo (new DateTime($row['date']))->format('Y-m'); ?>">
-                                <div class="card-body p-4">
-                                    <div class="row align-items-center">
-                                        <div class="col-lg-7 col-md-12 mb-3 mb-lg-0">
-                                            <div class="d-flex align-items-start">
-                                                <div class="me-3 bg-light rounded-circle d-flex align-items-center justify-content-center" style="width: 55px; height: 55px; flex-shrink: 0;">
-                                                    <i class="fas fa-ticket-alt text-primary-blue fs-4"></i>
-                                                </div>
-                                                <div>
-                                                    <h5 class="request-title mb-1"><?php echo htmlspecialchars($row['ticketNumber']); ?></h5>
-                                                     <div class="request-details d-flex flex-wrap">
-                                                         <span><i class="fas fa-user me-1"></i> <?php echo htmlspecialchars($row['name']); ?></span>
-                                                         <span><i class="fas fa-building me-1"></i> <?php echo htmlspecialchars($row['divSecUnit']); ?></span>
-                                                         <span><i class="fas fa-tag me-1"></i> <?php echo htmlspecialchars($row['requestType']); ?></span>
-                                                     </div>
-                                                     <div class="route-info">
-                                                         <div class="route-step">
-                                                             <div class="route-label"><i class="fas fa-location-dot"></i>Current Request Status</div>
-                                                             <div class="route-value"><?php echo htmlspecialchars($routeInfo['current']); ?></div>
-                                                         </div>
-                                                         <div class="route-step">
-                                                             <div class="route-label"><i class="fas fa-arrow-right-long"></i>Next Document Destination</div>
-                                                             <div class="route-value"><?php echo htmlspecialchars($routeInfo['next']); ?></div>
-                                                         </div>
-                                                     </div>
-                                                 </div>
-                                             </div>
-                                         </div>
-                                        <div class="col-lg-5 col-md-12 text-lg-end">
-                                            <div class="d-flex flex-wrap justify-content-lg-end align-items-center mt-3 mt-lg-0">
-                                                <span class="status-badge <?php echo $statusClass; ?> me-2 mb-2 mb-lg-0">
-                                                    <i class="fas fa-circle"></i> <?php echo htmlspecialchars($statusText); ?>
-                                                </span>
-                                                <span class="priority-label <?php echo $priorityClass; ?> me-2 mb-2 mb-lg-0">
-                                                    <i class="fas fa-flag me-1"></i> Priority: <?php echo htmlspecialchars($priorityText); ?>
-                                                </span>
-                                                <span class="badge bg-light text-dark mb-2 mb-lg-0" style="font-size: 0.8rem; padding: 6px 12px; border-radius: 15px;">
-                                                    <i class="fas fa-calendar-alt me-1"></i> <?php echo (new DateTime($row['date']))->format('M d, Y'); ?>
-                                                </span>
+                                <div class="card-body p-3">
+                                    <div class="request-card-top">
+                                        <div class="request-avatar me-3 bg-light rounded-circle d-flex align-items-center justify-content-center">
+                                            <i class="fas fa-ticket-alt text-primary-blue"></i>
+                                        </div>
+                                        <div>
+                                            <h5 class="request-title mb-1"><?php echo htmlspecialchars($row['ticketNumber']); ?></h5>
+                                            <div class="request-details d-flex flex-wrap">
+                                                <span><i class="fas fa-user me-1"></i> <?php echo htmlspecialchars($row['name']); ?></span>
+                                                <span><i class="fas fa-building me-1"></i> <?php echo htmlspecialchars($row['divSecUnit']); ?></span>
+                                                <span><i class="fas fa-tag me-1"></i> <?php echo htmlspecialchars($row['requestType']); ?></span>
                                             </div>
-                                            <div class="d-flex justify-content-lg-end mt-3">
-                                                <button class="btn btn-primary action-btn me-2">
-                                                    <i class="fas fa-eye me-1"></i> View
-                                                </button>
-                                                <button class="btn btn-outline-secondary action-btn me-2">
-                                                    <i class="fas fa-edit me-1"></i> Edit
-                                                </button>
-                                                <button class="btn btn-success action-btn">
-                                                    <i class="fas fa-check me-1"></i> Resolve
-                                                </button>
-                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="route-info">
+                                        <div class="route-step">
+                                            <div class="route-label"><i class="fas fa-location-dot"></i>Current Request Status</div>
+                                            <div class="route-value"><?php echo htmlspecialchars($routeInfo['current']); ?></div>
+                                        </div>
+                                        <div class="route-step">
+                                            <div class="route-label"><i class="fas fa-arrow-right-long"></i>Next Document Destination</div>
+                                            <div class="route-value"><?php echo htmlspecialchars($routeInfo['next']); ?></div>
+                                        </div>
+                                    </div>
+                                    <div class="request-card-footer">
+                                        <div class="compact-meta d-flex flex-wrap align-items-center">
+                                            <span class="status-badge <?php echo $statusClass; ?> me-2 mb-2 mb-lg-0">
+                                                <i class="fas fa-circle"></i> <?php echo htmlspecialchars($statusText); ?>
+                                            </span>
+                                            <span class="priority-label <?php echo $priorityClass; ?> me-2 mb-2 mb-lg-0">
+                                                <i class="fas fa-flag me-1"></i> Priority: <?php echo htmlspecialchars($priorityText); ?>
+                                            </span>
+                                            <span class="date-badge badge bg-light text-dark mb-2 mb-lg-0" style="border-radius: 15px;">
+                                                <i class="fas fa-calendar-alt me-1"></i> <?php echo (new DateTime($row['date']))->format('M d, Y'); ?>
+                                            </span>
                                         </div>
                                     </div>
                                 </div>
