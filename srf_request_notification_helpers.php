@@ -231,14 +231,18 @@ function triggerSrfWaitingListUpdate(mysqli $conn, int $srfId, string $action = 
             )
         );
 
-        $pusher->trigger('private-srf-waiting-office-' . sha1($row['office']), 'srf-waiting-list-updated', array(
+        $payload = array(
             'action' => $action,
             'srf_id' => (int)$row['id'],
             'ticketNumber' => $row['ticketNumber'],
             'name' => $row['name'],
             'requestType' => $row['requestType'],
             'status' => $row['status'],
-        ));
+        );
+
+        $officeChannelKey = sha1($row['office']);
+        $pusher->trigger('private-srf-waiting-office-' . $officeChannelKey, 'srf-waiting-list-updated', $payload);
+        $pusher->trigger('srf-waiting-office-' . $officeChannelKey, 'srf-waiting-list-updated', $payload);
 
         return true;
     } catch (Exception $e) {

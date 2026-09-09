@@ -3,6 +3,8 @@
 // Assuming 'connect.php' properly sets up $conn and $_SESSION['OfficeSRF']
 require_once 'connect.php';
 
+$isPublicWaitingList = defined('SRF_WAITING_PUBLIC') && SRF_WAITING_PUBLIC;
+
 // --- MODIFIED: Set current month as default if no month is selected ---
 $currentYear = date('Y');
 $currentMonthNum = date('m');
@@ -12,9 +14,9 @@ $selectedMonth = isset($_GET['month']) ? $_GET['month'] : $defaultMonthKey; // D
 
 
 // Fetch pending requests for the selected office
-$office = $_SESSION['OfficeSRF'];
+$office = $_SESSION['OfficeSRF'] ?? 'REGIONAL OFFICE';
 $pusherConfig = is_file(__DIR__ . '/pusher_config.php') ? require __DIR__ . '/pusher_config.php' : null;
-$waitingListChannel = 'private-srf-waiting-office-' . sha1($office);
+$waitingListChannel = ($isPublicWaitingList ? 'srf-waiting-office-' : 'private-srf-waiting-office-') . sha1($office);
 
 // Start with the base query for all pending requests for the office.
 // The month filtering will now primarily happen on the client-side via JavaScript.
@@ -92,10 +94,17 @@ function srfWaitingFormatPerson($person)
     $name = trim((string)($person['name'] ?? ''));
     $position = trim((string)($person['position'] ?? ''));
     $role = trim((string)($person['role'] ?? ''));
-    $station = trim((string)($person['station'] ?? ''));
+    $station = srfWaitingDisplayUnitName((string)($person['station'] ?? ''));
     $details = array_filter([$position ?: $role, $station]);
 
     return $name . (!empty($details) ? ' (' . implode(' - ', $details) . ')' : '');
+}
+
+function srfWaitingDisplayUnitName($value)
+{
+    $value = trim((string)$value);
+
+    return stripos($value, 'ASD') !== false ? 'RO ADMIN' : $value;
 }
 
 function srfWaitingBuildRouteInfo($conn, $row)
@@ -213,6 +222,7 @@ krsort($months); // Sort months by key (YYYY-MM) in reverse chronological order 
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Service Request Dashboard</title>
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root {
@@ -874,6 +884,11 @@ krsort($months); // Sort months by key (YYYY-MM) in reverse chronological order 
                     <h3 class="section-title">Pending Service Requests</h3>
                     <div class="d-flex flex-wrap align-items-center gap-2">
                         <span class="live-status" id="waitingListLiveStatus"><i class="fas fa-signal"></i> Live updates on</span>
+                        <?php if (!$isPublicWaitingList): ?>
+                            <a class="btn btn-outline-primary expand-btn" href="public_srfwaitingnumber.php" target="_blank" rel="noopener">
+                                <i class="fas fa-tv me-1"></i> Public TV Link
+                            </a>
+                        <?php endif; ?>
                         <button type="button" class="btn btn-outline-primary expand-btn" id="expandRequestSection">
                             <i class="fas fa-expand me-1"></i> Expand
                         </button>
@@ -932,6 +947,7 @@ krsort($months); // Sort months by key (YYYY-MM) in reverse chronological order 
                                 }
 
                                 $routeInfo = srfWaitingBuildRouteInfo($conn, $row);
+                                $displayDivSecUnit = srfWaitingDisplayUnitName($row['divSecUnit']);
                                 $forwardedFlashClass = stripos($statusText, 'Forwarded to ICT') !== false || stripos($statusText, 'Forwarded to RICTU') !== false || stripos($statusText, 'Forwarded to ICT/RICTU') !== false ? 'forwarded-flash' : '';
                             ?>
                              
@@ -940,7 +956,7 @@ krsort($months); // Sort months by key (YYYY-MM) in reverse chronological order 
                                 data-name="<?php echo htmlspecialchars($row['name']); ?>" 
                                 data-ticket="<?php echo htmlspecialchars($row['ticketNumber']); ?>" 
                                 data-type="<?php echo htmlspecialchars($row['requestType']); ?>"
-                                data-route="<?php echo htmlspecialchars($routeInfo['current'] . ' ' . $routeInfo['next']); ?>"
+                                data-route="<?php echo htmlspecialchars($displayDivSecUnit . ' ' . $routeInfo['current'] . ' ' . $routeInfo['next']); ?>"
                                 data-days-old="<?php echo $daysOld; ?>"
                                 data-date-month="<?php echo (new DateTime($row['date']))->format('Y-m'); ?>">
                                 <div class="card-body p-3">
@@ -952,7 +968,7 @@ krsort($months); // Sort months by key (YYYY-MM) in reverse chronological order 
                                             <h5 class="request-title mb-1"><?php echo htmlspecialchars($row['ticketNumber']); ?></h5>
                                             <div class="request-details d-flex flex-wrap">
                                                 <span><i class="fas fa-user me-1"></i> <?php echo htmlspecialchars($row['name']); ?></span>
-                                                <span><i class="fas fa-building me-1"></i> <?php echo htmlspecialchars($row['divSecUnit']); ?></span>
+                                                <span><i class="fas fa-building me-1"></i> <?php echo htmlspecialchars($displayDivSecUnit); ?></span>
                                                 <span><i class="fas fa-tag me-1"></i> <?php echo htmlspecialchars($row['requestType']); ?></span>
                                             </div>
                                         </div>
@@ -1019,6 +1035,7 @@ krsort($months); // Sort months by key (YYYY-MM) in reverse chronological order 
             const pusherKey = <?php echo json_encode($pusherConfig['app_key'] ?? ''); ?>;
             const pusherCluster = <?php echo json_encode($pusherConfig['cluster'] ?? ''); ?>;
             const waitingListChannel = <?php echo json_encode($waitingListChannel); ?>;
+            const isPublicWaitingList = <?php echo $isPublicWaitingList ? 'true' : 'false'; ?>;
 
             let allRequestCards = Array.from(document.querySelectorAll('.request-card')); // Store all cards initially
             let filteredCards = []; // Cards that pass status, month, and search filters
@@ -1274,11 +1291,16 @@ krsort($months); // Sort months by key (YYYY-MM) in reverse chronological order 
             }
 
             if (pusherKey && pusherCluster && typeof Pusher !== 'undefined') {
-                const pusher = new Pusher(pusherKey, {
+                const pusherOptions = {
                     cluster: pusherCluster,
-                    forceTLS: true,
-                    authEndpoint: 'pusher_auth.php'
-                });
+                    forceTLS: true
+                };
+
+                if (!isPublicWaitingList) {
+                    pusherOptions.authEndpoint = 'pusher_auth.php';
+                }
+
+                const pusher = new Pusher(pusherKey, pusherOptions);
 
                 const waitingChannel = pusher.subscribe(waitingListChannel);
                 let refreshTimer = null;
