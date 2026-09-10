@@ -1,0 +1,67 @@
+#srf {
+    background:#fff;
+    /* height:100dvh; */
+    display:flex;
+    justify-content:center;
+    color: #000;
+}
+#srf table{
+    width: 100%;
+}
+#srf table,tr,td{
+    border: solid 2px #000;
+    padding: 5px;
+    border-collapse: collapse;
+}
+#srf a{
+    text-decoration: underline;
+    color: blue;
+}
+#srf .cell-logo{
+    width: 100px;
+}
+#srf .div-3{
+    display:flex;
+    justify-content:space-between;
+}
+#srf .div-margin{
+    margin-top: 15px;
+}
+#srf .table-header-bg{
+    background: #cbcbcb;
+}
+#srf .div-flex{
+    display: flex;
+    gap:5px;
+    align-items:center;
+}
+#srf .large-text{
+    font-size: 1.3rem;
+    font-weight: bold;
+}
+
+.div-flex {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-bottom: 5px;
+}
+.div-flex input[type="text"] {
+    margin-left: 5px;
+    padding: 4px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    width: 200px;
+}
+.table-header-bg {
+    background-color: #f4f4f4;
+    font-weight: bold;
+    padding: 10px;
+}
+
+.signature-box {
+    margin-top: 5px;
+    padding: 5px;
+    border: 2px solid #000;
+}

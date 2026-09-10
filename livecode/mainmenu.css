@@ -1,0 +1,90 @@
+/* css/mainmenu.css */
+
+/* Basic body and HTML setup for full height */
+html, body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    font-family: Arial, sans-serif;
+    display: flex; /* Use flexbox for overall layout */
+    flex-direction: column; /* Arrange items vertically */
+}
+
+/* Navbar styles (adjust as per your navbar.php and Bootstrap usage) */
+.navbar {
+    z-index: 1000; /* Ensure navbar stays on top */
+    /* Add any other specific navbar styling */
+}
+
+/* Main container for sidebar and content */
+.wrapper {
+    display: flex; /* Use flexbox for sidebar and content layout */
+    flex: 1; /* Allow this wrapper to take up remaining vertical space */
+    overflow: hidden; /* Hide overflow from this wrapper, allowing inner elements to scroll */
+}
+
+/* Sidebar styles */
+#sidebar {
+    min-width: 250px; /* Adjust sidebar width as needed */
+    max-width: 250px;
+    background: #343a40; /* Dark background for sidebar */
+    color: #fff;
+    transition: all 0.3s;
+    padding-top: 20px;
+    flex-shrink: 0; /* Prevent sidebar from shrinking */
+    overflow-y: auto; /* Enable scrollbar for sidebar if content overflows */
+    -webkit-overflow-scrolling: touch; /* For smoother scrolling on iOS */
+}
+
+#sidebar.active {
+    margin-left: -250px; /* Collapse sidebar */
+}
+
+#sidebar ul.components {
+    padding: 20px 0;
+    border-bottom: 1px solid #47748b;
+}
+
+#sidebar ul li a {
+    padding: 10px;
+    font-size: 1.1em;
+    display: block;
+    color: #fff;
+}
+
+#sidebar ul li a:hover {
+    color: #7386D5;
+    background: #fff;
+}
+
+#sidebar ul li.active > a, a[aria-expanded="true"] {
+    color: #fff;
+    background: #6d7fcc;
+}
+
+/* Content area styles */
+.content {
+    flex: 1; /* Allow content to take up remaining horizontal space */
+    padding: 20px; /* Add some padding around your content */
+    overflow-y: auto; /* *** THIS IS THE KEY FOR THE SCROLLBAR *** */
+    -webkit-overflow-scrolling: touch; /* Improves scrolling performance on iOS */
+    background-color: #f8f9fa; /* Light background for content area */
+    display: flex; /* Make content a flex container to center/align inner content if needed */
+    flex-direction: column; /* Stack inner content vertically */
+}
+
+/* Media queries for responsiveness */
+@media (max-width: 768px) {
+    #sidebar {
+        margin-left: -250px; /* Start with sidebar collapsed on small screens */
+    }
+    #sidebar.active {
+        margin-left: 0; /* Show sidebar when active */
+    }
+    .content {
+        width: 100%; /* Content takes full width when sidebar is collapsed */
+    }
+    #sidebarCollapse {
+        display: block; /* Show collapse button on small screens */
+    }
+}
