@@ -71,7 +71,18 @@ if ($stmt_offices) {
 
 // --- 3. Fetch equipment data ---
 $equipment_options = "";
-$sql_equipment = "SELECT equipment_name AS equipmentType FROM inv_typeofequipment WHERE equipment_name IS NOT NULL AND TRIM(equipment_name) != '' ORDER BY equipment_name ASC";
+$sql_equipment = "
+    SELECT equipmentType FROM (
+        SELECT equipment_name AS equipmentType
+        FROM inv_typeofequipment
+        WHERE equipment_name IS NOT NULL AND TRIM(equipment_name) != ''
+        UNION
+        SELECT equipmentType
+        FROM inv_inventory
+        WHERE equipmentType IS NOT NULL AND TRIM(equipmentType) != ''
+    ) AS equipment_list
+    ORDER BY equipmentType ASC
+";
 $result_equipment = $conn->query($sql_equipment);
 
 if ($result_equipment) {
