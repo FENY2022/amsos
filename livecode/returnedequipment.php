@@ -194,7 +194,11 @@ while ($row = $approverResult->fetch_assoc()) {
 
 $pendingRequests = [];
 if ($isSuperAdmin || $isReturnApprover) {
-    $pendingSql = "SELECT r.*, i.equipmentType, i.brand, i.propertyNumber, i.serialNumber, i.accountablePerson, i.actualUser, i.office, i.officeDivision
+    $pendingSql = "SELECT r.*, i.equipmentType, i.computer_specs, i.yearAcquired, i.shelfLife, i.brand, i.specifications,
+            i.rangeCategory, i.softwareInstalled, i.licensingModel, i.softwareInstalled_2, i.licensingModel_2,
+            i.serialNumber, i.propertyNumber, i.accountablePerson, i.sex, i.statusOfEmployment, i.actualUser,
+            i.actualUserSex, i.actualUserStatusOfEmployment, i.natureOfWork, i.office, i.officeDivision,
+            i.amount, i.depreciation_value, i.remarks
         FROM inv_return_requests r
         INNER JOIN inv_inventory i ON i.id = r.inventory_id
         WHERE r.status = 'Pending'";
@@ -356,6 +360,35 @@ if ($isSuperAdmin && $approverSearch !== '') {
         color: #1d4ed8;
     }
 
+    .request-detail-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+    }
+
+    .request-detail-item {
+        background: #f8fafc;
+        border: 1px solid #e5e7eb;
+        border-radius: 12px;
+        padding: 12px;
+    }
+
+    .request-detail-item span {
+        color: #64748b;
+        display: block;
+        font-size: .78rem;
+        font-weight: 800;
+        letter-spacing: .03em;
+        margin-bottom: 4px;
+        text-transform: uppercase;
+    }
+
+    .request-detail-item strong {
+        color: #0f172a;
+        display: block;
+        word-break: break-word;
+    }
+
     @media (max-width: 992px) {
         .metric-grid {
             grid-template-columns: repeat(2, minmax(160px, 1fr));
@@ -369,6 +402,10 @@ if ($isSuperAdmin && $approverSearch !== '') {
         }
 
         .metric-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .request-detail-grid {
             grid-template-columns: 1fr;
         }
     }
@@ -453,7 +490,10 @@ if ($isSuperAdmin && $approverSearch !== '') {
                                 </td>
                                 <td><?= h($request['assigned_to_name']); ?></td>
                                 <td><?= h($request['return_reason'] ?: 'No reason provided.'); ?></td>
-                                <td style="min-width: 220px;">
+                                <td style="min-width: 240px;">
+                                    <button type="button" class="btn btn-sm btn-outline-primary mb-2" data-toggle="modal" data-target="#returnRequestDetails<?= (int) $request['id']; ?>">
+                                        <i class="fas fa-eye mr-1"></i>View Details
+                                    </button>
                                     <button type="button" class="btn btn-sm btn-success mb-2" data-toggle="modal" data-target="#acceptReturn<?= (int) $request['id']; ?>">
                                         <i class="fas fa-check mr-1"></i>Accept Return
                                     </button>
@@ -468,6 +508,62 @@ if ($isSuperAdmin && $approverSearch !== '') {
             </div>
 
             <?php foreach ($pendingRequests as $request): ?>
+                <div class="modal fade" id="returnRequestDetails<?= (int) $request['id']; ?>" tabindex="-1" role="dialog" aria-labelledby="returnRequestDetailsLabel<?= (int) $request['id']; ?>" aria-hidden="true">
+                    <div class="modal-dialog modal-lg" role="document">
+                        <div class="modal-content">
+                            <div class="modal-header bg-primary text-white">
+                                <h5 class="modal-title" id="returnRequestDetailsLabel<?= (int) $request['id']; ?>"><i class="fas fa-clipboard-list mr-2"></i>Return Request Details</h5>
+                                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                            </div>
+                            <div class="modal-body">
+                                <div class="alert alert-info mb-3">
+                                    Review the details below before approving or disapproving this return request.
+                                </div>
+
+                                <h6 class="font-weight-bold mb-2">Equipment Information</h6>
+                                <div class="request-detail-grid mb-3">
+                                    <div class="request-detail-item"><span>Equipment Type</span><strong><?= h($request['equipmentType'] ?: 'N/A'); ?></strong></div>
+                                    <div class="request-detail-item"><span>Brand</span><strong><?= h($request['brand'] ?: 'N/A'); ?></strong></div>
+                                    <div class="request-detail-item"><span>Property Number</span><strong><?= h($request['propertyNumber'] ?: 'N/A'); ?></strong></div>
+                                    <div class="request-detail-item"><span>Serial Number</span><strong><?= h($request['serialNumber'] ?: 'N/A'); ?></strong></div>
+                                    <div class="request-detail-item"><span>Year Acquired</span><strong><?= h($request['yearAcquired'] ?: 'N/A'); ?></strong></div>
+                                    <div class="request-detail-item"><span>Amount</span><strong><?= $request['amount'] !== null && $request['amount'] !== '' ? h(number_format((float) $request['amount'], 2)) : 'N/A'; ?></strong></div>
+                                    <div class="request-detail-item"><span>Specifications</span><strong><?= h($request['specifications'] ?: ($request['computer_specs'] ?: 'N/A')); ?></strong></div>
+                                    <div class="request-detail-item"><span>Inventory Remarks</span><strong><?= h($request['remarks'] ?: 'N/A'); ?></strong></div>
+                                </div>
+
+                                <h6 class="font-weight-bold mb-2">Accountability / Office</h6>
+                                <div class="request-detail-grid mb-3">
+                                    <div class="request-detail-item"><span>Accountable Person</span><strong><?= h($request['accountablePerson'] ?: 'N/A'); ?></strong></div>
+                                    <div class="request-detail-item"><span>Actual User</span><strong><?= h($request['actualUser'] ?: 'N/A'); ?></strong></div>
+                                    <div class="request-detail-item"><span>Office</span><strong><?= h($request['office'] ?: 'N/A'); ?></strong></div>
+                                    <div class="request-detail-item"><span>Division</span><strong><?= h($request['officeDivision'] ?: 'N/A'); ?></strong></div>
+                                    <div class="request-detail-item"><span>Nature of Work</span><strong><?= h($request['natureOfWork'] ?: 'N/A'); ?></strong></div>
+                                    <div class="request-detail-item"><span>Employment Status</span><strong><?= h($request['statusOfEmployment'] ?: 'N/A'); ?></strong></div>
+                                </div>
+
+                                <h6 class="font-weight-bold mb-2">Request Information</h6>
+                                <div class="request-detail-grid">
+                                    <div class="request-detail-item"><span>Requested By</span><strong><?= h($request['requested_by_name'] ?: 'System'); ?></strong></div>
+                                    <div class="request-detail-item"><span>Requested Date</span><strong><?= h(date('M d, Y h:i A', strtotime($request['created_at']))); ?></strong></div>
+                                    <div class="request-detail-item"><span>Assigned To</span><strong><?= h($request['assigned_to_name'] ?: 'N/A'); ?></strong></div>
+                                    <div class="request-detail-item"><span>Status</span><strong><?= h($request['status']); ?></strong></div>
+                                </div>
+
+                                <div class="mt-3 border rounded p-3 bg-light">
+                                    <div class="font-weight-bold mb-1">Return Reason / Remarks</div>
+                                    <div><?= nl2br(h($request['return_reason'] ?: 'No reason provided.')); ?></div>
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                                <button type="button" class="btn btn-danger" data-dismiss="modal" data-toggle="modal" data-target="#disapproveReturn<?= (int) $request['id']; ?>"><i class="fas fa-times mr-1"></i>Disapprove</button>
+                                <button type="button" class="btn btn-success" data-dismiss="modal" data-toggle="modal" data-target="#acceptReturn<?= (int) $request['id']; ?>"><i class="fas fa-check mr-1"></i>Approve Return</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="modal fade" id="acceptReturn<?= (int) $request['id']; ?>" tabindex="-1" role="dialog" aria-labelledby="acceptReturnLabel<?= (int) $request['id']; ?>" aria-hidden="true">
                     <div class="modal-dialog" role="document">
                         <form action="approveReturnEquipment.php" method="POST" class="modal-content">

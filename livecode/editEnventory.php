@@ -263,11 +263,22 @@ $stmt->close();
                                 <select class="form-select" name="equipmentType" required>
                                     <option value="">Select type</option>
                                     <?php
-                                    $sql = "SELECT DISTINCT equipmentType FROM inv_inventory";
+                                    $sql = "
+                                        SELECT equipmentType FROM (
+                                            SELECT equipment_name AS equipmentType
+                                            FROM inv_typeofequipment
+                                            WHERE equipment_name IS NOT NULL AND TRIM(equipment_name) != ''
+                                            UNION
+                                            SELECT equipmentType
+                                            FROM inv_inventory
+                                            WHERE equipmentType IS NOT NULL AND TRIM(equipmentType) != ''
+                                        ) AS equipment_list
+                                        ORDER BY equipmentType ASC
+                                    ";
                                     $result = mysqli_query($conn, $sql);
                                     while ($row = mysqli_fetch_array($result)) {
                                         $selected = ($equipmentType == $row['equipmentType']) ? 'selected' : '';
-                                        echo "<option value='" . $row['equipmentType'] . "' " . $selected . ">" . $row['equipmentType'] . "</option>";
+                                        echo "<option value='" . htmlspecialchars($row['equipmentType']) . "' " . $selected . ">" . htmlspecialchars($row['equipmentType']) . "</option>";
                                     }
                                     ?>
                                 </select>
