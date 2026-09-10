@@ -1,11 +1,24 @@
 <?php
 
-require_once 'connect.php'; // Database connection
+try {
+    // Check if the form is submitted
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        header('Location: entrydata.php');
+        exit;
+    }
 
-// Check if the form is submitted
-if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+    require_once 'connect.php'; // Database connection
+
     // Get the input from the form
-    $equipment_name = $_POST['firstname'];
+    $equipment_name = trim($_POST['equipment_name'] ?? $_POST['firstname'] ?? '');
+
+    if ($equipment_name === '') {
+        echo "<script>
+                alert('Equipment name is required!');
+                window.history.back();
+            </script>";
+        exit;
+    }
 
     // First, check if the equipment name already exists
     $check_sql = "SELECT * FROM inv_typeofequipment WHERE equipment_name = ?";
@@ -26,6 +39,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     window.history.back();
                 </script>";
         } else {
+            
             // Equipment name doesn't exist, insert the new record
             $sql = "INSERT INTO inv_typeofequipment (equipment_name) VALUES (?)";
 
@@ -62,5 +76,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
     // Close the database connection
     $conn->close();
+} catch (Throwable $e) {
+    error_log('Add equipment failed: ' . $e->getMessage());
+    http_response_code(500);
+    echo "<script>
+            alert('Unable to add equipment. Please contact the administrator.');
+            window.history.back();
+        </script>";
 }
 ?>

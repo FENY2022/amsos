@@ -3,7 +3,7 @@
 
 
 // Set the database connection parameters.
-$servername = "localhost";
+$servername = "153.92.15.60";
 $username = "u645536029_ict_amsos_user";
 $password = "9Ad=:C~WJ>";
 $database = "u645536029_ict_amsos_db";
