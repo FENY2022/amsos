@@ -244,6 +244,11 @@ krsort($months); // Sort months by key (YYYY-MM) in reverse chronological order 
             --shadow-hover: 0 24px 58px rgba(0, 0, 0, 0.36);
         }
 
+        html,
+        body {
+            min-height: 100%;
+        }
+
         body {
             background:
                 radial-gradient(circle at 20% 88%, rgba(174, 218, 73, 0.62), transparent 34%),
@@ -252,6 +257,10 @@ krsort($months); // Sort months by key (YYYY-MM) in reverse chronological order 
             background-attachment: fixed;
             font-family: 'Inter', sans-serif; /* Using a more modern font */
             color: var(--dark-text);
+        }
+
+        body.public-waiting-list {
+            overflow: hidden;
         }
 
         .header {
@@ -597,6 +606,145 @@ krsort($months); // Sort months by key (YYYY-MM) in reverse chronological order 
             grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
         }
 
+        body.public-waiting-list .page-wrap,
+        body.public-waiting-list .header .container {
+            max-width: none;
+            padding-left: 18px;
+            padding-right: 18px;
+            width: 100%;
+        }
+
+        body.public-waiting-list .page-wrap {
+            margin-bottom: 0 !important;
+        }
+
+        body.public-waiting-list .row.mb-4 > [class*="col-"] {
+            flex: 0 0 20%;
+            max-width: 20%;
+        }
+
+        body.public-waiting-list .header {
+            padding: 12px 0;
+            margin-bottom: 12px;
+        }
+
+        body.public-waiting-list .header h1 {
+            font-size: clamp(1.5rem, 2.4vw, 2.4rem);
+            margin-bottom: 2px;
+        }
+
+        body.public-waiting-list .header p {
+            font-size: clamp(0.82rem, 1vw, 1rem);
+        }
+
+        body.public-waiting-list .stats-card {
+            margin-bottom: 10px;
+        }
+
+        body.public-waiting-list .stats-card .card-body {
+            padding-bottom: 12px !important;
+            padding-top: 12px !important;
+        }
+
+        body.public-waiting-list .card-icon {
+            font-size: 1.8rem;
+            top: 10px;
+            right: 14px;
+        }
+
+        body.public-waiting-list .card-value {
+            font-size: clamp(1.5rem, 2.6vw, 2.3rem);
+            margin-top: 5px;
+        }
+
+        body.public-waiting-list .card-header-stats {
+            font-size: 0.72rem;
+            margin-bottom: 2px;
+        }
+
+        body.public-waiting-list .filter-btn {
+            font-size: 0.78rem;
+            margin-bottom: 0;
+            padding: 6px 13px;
+        }
+
+        body.public-waiting-list .row.mb-4,
+        body.public-waiting-list .row.mb-5 {
+            margin-bottom: 10px !important;
+        }
+
+        body.public-waiting-list .request-section-header {
+            margin-bottom: 10px;
+        }
+
+        body.public-waiting-list .section-title {
+            font-size: clamp(1.2rem, 1.6vw, 1.7rem);
+            padding-bottom: 7px;
+        }
+
+        body.public-waiting-list #requestList {
+            gap: 9px;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        }
+
+        body.public-waiting-list .request-card {
+            border-left-width: 4px;
+            border-radius: 9px;
+        }
+
+        body.public-waiting-list .request-card .card-body {
+            gap: 6px;
+            padding: 10px !important;
+        }
+
+        body.public-waiting-list .request-avatar {
+            height: 32px;
+            width: 32px;
+        }
+
+        body.public-waiting-list .request-title {
+            font-size: 0.92rem;
+        }
+
+        body.public-waiting-list .request-details span,
+        body.public-waiting-list .route-value {
+            font-size: 0.68rem;
+        }
+
+        body.public-waiting-list .route-info {
+            gap: 6px;
+            margin-top: 2px;
+        }
+
+        body.public-waiting-list .route-step {
+            padding: 6px 7px;
+        }
+
+        body.public-waiting-list .route-label {
+            font-size: 0.55rem;
+        }
+
+        body.public-waiting-list .request-card-footer {
+            padding-top: 6px;
+        }
+
+        body.public-waiting-list .compact-meta .status-badge,
+        body.public-waiting-list .compact-meta .priority-label,
+        body.public-waiting-list .compact-meta .date-badge {
+            font-size: 0.58rem;
+            padding: 4px 7px;
+        }
+
+        body.public-waiting-list #paginationControls {
+            display: none !important;
+        }
+
+        @media (min-width: 1600px) {
+            body.public-waiting-list #requestList {
+                grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            }
+        }
+
         .request-card .card-body {
             display: flex;
             flex-direction: column;
@@ -775,7 +923,7 @@ krsort($months); // Sort months by key (YYYY-MM) in reverse chronological order 
     </style>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 </head>
-<body>
+<body class="<?php echo $isPublicWaitingList ? 'public-waiting-list' : ''; ?>">
     <div class="header">
         <div class="container">
             <div class="d-flex justify-content-between align-items-center">
@@ -788,7 +936,7 @@ krsort($months); // Sort months by key (YYYY-MM) in reverse chronological order 
         </div>
     </div>
     
-    <div class="container mb-5">
+    <div class="container mb-5 page-wrap">
         <div class="row mb-4">
             <div class="col-md-3 col-sm-6">
                 <div class="stats-card">
@@ -1039,7 +1187,7 @@ krsort($months); // Sort months by key (YYYY-MM) in reverse chronological order 
 
             let allRequestCards = Array.from(document.querySelectorAll('.request-card')); // Store all cards initially
             let filteredCards = []; // Cards that pass status, month, and search filters
-            let itemsPerPage = 5; // Number of items per page
+            let itemsPerPage = isPublicWaitingList ? Number.MAX_SAFE_INTEGER : 5; // TV view shows all cards
             let currentPage = 1;
 
             // --- Pagination Functions ---
@@ -1061,6 +1209,11 @@ krsort($months); // Sort months by key (YYYY-MM) in reverse chronological order 
             }
 
             function setupPagination() {
+                if (isPublicWaitingList) {
+                    paginationControls.style.display = 'none';
+                    return;
+                }
+
                 paginationUl.innerHTML = ''; // Clear existing pagination
                 const pageCount = Math.ceil(filteredCards.length / itemsPerPage);
 
