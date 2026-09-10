@@ -2,6 +2,26 @@
 
 require_once 'connect.php';
 
+function fetch_inventory_record(mysqli_stmt $stmt)
+{
+    $metadata = $stmt->result_metadata();
+    if (!$metadata) {
+        return null;
+    }
+
+    $row = [];
+    $bindValues = [];
+    while ($field = $metadata->fetch_field()) {
+        $row[$field->name] = null;
+        $bindValues[] = &$row[$field->name];
+    }
+    $metadata->free();
+
+    call_user_func_array([$stmt, 'bind_result'], $bindValues);
+
+    return $stmt->fetch() ? $row : null;
+}
+
 
 if (!isset($_GET['id']) || !ctype_digit((string)$_GET['id'])) {
     http_response_code(400);
@@ -28,10 +48,9 @@ if (!$stmt) {
 
 $stmt->bind_param("i", $inventory_id);
 $stmt->execute();
-$result = $stmt->get_result();
+$row = fetch_inventory_record($stmt);
 
-if ($result && $result->num_rows > 0) {
-    $row = $result->fetch_assoc();
+if ($row) {
 
 
 

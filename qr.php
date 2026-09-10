@@ -16,14 +16,31 @@ $query = "SELECT employeeName, equipmentType, yearAcquired, brand, amount, prope
 $stmt = $conn->prepare($query);
 $stmt->bind_param('i', $id);
 $stmt->execute();
-$result = $stmt->get_result();
+$stmt->bind_result(
+    $employeeName,
+    $equipmentType,
+    $yearAcquired,
+    $brand,
+    $amount,
+    $propertyNumber,
+    $inventoryId
+);
 
-if ($result->num_rows === 0) {
+if (!$stmt->fetch()) {
     echo "No record found for the provided ID.";
     exit;
 }
 
-$row = $result->fetch_assoc();
+$row = [
+    'employeeName' => $employeeName,
+    'equipmentType' => $equipmentType,
+    'yearAcquired' => $yearAcquired,
+    'brand' => $brand,
+    'amount' => $amount,
+    'propertyNumber' => $propertyNumber,
+    'id' => $inventoryId,
+];
+$stmt->close();
 ?>
 
 <!DOCTYPE html>
