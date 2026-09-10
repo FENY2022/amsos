@@ -11,6 +11,8 @@ if (isset($conn) && $conn instanceof mysqli && @$conn->ping()) {
   return;
 }
 
+mysqli_report(MYSQLI_REPORT_OFF);
+
 // Set the database connection parameters.
 $servername = "153.92.15.60";
 $username = "u645536029_ict_amsos_user";
@@ -22,6 +24,12 @@ $conn = new mysqli('p:' . $servername, $username, $password, $database);
 
 // Check if the connection was successful.
 if ($conn->connect_error) {
+  http_response_code(503);
+  if (strtolower($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '') === 'xmlhttprequest') {
+    header('Content-Type: application/json');
+    echo json_encode(['success' => false, 'message' => 'AMSOS database is temporarily unavailable. Please try again later.']);
+    exit;
+  }
   die("Connection failed: " . $conn->connect_error);
 }
 

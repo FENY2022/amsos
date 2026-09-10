@@ -403,7 +403,7 @@ if (is_dir($imageDir)) {
             "newestOnTop": false,
             "progressBar": true,
             "positionClass": "toast-top-right",
-            "preventDuplicates": false,
+            "preventDuplicates": true,
             "onclick": null,
             "showDuration": "300",
             "hideDuration": "1000",
@@ -419,7 +419,6 @@ if (is_dir($imageDir)) {
         // reCAPTCHA callbacks
         function onRecaptchaSuccess() {
             $('.login-button').prop('disabled', false);
-            $('#loginForm').trigger('submit');
         }
 
         function onRecaptchaExpired() {
@@ -427,6 +426,8 @@ if (is_dir($imageDir)) {
         }
 
         $(document).ready(function() {
+            let isSubmittingLogin = false;
+
             // Slideshow functionality
             let slideIndex = 0;
             const slides = $('.slide');
@@ -462,6 +463,10 @@ if (is_dir($imageDir)) {
             // Login Form Submission
             $('#loginForm').on('submit', function(e) {
                 e.preventDefault();
+
+                if (isSubmittingLogin) {
+                    return;
+                }
                 
                 // Basic client-side validation (can be more robust)
                 const username = $('#username').val().trim();
@@ -479,7 +484,19 @@ if (is_dir($imageDir)) {
 
                 // Show a loading state on the button
                 const loginButton = $('.login-button');
+                isSubmittingLogin = true;
                 loginButton.text('Logging in...').prop('disabled', true).addClass('loading');
+
+                function resetLoginButton() {
+                    isSubmittingLogin = false;
+                    loginButton.text('Login').prop('disabled', false).removeClass('loading');
+                }
+
+                function resetRecaptcha() {
+                    if (typeof grecaptcha !== 'undefined') {
+                        grecaptcha.reset();
+                    }
+                }
 
                 $.ajax({
                     url: 'loginhandler.php', // Ensure this path is correct
@@ -487,7 +504,7 @@ if (is_dir($imageDir)) {
                     data: { username: username, password: password, 'g-recaptcha-response': grecaptcha.getResponse() },
                     success: function(response) {
                         // Remove loading state
-                        loginButton.text('Login').prop('disabled', false).removeClass('loading');
+                        resetLoginButton();
                         
                         try {
                             var result = JSON.parse(response);
@@ -498,16 +515,23 @@ if (is_dir($imageDir)) {
                                 }, 1500); // Redirect slightly faster
                             } else {
                                 toastr.error(result.message || 'Login failed. Please try again.');
+                                resetRecaptcha();
                             }
                         } catch (e) {
                             toastr.error('Error parsing server response.');
+                            resetRecaptcha();
                             console.error('Server response parsing error:', response);
                         }
                     },
                     error: function(jqXHR, textStatus, errorThrown) {
                         // Remove loading state
-                        loginButton.text('Login').prop('disabled', false).removeClass('loading');
-                        toastr.error('An unexpected error occurred. Please try again later.');
+                        resetLoginButton();
+                        var message = (jqXHR.responseJSON && jqXHR.responseJSON.message)
+                            ? jqXHR.responseJSON.message
+                            : 'An unexpected error occurred. Please try again later.';
+
+                        toastr.error(message);
+                        resetRecaptcha();
                         console.error('AJAX error:', textStatus, errorThrown, jqXHR.responseText);
                     }
                 });
