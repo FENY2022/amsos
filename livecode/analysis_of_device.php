@@ -1,4 +1,6 @@
 <?php
+require_once 'connect.php';
+
 // Define the current directory and build URL parameters dynamically
 $currentDir = "mainmenu.php?dir=analysis_of_device";
 
@@ -45,9 +47,6 @@ $currentYear = date("Y");
         <select name="officeDivision" id="officeDivision" onchange="this.form.submit()">
             <option value="">-- All --</option>
             <?php
-            // Database connection
-            $conn = new mysqli("153.92.15.60", "u645536029_ict_amsos_user", "9Ad=:C~WJ>", "u645536029_ict_amsos_db");
-
             $officeQuery = "SELECT DISTINCT officeDivision FROM inv_inventory";
             $officeResult = $conn->query($officeQuery);
 

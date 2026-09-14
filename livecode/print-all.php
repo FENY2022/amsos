@@ -1,5 +1,5 @@
 <?php
-require_once 'connect_amsos.php';
+require_once 'connect.php';
 
 function normalizeDateOrDefault($value, $default)
 {
