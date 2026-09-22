@@ -14,126 +14,155 @@ $officesResult = $conn->query($officesQuery);
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
   <style>
-    /* Styling same as before */
-    body {
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background: linear-gradient(135deg, #e0e0e0, #ffffff);
-      margin: 0;
-      padding: 20px;
-      color: #333;
+    .inventory-people-page {
+      padding: 1.5rem;
     }
-    .container {
-      max-width: 900px;
-      margin: auto;
+
+    .inventory-people-card {
       background: #fff;
-      padding: 30px;
-      border-radius: 12px;
-      box-shadow: 0 8px 16px rgba(0,0,0,0.15);
-    }
-    h1 {
-      text-align: center;
-      color: #2c3e50;
-      margin-bottom: 30px;
-      text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
-    }
-    form {
-      margin-bottom: 20px;
-      text-align: center;
-    }
-    label {
-      font-weight: bold;
-      margin-right: 10px;
-      color: #34495e;
-    }
-    select, input {
-      padding: 10px;
-      font-size: 16px;
-      border: none;
-      border-radius: 6px;
-      width: 220px;
-      background: #f0f0f0;
-      box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
-      margin-bottom: 10px;
-      transition: box-shadow 0.3s ease;
-    }
-    select:focus, input:focus {
-      outline: none;
-      box-shadow: 0 0 8px rgba(52,152,219,0.6);
-    }
-    button {
-      padding: 12px 24px;
-      font-size: 16px;
-      color: #fff;
-      background: linear-gradient(145deg, #4CAF50, #45a049);
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-      box-shadow: 4px 4px 6px #d1d1d1, -4px -4px 6px #ffffff;
-      transition: transform 0.1s ease, box-shadow 0.3s ease;
-    }
-    button:hover {
-      transform: translateY(-2px);
-      box-shadow: 6px 6px 8px #d1d1d1, -6px -6px 8px #ffffff;
-    }
-    button:disabled {
-      background: #aaa;
-      cursor: not-allowed;
-      box-shadow: none;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 20px;
-      background-color: #fff;
-      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-      border-radius: 8px;
+      border: 0;
+      border-radius: 16px;
+      box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
       overflow: hidden;
     }
-    th, td {
-      padding: 14px;
-      text-align: left;
-    }
-    th {
-      background: linear-gradient(145deg, #4CAF50, #45a049);
+
+    .inventory-people-header {
+      background: linear-gradient(135deg, #0f766e, #16a34a);
       color: #fff;
+      padding: 1.4rem 1.6rem;
     }
-    tr:nth-child(even) {
-      background-color: #f9f9f9;
+
+    .inventory-people-header h1 {
+      margin: 0;
+      font-size: 1.55rem;
+      font-weight: 700;
     }
-    tr:hover {
-      background-color: #f1f1f1;
+
+    .inventory-people-header p {
+      margin: 0.3rem 0 0;
+      opacity: 0.9;
+      font-size: 0.92rem;
     }
+
+    .inventory-people-body {
+      padding: 1.5rem;
+    }
+
+    .inventory-people-filters {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 1rem;
+      align-items: end;
+      margin: 0;
+    }
+
+    .inventory-people-page label {
+      display: block;
+      margin: 0 0 0.35rem;
+      color: #334155;
+      font-size: 0.84rem;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+    }
+
+    .inventory-people-page select,
+    .inventory-people-page input {
+      width: 100%;
+      height: 44px;
+      padding: 0.55rem 0.75rem;
+      border: 1px solid #cbd5e1;
+      border-radius: 10px;
+      background: #fff;
+      color: #0f172a;
+      font-size: 0.95rem;
+      box-shadow: none;
+    }
+
+    .inventory-people-page select:focus,
+    .inventory-people-page input:focus {
+      border-color: #16a34a;
+      box-shadow: 0 0 0 0.2rem rgba(22, 163, 74, 0.16);
+      outline: none;
+    }
+
+    .inventory-people-page button {
+      width: 100%;
+      height: 44px;
+      border: 0;
+      border-radius: 10px;
+      background: #16a34a;
+      color: #fff;
+      font-weight: 700;
+      box-shadow: 0 8px 16px rgba(22, 163, 74, 0.2);
+      transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+    }
+
+    .inventory-people-page button:hover {
+      background: #15803d;
+      transform: translateY(-1px);
+      box-shadow: 0 10px 18px rgba(22, 163, 74, 0.24);
+    }
+
     #tableContainer {
-      margin-top: 30px;
+      margin-top: 1.5rem;
+    }
+
+    @media (max-width: 1199.98px) {
+      .inventory-people-filters {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 767.98px) {
+      .inventory-people-page {
+        padding: 1rem 0.5rem;
+      }
+
+      .inventory-people-filters {
+        grid-template-columns: 1fr;
+      }
     }
   </style>
 </head>
 <body>
-  <div class="container">
-    <h1>Inventory People</h1>
-    <form method="POST" action="">
-      <label for="office">Select Office:</label>
-      <select name="office" id="office">
-        <option value="">-- Select an Office --</option>
-        <?php while ($row = $officesResult->fetch_assoc()): ?>
-          <option value="<?php echo htmlspecialchars($row['office']); ?>">
-            <?php echo htmlspecialchars($row['office']); ?>
-          </option>
-        <?php endwhile; ?>
-      </select>
-    </form>
-    <div style="text-align:center;">
-      <label for="station">Office Division:</label>
-      <select name="station" id="station">
-        <option value="">-- Select Division --</option>
-      </select>
-      <br><br>
-      <label for="fullname">Full Name:</label>
-      <input type="text" id="fullname" placeholder="Enter Full Name" />
-      <br><br>
-      <button id="showTableBtn">Show Table</button>
+  <div class="inventory-people-page">
+    <div class="inventory-people-card">
+      <div class="inventory-people-header">
+        <h1><i class="fas fa-users me-2"></i>Inventory People</h1>
+        <p>Local records from amsos.inventory_people</p>
+      </div>
+      <div class="inventory-people-body">
+        <form method="POST" action="" class="inventory-people-filters">
+          <div>
+            <label for="office">Office</label>
+            <select name="office" id="office">
+              <option value="">-- Select Office --</option>
+              <?php while ($row = $officesResult->fetch_assoc()): ?>
+                <option value="<?php echo htmlspecialchars($row['office']); ?>">
+                  <?php echo htmlspecialchars($row['office']); ?>
+                </option>
+              <?php endwhile; ?>
+            </select>
+          </div>
+          <div>
+            <label for="station">Office Division</label>
+            <select name="station" id="station">
+              <option value="">-- Select Division --</option>
+            </select>
+          </div>
+          <div>
+            <label for="fullname">Full Name</label>
+            <input type="text" id="fullname" placeholder="Search name" />
+          </div>
+          <div>
+            <label>&nbsp;</label>
+            <button type="button" id="showTableBtn"><i class="fas fa-search me-1"></i> Show Table</button>
+          </div>
+        </form>
+        <div id="tableContainer"></div>
+      </div>
     </div>
-    <div id="tableContainer"></div>
   </div>
   <script>
     document.addEventListener('DOMContentLoaded', function () {
