@@ -492,10 +492,45 @@ if (is_dir($imageDir)) {
                         try {
                             var result = JSON.parse(response);
                             if (result.success) {
+                                // Reset only ICT-AMSOS saved UI/search state.
+                                // This does not affect other websites or browser-wide data.
+                                const amsosStateKeys = [
+                                    'officeDivision',
+                                    'employeeName',
+                                    'statusFilter',
+                                    'stickerFilter',
+                                    'sortBy'
+                                ];
+
+                                amsosStateKeys.forEach(function(key) {
+                                    localStorage.removeItem(key);
+                                    sessionStorage.removeItem(key);
+
+                                    // Remove only AMSOS filter cookies. Do not clear the
+                                    // PHP session cookie because it is required for login.
+                                    document.cookie = key + '=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; SameSite=Lax';
+                                });
+
+                                // Clear Service Worker Cache Storage for this AMSOS origin only,
+                                // when supported. The server also clears this origin's HTTP cache
+                                // using Clear-Site-Data on successful login.
+                                if ('caches' in window) {
+                                    caches.keys().then(function(cacheNames) {
+                                        return Promise.all(
+                                            cacheNames.map(function(cacheName) {
+                                                return caches.delete(cacheName);
+                                            })
+                                        );
+                                    }).catch(function(error) {
+                                        console.warn('AMSOS cache storage cleanup skipped:', error);
+                                    });
+                                }
+
                                 toastr.success(result.message + ' Redirecting...');
                                 setTimeout(function() {
-                                    window.location.href = 'mainmenu.php'; // Correct redirect URL
-                                }, 1500); // Redirect slightly faster
+                                    // Cache-busting query applies only to this AMSOS navigation.
+                                    window.location.replace('mainmenu.php?fresh=' + Date.now());
+                                }, 1500);
                             } else {
                                 toastr.error(result.message || 'Login failed. Please try again.');
                             }
