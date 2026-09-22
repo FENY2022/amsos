@@ -77,6 +77,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
                 $stmt->close();
 
+                // Clear cached resources for this ICT-AMSOS origin only.
+                // Cookies, saved passwords, browser history, and other websites are unaffected.
+                header('Clear-Site-Data: "cache"');
+
                 echo json_encode(['success' => true, 'message' => 'Login successful. Redirecting...']);
                 exit;
             } else {
