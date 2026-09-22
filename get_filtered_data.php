@@ -30,6 +30,27 @@ $stmt->bind_param($types, ...$params);
 $stmt->execute();
 $result = $stmt->get_result();
 
+$divisionOptions = [];
+$divisionStmt = $conn->prepare("SELECT officeDivision FROM office_divisions WHERE office = ? AND officeDivision IS NOT NULL AND officeDivision != '' ORDER BY officeDivision ASC");
+$divisionStmt->bind_param('s', $office);
+$divisionStmt->execute();
+$divisionResult = $divisionStmt->get_result();
+while ($divisionRow = $divisionResult->fetch_assoc()) {
+    $divisionOptions[] = $divisionRow['officeDivision'];
+}
+$divisionStmt->close();
+
+if (empty($divisionOptions)) {
+    $fallbackDivisionStmt = $conn->prepare("SELECT DISTINCT officeDivision FROM inventory_people WHERE office = ? AND officeDivision IS NOT NULL AND officeDivision != '' ORDER BY officeDivision ASC");
+    $fallbackDivisionStmt->bind_param('s', $office);
+    $fallbackDivisionStmt->execute();
+    $fallbackDivisionResult = $fallbackDivisionStmt->get_result();
+    while ($divisionRow = $fallbackDivisionResult->fetch_assoc()) {
+        $divisionOptions[] = $divisionRow['officeDivision'];
+    }
+    $fallbackDivisionStmt->close();
+}
+
 echo '<div style="max-height: 500px; overflow: auto; border: 1px solid #ccc; padding: 10px; border-radius: 8px;">';
 echo '<table style="width: 100%; border-collapse: collapse;">';
 echo '<tr style="background-color: #4CAF50; color: white;">';
@@ -49,7 +70,17 @@ while ($row = $result->fetch_assoc()) {
     echo '<tr style="border-bottom: 1px solid #ddd;">';
     echo '<td style="padding: 8px;">' . htmlspecialchars($row['full_name']) . '</td>';
     echo '<td style="padding: 8px;">' . htmlspecialchars($row['office']) . '</td>';
-    echo '<td style="padding: 8px;">' . htmlspecialchars($row['officeDivision']) . '</td>';
+    echo '<td style="padding: 8px; min-width: 220px;">';
+    echo '<select class="division-update-select" data-id="' . (int)$row['id'] . '" data-name="' . htmlspecialchars($row['full_name'], ENT_QUOTES, 'UTF-8') . '" data-office="' . htmlspecialchars($row['office'], ENT_QUOTES, 'UTF-8') . '" data-original="' . htmlspecialchars($row['officeDivision'], ENT_QUOTES, 'UTF-8') . '" style="width: 100%; min-width: 190px; height: 38px; padding: 6px 10px; border: 1px solid #cbd5e1; border-radius: 8px; background: #fff;">';
+    foreach ($divisionOptions as $divisionOption) {
+        $selected = $divisionOption === $row['officeDivision'] ? ' selected' : '';
+        echo '<option value="' . htmlspecialchars($divisionOption, ENT_QUOTES, 'UTF-8') . '"' . $selected . '>' . htmlspecialchars($divisionOption) . '</option>';
+    }
+    if (!in_array($row['officeDivision'], $divisionOptions, true)) {
+        echo '<option value="' . htmlspecialchars($row['officeDivision'], ENT_QUOTES, 'UTF-8') . '" selected>' . htmlspecialchars($row['officeDivision']) . '</option>';
+    }
+    echo '</select>';
+    echo '</td>';
     echo '<td style="padding: 8px;">' . htmlspecialchars($row['employment_status']) . '</td>';
     echo '<td style="padding: 8px;">' . htmlspecialchars($row['source']) . '</td>';
     echo '<td style="padding: 8px;">' . htmlspecialchars($row['otos_user_id'] ?? '') . '</td>';

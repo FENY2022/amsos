@@ -355,6 +355,68 @@
         overflow-wrap: anywhere;
     }
 
+    .scanqr-sticker-control {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    .scanqr-sticker-switch {
+        position: relative;
+        width: 58px;
+        height: 30px;
+        padding: 0;
+        border: 0;
+        border-radius: 999px;
+        background: #94a3b8;
+        cursor: pointer;
+        transition: background 0.2s ease, opacity 0.2s ease;
+    }
+
+    .scanqr-sticker-switch::before {
+        content: '';
+        position: absolute;
+        top: 4px;
+        left: 4px;
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        background: #ffffff;
+        box-shadow: 0 2px 8px rgba(15, 23, 42, 0.22);
+        transition: transform 0.2s ease;
+    }
+
+    .scanqr-sticker-switch.is-on {
+        background: #16a34a;
+    }
+
+    .scanqr-sticker-switch.is-on::before {
+        transform: translateX(28px);
+    }
+
+    .scanqr-sticker-switch:disabled {
+        cursor: wait;
+        opacity: 0.65;
+    }
+
+    .scanqr-sticker-label {
+        display: inline-flex;
+        align-items: center;
+        min-height: 30px;
+        padding: 6px 10px;
+        border-radius: 999px;
+        background: #e2e8f0;
+        color: #334155;
+        font-size: 0.82rem;
+        font-weight: 900;
+    }
+
+    .scanqr-sticker-label.is-on {
+        background: #dcfce7;
+        color: #166534;
+    }
+
     .scanqr-actions {
         display: flex;
         flex-wrap: wrap;
@@ -709,6 +771,7 @@
     }
 
     function displayData(row) {
+        const hasSticker = parseInt(row.sticker_attached || '0', 10) === 1;
         const fields = [
             ['ID', row.id, 'fa-hashtag'],
             ['Employee Name', row.employeeName, 'fa-user'],
@@ -716,7 +779,8 @@
             ['Year Acquired', row.yearAcquired, 'fa-calendar'],
             ['Brand', row.brand, 'fa-tag'],
             ['Amount', row.amount, 'fa-peso-sign'],
-            ['Property Number', row.propertyNumber, 'fa-barcode']
+            ['Property Number', row.propertyNumber, 'fa-barcode'],
+            ['Sticker Status', buildStickerSwitch(row.id, hasSticker), 'fa-certificate', true]
         ];
 
         equipmentBadge.innerHTML = '<i class="fas fa-hashtag"></i> ' + escapeHtml(row.id || '--');
@@ -724,10 +788,68 @@
             return '<div class="scanqr-detail-item">'
                 + '<span class="scanqr-detail-icon"><i class="fas ' + field[2] + '"></i></span>'
                 + '<div><div class="scanqr-detail-label">' + escapeHtml(field[0]) + '</div>'
-                + '<div class="scanqr-detail-value">' + escapeHtml(field[1] || 'Not specified') + '</div></div>'
+                + '<div class="scanqr-detail-value">' + (field[3] ? field[1] : escapeHtml(field[1] || 'Not specified')) + '</div></div>'
                 + '</div>';
         }).join('');
     }
+
+    function buildStickerSwitch(id, hasSticker) {
+        const value = hasSticker ? 1 : 0;
+        return '<span class="scanqr-sticker-control">'
+            + '<button type="button" class="scanqr-sticker-switch ' + (hasSticker ? 'is-on' : '') + '" data-inventory-id="' + escapeHtml(id) + '" data-sticker-attached="' + value + '" aria-pressed="' + (hasSticker ? 'true' : 'false') + '" aria-label="Toggle sticker status"></button>'
+            + '<span class="scanqr-sticker-label ' + (hasSticker ? 'is-on' : '') + '">' + (hasSticker ? 'With Sticker' : 'No Sticker') + '</span>'
+            + '</span>';
+    }
+
+    document.addEventListener('click', function(event) {
+        if (!event.target.classList.contains('scanqr-sticker-switch')) {
+            return;
+        }
+
+        const switchButton = event.target;
+        const label = switchButton.parentElement.querySelector('.scanqr-sticker-label');
+        const originalValue = parseInt(switchButton.dataset.stickerAttached || '0', 10);
+        const newValue = originalValue === 1 ? 0 : 1;
+
+        switchButton.disabled = true;
+
+        fetch('update_sticker_status.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'
+            },
+            body: new URLSearchParams({
+                id: switchButton.dataset.inventoryId,
+                sticker_attached: newValue
+            })
+        })
+        .then(function(response) {
+            return response.json();
+        })
+        .then(function(data) {
+            if (!data.success) {
+                throw new Error(data.message || 'Unable to update sticker status.');
+            }
+
+            switchButton.dataset.stickerAttached = String(newValue);
+            switchButton.setAttribute('aria-pressed', newValue === 1 ? 'true' : 'false');
+            switchButton.classList.toggle('is-on', newValue === 1);
+            label.classList.toggle('is-on', newValue === 1);
+            label.textContent = newValue === 1 ? 'With Sticker' : 'No Sticker';
+            setMessage('Sticker status updated successfully.', 'success');
+        })
+        .catch(function(error) {
+            switchButton.dataset.stickerAttached = String(originalValue);
+            switchButton.setAttribute('aria-pressed', originalValue === 1 ? 'true' : 'false');
+            switchButton.classList.toggle('is-on', originalValue === 1);
+            label.classList.toggle('is-on', originalValue === 1);
+            label.textContent = originalValue === 1 ? 'With Sticker' : 'No Sticker';
+            setMessage(error.message || 'Unable to update sticker status.', 'error');
+        })
+        .finally(function() {
+            switchButton.disabled = false;
+        });
+    });
 
     function restartScanner() {
         setStatus('Restarting', 'loading');

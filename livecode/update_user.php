@@ -1,5 +1,5 @@
 <?php
-require_once 'connect_otos.php'; // User accounts are stored in OTOS.
+require_once 'connect.php'; // Include your database connection
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Get the form data
@@ -10,7 +10,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $confirmPassword = $_POST['confirmPassword'];
 
     // Fetch the current user record
-    $stmt = $conn_otos->prepare("SELECT username, password FROM useremployee WHERE id = ?");
+    $stmt = $conn->prepare("SELECT username, password FROM useremployee WHERE id = ?");
     $stmt->bind_param("i", $srfId);
     $stmt->execute();
     $result = $stmt->get_result();
@@ -40,19 +40,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         // Update the username and password in the database
-        $updateStmt = $conn_otos->prepare("UPDATE useremployee SET username = ?, password = ? WHERE id = ?");
+        $updateStmt = $conn->prepare("UPDATE useremployee SET username = ?, password = ? WHERE id = ?");
         $updateStmt->bind_param("ssi", $newUsername, $newHashedPassword, $srfId);
 
         if ($updateStmt->execute()) {
             echo "User details updated successfully.";
         } else {
-            echo "Error updating user details: " . $conn_otos->error;
+            echo "Error updating user details: " . $conn->error;
         }
     } else {
         echo "User not found.";
     }
 
     $stmt->close();
-    $conn_otos->close();
+    $conn->close();
 }
 ?>

@@ -156,6 +156,60 @@ if (session_status() === PHP_SESSION_NONE) {
             padding: 0.5em 0.75em;
         }
 
+        .sticker-status-cell {
+            min-width: 150px;
+        }
+
+        .sticker-toggle-wrap {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .sticker-status-text {
+            min-width: 85px;
+        }
+
+        .sticker-switch {
+            position: relative;
+            width: 2.8rem;
+            height: 1.35rem;
+            margin: 0;
+            border: 0;
+            border-radius: 999px;
+            background-color: #adb5bd;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+            padding: 0;
+            display: inline-block;
+        }
+
+        .sticker-switch::before {
+            content: '';
+            position: absolute;
+            top: 0.18rem;
+            left: 0.2rem;
+            width: 0.98rem;
+            height: 0.98rem;
+            border-radius: 50%;
+            background-color: #fff;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.25);
+            transition: transform 0.2s ease;
+        }
+
+        .sticker-switch.is-on {
+            background-color: var(--success-color);
+        }
+
+        .sticker-switch.is-on::before {
+            transform: translateX(1.38rem);
+        }
+
+        .sticker-switch:disabled {
+            cursor: wait;
+            opacity: 0.65;
+        }
+
         .collapse-btn {
             background: none;
             border: 1px solid #ccc;
@@ -223,6 +277,11 @@ if (session_status() === PHP_SESSION_NONE) {
 
 <?php
     require_once 'connect.php'; // Ensure this path is correct
+    $stickerColumnCheck = $conn->query("SHOW COLUMNS FROM inv_inventory LIKE 'sticker_attached'");
+    if ($stickerColumnCheck && $stickerColumnCheck->num_rows === 0) {
+        $conn->query("ALTER TABLE inv_inventory ADD COLUMN sticker_attached TINYINT(1) NOT NULL DEFAULT 0");
+    }
+
     // For testing purposes, I'm defining a session variable. Remove this in your live environment.
     if (!isset($_SESSION['OfficeSRF'])) {
         $_SESSION['OfficeSRF'] = 'some_default_office'; // Replace with actual session handling if not set
@@ -282,6 +341,14 @@ if (session_status() === PHP_SESSION_NONE) {
                             <option value="">All</option>
                             <option value="1">Done</option>
                             <option value="0">Not Done</option>
+                        </select>
+                    </div>
+                    <div class="search-filter-field">
+                        <label for="stickerFilter" class="form-label">Sticker:</label>
+                        <select id="stickerFilter" name="stickerFilter" class="form-select" style="padding: 0.375rem 0.75rem; border: 1px solid #ced4da; border-radius: 0.25rem;">
+                            <option value="">All</option>
+                            <option value="1">With Sticker</option>
+                            <option value="0">No Sticker</option>
                         </select>
                     </div>
                     <div class="search-filter-field">
@@ -365,6 +432,7 @@ if (session_status() === PHP_SESSION_NONE) {
                 $officeDivision = isset($_REQUEST['officeDivision']) ? $_REQUEST['officeDivision'] : '';
                 $employeeName = isset($_REQUEST['employeeName']) ? $_REQUEST['employeeName'] : '';
                 $statusFilter = isset($_REQUEST['statusFilter']) ? $_REQUEST['statusFilter'] : '';
+                $stickerFilter = isset($_REQUEST['stickerFilter']) ? $_REQUEST['stickerFilter'] : '';
                 $inventoryId = isset($_REQUEST['inventoryId']) && is_numeric($_REQUEST['inventoryId']) ? (int)$_REQUEST['inventoryId'] : 0;
                 $sortBy = isset($_REQUEST['sortBy']) ? $_REQUEST['sortBy'] : 'id_desc'; // Get Sort By param
                 $employeeNameParts = array_filter(preg_split('/\s+/', trim($employeeName)));
@@ -395,6 +463,11 @@ if (session_status() === PHP_SESSION_NONE) {
                 if ($statusFilter !== '') { 
                     $count_query .= " AND mark_as_done = ?";
                     $params[] = $statusFilter;
+                    $types .= "i";
+                }
+                if ($stickerFilter !== '') {
+                    $count_query .= " AND sticker_attached = ?";
+                    $params[] = $stickerFilter;
                     $types .= "i";
                 }
 
@@ -443,6 +516,11 @@ if (session_status() === PHP_SESSION_NONE) {
                     $params_data[] = $statusFilter;
                     $types_data .= "i";
                 }
+                if ($stickerFilter !== '') {
+                    $query .= " AND sticker_attached = ?";
+                    $params_data[] = $stickerFilter;
+                    $types_data .= "i";
+                }
                 
                 // APPLY SORTING LOGIC
                 if ($sortBy == 'name_asc') {
@@ -478,6 +556,7 @@ if (session_status() === PHP_SESSION_NONE) {
                             <th>Brand</th>
                             <th>Office</th>
                             <th>Status</th>
+                            <th>Sticker</th>
                             <th>Details</th>
                         </tr>
                     </thead>
@@ -496,12 +575,21 @@ if (session_status() === PHP_SESSION_NONE) {
                             <td data-label='Work Status'>
                                 <?php echo ($row['mark_as_done'] == 0 ? '<span class="badge bg-danger">Not Done</span>' : '<span class="badge bg-success">Done</span>'); ?>
                             </td>
+                            <td data-label='Sticker' class='sticker-status-cell'>
+                                <?php $hasSticker = (int)($row['sticker_attached'] ?? 0) === 1; ?>
+                                <div class="sticker-toggle-wrap">
+                                    <button type="button" class="sticker-switch <?php echo $hasSticker ? 'is-on' : ''; ?>" data-inventory-id="<?php echo (int)$row['id']; ?>" data-sticker-attached="<?php echo $hasSticker ? '1' : '0'; ?>" aria-pressed="<?php echo $hasSticker ? 'true' : 'false'; ?>" aria-label="Toggle sticker status"></button>
+                                    <span class="badge sticker-status-text <?php echo $hasSticker ? 'bg-success' : 'bg-secondary'; ?>">
+                                        <?php echo $hasSticker ? 'With Sticker' : 'No Sticker'; ?>
+                                    </span>
+                                </div>
+                            </td>
                             <td data-label='Action'>
                                 <button class='collapse-btn' onclick='toggleRow(this)'><i class="fas fa-plus"></i></button>
                             </td>
                         </tr>
                         <tr class='collapse-row' style='display: none;'>
-                            <td colspan='8'>
+                            <td colspan='9'>
                                 <div class="details-grid">
                                     <div><strong>Specifications:</strong><br><?php echo htmlspecialchars($row['specifications']); ?></div>
                                     <div><strong>Serial Number:</strong><br><?php echo htmlspecialchars($row['serialNumber']); ?></div>
@@ -588,7 +676,7 @@ if (session_status() === PHP_SESSION_NONE) {
                         <?php
                             }
                         } else {
-                            echo "<tr><td colspan='8' class='text-center'>No records found.</td></tr>";
+                            echo "<tr><td colspan='9' class='text-center'>No records found.</td></tr>";
                         }
                         ?>
                     </tbody>
@@ -605,6 +693,7 @@ if (session_status() === PHP_SESSION_NONE) {
                             'officeDivision' => $officeDivision,
                             'employeeName' => $employeeName,
                             'statusFilter' => $statusFilter,
+                            'stickerFilter' => $stickerFilter,
                             'sortBy' => $sortBy // Add sortBy to pagination params
                         ]);
 
@@ -751,6 +840,7 @@ if (session_status() === PHP_SESSION_NONE) {
         const officeDivisionSelect = document.getElementById("officeDivision");
         const employeeNameSelect = document.getElementById("employeeName");
         const statusFilterSelect = document.getElementById("statusFilter");
+        const stickerFilterSelect = document.getElementById("stickerFilter");
         const sortBySelect = document.getElementById("sortBy"); // Get sort element
 
         // Restore saved office division
@@ -767,6 +857,12 @@ if (session_status() === PHP_SESSION_NONE) {
         const savedStatusFilter = getCookie("statusFilter") || localStorage.getItem("statusFilter");
         if (savedStatusFilter !== null) { 
             statusFilterSelect.value = savedStatusFilter;
+        }
+
+        // Restore saved sticker filter
+        const savedStickerFilter = getCookie("stickerFilter") || localStorage.getItem("stickerFilter");
+        if (savedStickerFilter !== null) {
+            stickerFilterSelect.value = savedStickerFilter;
         }
 
         // Restore saved sort order
@@ -795,6 +891,12 @@ if (session_status() === PHP_SESSION_NONE) {
         setCookie("statusFilter", this.value, 30);
         localStorage.setItem("statusFilter", this.value);
     });
+
+    // Event listener for Sticker Filter change
+    document.getElementById("stickerFilter").addEventListener("change", function() {
+        setCookie("stickerFilter", this.value, 30);
+        localStorage.setItem("stickerFilter", this.value);
+    });
     
     // Event listener for Sort By change
     document.getElementById("sortBy").addEventListener("change", function() {
@@ -803,6 +905,54 @@ if (session_status() === PHP_SESSION_NONE) {
     });
 
 })(jQuery); // Pass jQuery to the IIFE
+
+document.addEventListener('click', function(event) {
+    if (!event.target.classList.contains('sticker-switch')) {
+        return;
+    }
+
+    const switchButton = event.target;
+    const statusText = switchButton.closest('.sticker-toggle-wrap').querySelector('.sticker-status-text');
+    const originalValue = parseInt(switchButton.dataset.stickerAttached || '0', 10);
+    const newValue = originalValue === 1 ? 0 : 1;
+
+    switchButton.disabled = true;
+
+    fetch('update_sticker_status.php', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'
+        },
+        body: new URLSearchParams({
+            id: switchButton.dataset.inventoryId,
+            sticker_attached: newValue
+        })
+    })
+    .then(function(response) {
+        return response.json();
+    })
+    .then(function(data) {
+        if (!data.success) {
+            throw new Error(data.message || 'Unable to update sticker status.');
+        }
+
+        switchButton.dataset.stickerAttached = String(newValue);
+        switchButton.setAttribute('aria-pressed', newValue === 1 ? 'true' : 'false');
+        switchButton.classList.toggle('is-on', newValue === 1);
+        statusText.textContent = newValue === 1 ? 'With Sticker' : 'No Sticker';
+        statusText.classList.toggle('bg-success', newValue === 1);
+        statusText.classList.toggle('bg-secondary', newValue !== 1);
+    })
+    .catch(function(error) {
+        switchButton.dataset.stickerAttached = String(originalValue);
+        switchButton.setAttribute('aria-pressed', originalValue === 1 ? 'true' : 'false');
+        switchButton.classList.toggle('is-on', originalValue === 1);
+        alert(error.message || 'Unable to update sticker status.');
+    })
+    .finally(function() {
+        switchButton.disabled = false;
+    });
+});
 
 // JavaScript for toggling details row
 function toggleRow(button) {

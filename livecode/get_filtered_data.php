@@ -1,139 +1,99 @@
 <?php
-require_once "connect_otos.php";
+require_once "connect.php";
 
-$office = $_POST['office'] ?? '';
-$station = $_POST['station'] ?? '';
+$office = trim($_POST['office'] ?? '');
+$officeDivision = trim($_POST['officeDivision'] ?? ($_POST['station'] ?? ''));
 $fullname = trim($_POST['fullname'] ?? '');
 
-$sql = "SELECT * FROM useremployee WHERE Office = ?";
+$sql = "SELECT id, otos_user_id, full_name, office, officeDivision, employment_status, source, created_at
+        FROM inventory_people
+        WHERE office = ?";
 $params = [$office];
+$types = 's';
 
-if (!empty($station)) {
-    $sql .= " AND Station = ?";
-    $params[] = $station;
+if ($officeDivision !== '') {
+    $sql .= " AND officeDivision = ?";
+    $params[] = $officeDivision;
+    $types .= 's';
 }
 
-if (!empty($fullname)) {
-    $sql .= " AND Full_Name LIKE ?";
+if ($fullname !== '') {
+    $sql .= " AND full_name LIKE ?";
     $params[] = "%$fullname%";
+    $types .= 's';
 }
 
-$stmt = $conn_otos->prepare($sql);
-if ($params) {
-    $stmt->bind_param(str_repeat('s', count($params)), ...$params);
-}
+$sql .= " ORDER BY full_name ASC";
+
+$stmt = $conn->prepare($sql);
+$stmt->bind_param($types, ...$params);
 $stmt->execute();
 $result = $stmt->get_result();
 
+$divisionOptions = [];
+$divisionStmt = $conn->prepare("SELECT officeDivision FROM office_divisions WHERE office = ? AND officeDivision IS NOT NULL AND officeDivision != '' ORDER BY officeDivision ASC");
+$divisionStmt->bind_param('s', $office);
+$divisionStmt->execute();
+$divisionResult = $divisionStmt->get_result();
+while ($divisionRow = $divisionResult->fetch_assoc()) {
+    $divisionOptions[] = $divisionRow['officeDivision'];
+}
+$divisionStmt->close();
 
-// Styling the scrollable container
-echo '<div style="max-height: 400px; overflow: auto; border: 1px solid #ccc; padding: 10px; border-radius: 8px;">';
+if (empty($divisionOptions)) {
+    $fallbackDivisionStmt = $conn->prepare("SELECT DISTINCT officeDivision FROM inventory_people WHERE office = ? AND officeDivision IS NOT NULL AND officeDivision != '' ORDER BY officeDivision ASC");
+    $fallbackDivisionStmt->bind_param('s', $office);
+    $fallbackDivisionStmt->execute();
+    $fallbackDivisionResult = $fallbackDivisionStmt->get_result();
+    while ($divisionRow = $fallbackDivisionResult->fetch_assoc()) {
+        $divisionOptions[] = $divisionRow['officeDivision'];
+    }
+    $fallbackDivisionStmt->close();
+}
+
+echo '<div style="max-height: 500px; overflow: auto; border: 1px solid #ccc; padding: 10px; border-radius: 8px;">';
 echo '<table style="width: 100%; border-collapse: collapse;">';
 echo '<tr style="background-color: #4CAF50; color: white;">';
 echo '<th style="padding: 8px; text-align: left;">Full Name</th>';
 echo '<th style="padding: 8px; text-align: left;">Office</th>';
-echo '<th style="padding: 8px; text-align: left;">Station</th>';
-echo '<th style="padding: 8px; text-align: left;">Action</th>';
+echo '<th style="padding: 8px; text-align: left;">Office Division</th>';
+echo '<th style="padding: 8px; text-align: left;">Employment Status</th>';
+echo '<th style="padding: 8px; text-align: left;">Source</th>';
+echo '<th style="padding: 8px; text-align: left;">OTOS User ID</th>';
+echo '<th style="padding: 8px; text-align: left;">Saved Date</th>';
 echo '</tr>';
 
-// Initialize row counter
 $rowCount = 0;
 
-// Loop through results
 while ($row = $result->fetch_assoc()) {
-    $srfId = $row['id'];
-    $decryptedPassword = $row['password_dcryp'];
-    $username = $row['username'];
-    $rowCount++; // Increment row counter
+    $rowCount++;
     echo '<tr style="border-bottom: 1px solid #ddd;">';
-    echo '<td style="padding: 8px;">' . htmlspecialchars($row['Full_Name']) . '</td>';
-    echo '<td style="padding: 8px;">' . htmlspecialchars($row['Office']) . '</td>';
-    echo '<td style="padding: 8px;">' . htmlspecialchars($row['Station']) . '</td>';
-    echo '<td style="padding: 8px;">';
-    echo "<div class='dropdown'>
-            <button class='btn btn-danger dropdown-toggle' type='button' id='dropdownMenuButton{$srfId}' data-bs-toggle='dropdown' aria-expanded='false'>
-                Action
-            </button>
-            <ul class='dropdown-menu' aria-labelledby='dropdownMenuButton{$srfId}'>
-                <li><a class='dropdown-item bg-info text-white' href='#' data-bs-toggle='modal' data-bs-target='#showpassword{$srfId}'>Showpassword</a></li>
-            </ul>
-          </div>";
+    echo '<td style="padding: 8px;">' . htmlspecialchars($row['full_name']) . '</td>';
+    echo '<td style="padding: 8px;">' . htmlspecialchars($row['office']) . '</td>';
+    echo '<td style="padding: 8px; min-width: 220px;">';
+    echo '<select class="division-update-select" data-id="' . (int)$row['id'] . '" data-name="' . htmlspecialchars($row['full_name'], ENT_QUOTES, 'UTF-8') . '" data-office="' . htmlspecialchars($row['office'], ENT_QUOTES, 'UTF-8') . '" data-original="' . htmlspecialchars($row['officeDivision'], ENT_QUOTES, 'UTF-8') . '" style="width: 100%; min-width: 190px; height: 38px; padding: 6px 10px; border: 1px solid #cbd5e1; border-radius: 8px; background: #fff;">';
+    foreach ($divisionOptions as $divisionOption) {
+        $selected = $divisionOption === $row['officeDivision'] ? ' selected' : '';
+        echo '<option value="' . htmlspecialchars($divisionOption, ENT_QUOTES, 'UTF-8') . '"' . $selected . '>' . htmlspecialchars($divisionOption) . '</option>';
+    }
+    if (!in_array($row['officeDivision'], $divisionOptions, true)) {
+        echo '<option value="' . htmlspecialchars($row['officeDivision'], ENT_QUOTES, 'UTF-8') . '" selected>' . htmlspecialchars($row['officeDivision']) . '</option>';
+    }
+    echo '</select>';
     echo '</td>';
-
-
-    echo "
-    <div class='modal fade' id='showpassword{$srfId}' tabindex='-1' aria-labelledby='passwordModalLabel{$srfId}' aria-hidden='true'>
-      <div class='modal-dialog'>
-        <div class='modal-content'>
-          <div class='modal-header'>
-            <h5 class='modal-title' id='passwordModalLabel{$srfId}'>Account</h5>
-            <button type='button' class='btn-close' data-bs-dismiss='modal' aria-label='Close'></button>
-          </div>
-          <div class='modal-body'>
-            <p><strong>Full Name:</strong> " . htmlspecialchars($row['Full_Name']) . "</p>
-            <p><strong>User:</strong> " . $username . "</p>
-            <p><strong>Decrypted Password:</strong> " . $decryptedPassword . "</p>
-          </div>
-          <div class='modal-footer'>
-            <button type='button' class='btn btn-secondary' data-bs-dismiss='modal'>Close</button>
-          </div>
-        </div>
-      </div>
-    </div>";
-
-
-    echo "
-    <div class='modal fade' id='editUserDetails{$srfId}' tabindex='-1' aria-labelledby='editUserDetailsModalLabel{$srfId}' aria-hidden='true'>
-      <div class='modal-dialog'>
-        <div class='modal-content'>
-          <div class='modal-header'>
-            <h5 class='modal-title' id='editUserDetailsModalLabel{$srfId}'>Edit User Details</h5>
-            <button type='button' class='btn-close' data-bs-dismiss='modal' aria-label='Close'></button>
-          </div>
-          <div class='modal-body'>
-            <form method='post' action='update_user.php'>
-              <input type='hidden' name='srfId' value='{$srfId}'>
-              
-              <!-- Username Field -->
-              <div class='mb-3'>
-                <label for='username{$srfId}' class='form-label'>Username</label>
-                <input type='text' class='form-control' id='username{$srfId}' name='username' value='{$username}' required>
-              </div>
-              
-              <!-- Password Fields -->
-              <div class='mb-3'>
-                <label for='currentPassword{$srfId}' class='form-label'>Current Password</label>
-                <input type='password' class='form-control' id='currentPassword{$srfId}' name='currentPassword' required>
-              </div>
-              
-              <div class='mb-3'>
-                <label for='newPassword{$srfId}' class='form-label'>New Password</label>
-                <input type='password' class='form-control' id='newPassword{$srfId}' name='newPassword'>
-              </div>
-              
-              <div class='mb-3'>
-                <label for='confirmPassword{$srfId}' class='form-label'>Confirm New Password</label>
-                <input type='password' class='form-control' id='confirmPassword{$srfId}' name='confirmPassword'>
-              </div>
-              
-              <button type='submit' class='btn btn-primary'>Update Details</button>
-            </form>
-          </div>
-          <div class='modal-footer'>
-            <button type='button' class='btn btn-secondary' data-bs-dismiss='modal'>Close</button>
-          </div>
-        </div>
-      </div>
-    </div>";
-
-
-    
+    echo '<td style="padding: 8px;">' . htmlspecialchars($row['employment_status']) . '</td>';
+    echo '<td style="padding: 8px;">' . htmlspecialchars($row['source']) . '</td>';
+    echo '<td style="padding: 8px;">' . htmlspecialchars($row['otos_user_id'] ?? '') . '</td>';
+    echo '<td style="padding: 8px;">' . htmlspecialchars($row['created_at']) . '</td>';
     echo '</tr>';
 }
 
-// Display row count
+if ($rowCount === 0) {
+    echo '<tr><td colspan="7" style="padding: 16px; text-align: center;">No records found.</td></tr>';
+}
+
 echo '<tr style="background-color: #f2f2f2; font-weight: bold;">';
-echo '<td colspan="3" style="padding: 8px; text-align: right;">Total Rows:</td>';
+echo '<td colspan="6" style="padding: 8px; text-align: right;">Total Rows:</td>';
 echo '<td style="padding: 8px; text-align: left;">' . $rowCount . '</td>';
 echo '</tr>';
 

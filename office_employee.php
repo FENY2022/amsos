@@ -23,7 +23,7 @@ $officesResult = $conn->query($officesQuery);
       border: 0;
       border-radius: 16px;
       box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
-      overflow: hidden;
+      overflow: visible;
     }
 
     .inventory-people-header {
@@ -46,6 +46,7 @@ $officesResult = $conn->query($officesQuery);
 
     .inventory-people-body {
       padding: 1.5rem;
+      overflow: visible;
     }
 
     .inventory-people-filters {
@@ -54,6 +55,8 @@ $officesResult = $conn->query($officesQuery);
       gap: 1rem;
       align-items: end;
       margin: 0;
+      position: relative;
+      z-index: 20;
     }
 
     .inventory-people-page label {
@@ -86,6 +89,86 @@ $officesResult = $conn->query($officesQuery);
       outline: none;
     }
 
+    .name-combobox {
+      position: relative;
+      z-index: 30;
+    }
+
+    .name-combobox::after {
+      content: '\f078';
+      position: absolute;
+      right: 0.85rem;
+      bottom: 0.86rem;
+      color: #64748b;
+      font-family: 'Font Awesome 6 Free';
+      font-size: 0.78rem;
+      font-weight: 900;
+      pointer-events: none;
+    }
+
+    .name-combobox input {
+      padding-right: 2.3rem;
+      cursor: text;
+    }
+
+    .name-options-panel {
+      position: absolute;
+      top: calc(100% + 0.4rem);
+      left: 0;
+      right: 0;
+      z-index: 40;
+      display: none;
+      min-height: 128px;
+      max-height: 270px;
+      overflow: hidden;
+      background: #fff;
+      border: 1px solid #cbd5e1;
+      border-radius: 14px;
+      box-shadow: 0 18px 40px rgba(15, 23, 42, 0.16);
+    }
+
+    .name-combobox.is-open .name-options-panel {
+      display: block;
+    }
+
+    .name-options-search {
+      display: flex;
+      align-items: center;
+      gap: 0.55rem;
+      padding: 0.75rem 0.95rem;
+      color: #64748b;
+      border-bottom: 1px solid #e2e8f0;
+      background: #f8fafc;
+      font-size: 0.92rem;
+    }
+
+    .name-options-list {
+      min-height: 72px;
+      max-height: 215px;
+      overflow-y: auto;
+      padding: 0.35rem;
+    }
+
+    .name-option {
+      padding: 0.7rem 0.8rem;
+      border-radius: 10px;
+      color: #0f172a;
+      cursor: pointer;
+      font-weight: 600;
+    }
+
+    .name-option:hover,
+    .name-option.is-active {
+      background: #ecfdf5;
+      color: #166534;
+    }
+
+    .name-option-empty {
+      padding: 0.85rem;
+      color: #64748b;
+      font-size: 0.92rem;
+    }
+
     .inventory-people-page button {
       width: 100%;
       height: 44px;
@@ -106,6 +189,84 @@ $officesResult = $conn->query($officesQuery);
 
     #tableContainer {
       margin-top: 1.5rem;
+      position: relative;
+      z-index: 1;
+    }
+
+    .division-confirm-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 2000;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+      background: rgba(15, 23, 42, 0.48);
+    }
+
+    .division-confirm-backdrop.is-open {
+      display: flex;
+    }
+
+    .division-confirm-modal {
+      width: min(460px, 100%);
+      overflow: hidden;
+      border-radius: 16px;
+      background: #fff;
+      box-shadow: 0 24px 70px rgba(15, 23, 42, 0.28);
+    }
+
+    .division-confirm-header {
+      padding: 1.1rem 1.25rem;
+      color: #fff;
+      background: linear-gradient(135deg, #0f766e, #16a34a);
+    }
+
+    .division-confirm-header h5 {
+      margin: 0;
+      font-weight: 800;
+    }
+
+    .division-confirm-body {
+      padding: 1.25rem;
+      color: #334155;
+    }
+
+    .division-confirm-body p {
+      margin: 0 0 0.7rem;
+    }
+
+    .division-confirm-detail {
+      padding: 0.75rem;
+      border-radius: 10px;
+      background: #f8fafc;
+      color: #0f172a;
+      font-weight: 700;
+    }
+
+    .division-confirm-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 0.7rem;
+      padding: 1rem 1.25rem 1.25rem;
+    }
+
+    .division-confirm-actions button {
+      min-width: 105px;
+      height: 40px;
+      border: 0;
+      border-radius: 10px;
+      font-weight: 800;
+    }
+
+    .division-confirm-cancel {
+      background: #e2e8f0;
+      color: #334155;
+    }
+
+    .division-confirm-save {
+      background: #16a34a;
+      color: #fff;
     }
 
     @media (max-width: 1199.98px) {
@@ -153,7 +314,15 @@ $officesResult = $conn->query($officesQuery);
           </div>
           <div>
             <label for="fullname">Full Name</label>
-            <input type="text" id="fullname" placeholder="Search name" />
+            <div class="name-combobox" id="nameCombobox">
+              <input type="text" id="fullname" placeholder="Search name" autocomplete="off" />
+              <div class="name-options-panel" id="nameOptionsPanel">
+                <div class="name-options-search"><i class="fas fa-search"></i><span>Search full name</span></div>
+                <div class="name-options-list" id="nameOptionsList">
+                  <div class="name-option-empty">Select an office first.</div>
+                </div>
+              </div>
+            </div>
           </div>
           <div>
             <label>&nbsp;</label>
@@ -164,13 +333,36 @@ $officesResult = $conn->query($officesQuery);
       </div>
     </div>
   </div>
+  <div class="division-confirm-backdrop" id="divisionConfirmModal" aria-hidden="true">
+    <div class="division-confirm-modal" role="dialog" aria-modal="true" aria-labelledby="divisionConfirmTitle">
+      <div class="division-confirm-header">
+        <h5 id="divisionConfirmTitle"><i class="fas fa-building me-2"></i>Confirm Division Update</h5>
+      </div>
+      <div class="division-confirm-body">
+        <p>Update this person's office division?</p>
+        <div class="division-confirm-detail" id="divisionConfirmDetails"></div>
+      </div>
+      <div class="division-confirm-actions">
+        <button type="button" class="division-confirm-cancel" id="cancelDivisionUpdate">Cancel</button>
+        <button type="button" class="division-confirm-save" id="confirmDivisionUpdate">Update</button>
+      </div>
+    </div>
+  </div>
   <script>
     document.addEventListener('DOMContentLoaded', function () {
       var officeSelect = document.getElementById('office');
       var divisionSelect = document.getElementById('station');
       var fullnameInput = document.getElementById('fullname');
+      var nameCombobox = document.getElementById('nameCombobox');
+      var nameOptionsList = document.getElementById('nameOptionsList');
       var showTableBtn = document.getElementById('showTableBtn');
       var tableContainer = document.getElementById('tableContainer');
+      var divisionConfirmModal = document.getElementById('divisionConfirmModal');
+      var divisionConfirmDetails = document.getElementById('divisionConfirmDetails');
+      var cancelDivisionUpdate = document.getElementById('cancelDivisionUpdate');
+      var confirmDivisionUpdate = document.getElementById('confirmDivisionUpdate');
+      var fullNameOptions = [];
+      var pendingDivisionUpdate = null;
       var savedOffice = localStorage.getItem('selectedOffice');
       var savedDivision = localStorage.getItem('selectedDivision');
       var savedFullName = localStorage.getItem('fullName');
@@ -199,10 +391,94 @@ $officesResult = $conn->query($officesQuery);
         });
       }
 
+      function escapeHtml(value) {
+        return String(value || '').replace(/[&<>'"]/g, function (c) {
+          return ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#039;','"':'&quot;'})[c];
+        });
+      }
+
+      function openNameDropdown() {
+        nameCombobox.classList.add('is-open');
+      }
+
+      function closeNameDropdown() {
+        nameCombobox.classList.remove('is-open');
+      }
+
+      function openDivisionConfirmModal(updateData) {
+        pendingDivisionUpdate = updateData;
+        divisionConfirmDetails.innerHTML =
+          '<div>' + escapeHtml(updateData.name) + '</div>' +
+          '<div style="margin-top: 0.35rem; color: #64748b; font-weight: 600;">' +
+          escapeHtml(updateData.oldDivision || 'No division') + ' &rarr; ' + escapeHtml(updateData.newDivision) +
+          '</div>';
+        divisionConfirmModal.classList.add('is-open');
+        divisionConfirmModal.setAttribute('aria-hidden', 'false');
+      }
+
+      function closeDivisionConfirmModal() {
+        divisionConfirmModal.classList.remove('is-open');
+        divisionConfirmModal.setAttribute('aria-hidden', 'true');
+      }
+
+      function revertPendingDivisionUpdate() {
+        if (pendingDivisionUpdate && pendingDivisionUpdate.select) {
+          pendingDivisionUpdate.select.value = pendingDivisionUpdate.oldDivision;
+        }
+        pendingDivisionUpdate = null;
+        closeDivisionConfirmModal();
+      }
+
+      function renderNameOptions() {
+        var query = fullnameInput.value.trim().toLowerCase();
+        var matches = fullNameOptions.filter(function (name) {
+          return !query || name.toLowerCase().indexOf(query) !== -1;
+        }).slice(0, 80);
+
+        if (!officeSelect.value) {
+          nameOptionsList.innerHTML = '<div class="name-option-empty">Select an office first.</div>';
+          return;
+        }
+
+        if (matches.length === 0) {
+          nameOptionsList.innerHTML = '<div class="name-option-empty">No matching names found.</div>';
+          return;
+        }
+
+        nameOptionsList.innerHTML = matches.map(function (name) {
+          return '<div class="name-option" data-name="' + escapeHtml(name) + '">' + escapeHtml(name) + '</div>';
+        }).join('');
+      }
+
+      function loadNameOptions() {
+        fullNameOptions = [];
+        renderNameOptions();
+
+        if (!officeSelect.value) {
+          return;
+        }
+
+        postForm('get_inventory_people_names.php', {
+          office: officeSelect.value,
+          officeDivision: divisionSelect.value
+        })
+          .then(function (response) {
+            var data = JSON.parse(response);
+            fullNameOptions = data.names || [];
+            renderNameOptions();
+          })
+          .catch(function (error) {
+            console.error('Error fetching names:', error);
+            nameOptionsList.innerHTML = '<div class="name-option-empty">Unable to load names.</div>';
+          });
+      }
+
       function loadDivisions(selectedOffice, divisionToSelect) {
         localStorage.setItem('selectedOffice', selectedOffice);
         localStorage.removeItem('selectedDivision');
         divisionSelect.innerHTML = '<option value="">-- Select Division --</option>';
+        fullNameOptions = [];
+        renderNameOptions();
 
         if (!selectedOffice) {
           return;
@@ -214,6 +490,7 @@ $officesResult = $conn->query($officesQuery);
             if (divisionToSelect) {
               divisionSelect.value = divisionToSelect;
             }
+            loadNameOptions();
           })
           .catch(function (error) {
             console.error('Error fetching divisions:', error);
@@ -222,6 +499,8 @@ $officesResult = $conn->query($officesQuery);
       }
 
       officeSelect.addEventListener('change', function () {
+        fullnameInput.value = '';
+        localStorage.removeItem('fullName');
         loadDivisions(this.value, '');
       });
 
@@ -232,14 +511,41 @@ $officesResult = $conn->query($officesQuery);
 
       divisionSelect.addEventListener('change', function () {
         localStorage.setItem('selectedDivision', this.value);
+        fullnameInput.value = '';
+        localStorage.removeItem('fullName');
+        loadNameOptions();
       });
 
       fullnameInput.addEventListener('keyup', function () {
         localStorage.setItem('fullName', this.value.trim());
+        renderNameOptions();
+        openNameDropdown();
       });
 
       fullnameInput.addEventListener('change', function () {
         localStorage.setItem('fullName', this.value.trim());
+      });
+
+      fullnameInput.addEventListener('focus', function () {
+        renderNameOptions();
+        openNameDropdown();
+      });
+
+      nameOptionsList.addEventListener('mousedown', function (event) {
+        var option = event.target.closest('.name-option');
+        if (!option) {
+          return;
+        }
+
+        fullnameInput.value = option.getAttribute('data-name') || option.textContent.trim();
+        localStorage.setItem('fullName', fullnameInput.value.trim());
+        closeNameDropdown();
+      });
+
+      document.addEventListener('mousedown', function (event) {
+        if (!nameCombobox.contains(event.target)) {
+          closeNameDropdown();
+        }
       });
 
       showTableBtn.addEventListener('click', function () {
@@ -263,6 +569,75 @@ $officesResult = $conn->query($officesQuery);
           .catch(function (error) {
             console.error('Error fetching data:', error);
             alert('Error fetching data');
+          });
+      });
+
+      tableContainer.addEventListener('change', function (event) {
+        var select = event.target.closest('.division-update-select');
+        if (!select) {
+          return;
+        }
+
+        var oldDivision = select.getAttribute('data-original') || '';
+        var newDivision = select.value;
+
+        if (newDivision === oldDivision) {
+          return;
+        }
+
+        openDivisionConfirmModal({
+          select: select,
+          id: select.getAttribute('data-id'),
+          name: select.getAttribute('data-name') || '',
+          office: select.getAttribute('data-office') || '',
+          oldDivision: oldDivision,
+          newDivision: newDivision
+        });
+      });
+
+      cancelDivisionUpdate.addEventListener('click', revertPendingDivisionUpdate);
+
+      divisionConfirmModal.addEventListener('mousedown', function (event) {
+        if (event.target === divisionConfirmModal) {
+          revertPendingDivisionUpdate();
+        }
+      });
+
+      confirmDivisionUpdate.addEventListener('click', function () {
+        if (!pendingDivisionUpdate) {
+          return;
+        }
+
+        var updateData = pendingDivisionUpdate;
+        confirmDivisionUpdate.disabled = true;
+        confirmDivisionUpdate.textContent = 'Updating...';
+
+        postForm('update_inventory_person_division.php', {
+          id: updateData.id,
+          office: updateData.office,
+          officeDivision: updateData.newDivision
+        })
+          .then(function (response) {
+            var data = JSON.parse(response);
+            if (!data.success) {
+              throw new Error(data.message || 'Unable to update office division.');
+            }
+
+            updateData.select.setAttribute('data-original', updateData.newDivision);
+            pendingDivisionUpdate = null;
+            closeDivisionConfirmModal();
+          })
+          .catch(function (error) {
+            alert(error.message || 'Unable to update office division.');
+            if (updateData.select) {
+              updateData.select.value = updateData.oldDivision;
+            }
+            pendingDivisionUpdate = null;
+            closeDivisionConfirmModal();
+          })
+          .finally(function () {
+            confirmDivisionUpdate.disabled = false;
+            confirmDivisionUpdate.textContent = 'Update';
           });
       });
     });

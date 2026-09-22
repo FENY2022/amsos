@@ -1,4 +1,41 @@
-<?php require_once 'connect.php'; ?>
+<?php
+require_once 'connect.php';
+
+if (!function_exists('fetchDistinctValues')) {
+    function fetchDistinctValues(mysqli $conn, string $column): array
+    {
+        $allowedColumns = ['employeeName', 'equipmentType', 'statusOfEmployment', 'officeDivision'];
+        if (!in_array($column, $allowedColumns, true)) {
+            return [];
+        }
+
+        $values = [];
+        $sql = "SELECT DISTINCT `$column` AS value FROM inv_inventory WHERE `$column` IS NOT NULL AND TRIM(`$column`) != '' ORDER BY `$column` ASC";
+        $result = $conn->query($sql);
+        if ($result) {
+            while ($row = $result->fetch_assoc()) {
+                $values[] = $row['value'];
+            }
+            $result->free();
+        }
+
+        return $values;
+    }
+}
+
+$employeeNames = fetchDistinctValues($conn, 'employeeName');
+$categoryOptions = fetchDistinctValues($conn, 'equipmentType');
+$statusOptions = fetchDistinctValues($conn, 'statusOfEmployment');
+$officeOptions = fetchDistinctValues($conn, 'officeDivision');
+
+$employeeNameFilter = trim($_GET['employeeName'] ?? $_GET['query'] ?? '');
+$categoryFilter = trim($_GET['category'] ?? '');
+$statusFilter = trim($_GET['status'] ?? '');
+$officeDivisionFilter = trim($_GET['officeDivision'] ?? '');
+$hasFilters = $employeeNameFilter !== '' || $categoryFilter !== '' || $statusFilter !== '' || $officeDivisionFilter !== '';
+$formAction = htmlspecialchars($_SERVER['PHP_SELF'], ENT_QUOTES, 'UTF-8');
+$currentDir = $_GET['dir'] ?? '';
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -87,56 +124,135 @@
         }
 
         .search-form {
-            display: flex;
-            gap: 10px;
             margin-bottom: 20px;
         }
 
-        .search-box {
-            flex: 1;
+        .name-combobox {
+            position: relative;
+            max-width: 440px;
+        }
+
+        .name-combobox-shell {
             position: relative;
         }
 
-        .search-box i {
+        .name-combobox-shell i {
             position: absolute;
-            left: 15px;
+            left: 18px;
             top: 50%;
             transform: translateY(-50%);
-            color: var(--gray);
+            color: #a8a8b3;
+            pointer-events: none;
+            z-index: 2;
         }
 
-        input[type="text"] {
+        .name-combobox input[type="text"] {
             width: 100%;
-            padding: 15px 15px 15px 45px;
-            border: 1px solid var(--light-gray);
-            border-radius: var(--border-radius);
-            font-size: 16px;
-            transition: var(--transition);
-        }
-
-        input[type="text"]:focus {
-            outline: none;
-            border-color: var(--primary);
-            box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.2);
-        }
-
-        button[type="submit"] {
-            padding: 15px 30px;
-            background: linear-gradient(135deg, var(--primary), var(--secondary));
-            color: white;
-            border: none;
-            border-radius: var(--border-radius);
-            cursor: pointer;
+            padding: 18px 46px 18px 52px;
+            border: 2px solid #9285ff;
+            border-radius: 18px;
+            background: #1f1f23;
+            color: #ffffff;
             font-size: 16px;
             font-weight: 600;
             transition: var(--transition);
-            display: flex;
-            align-items: center;
-            gap: 8px;
         }
 
-        button[type="submit"]:hover {
-            background: linear-gradient(135deg, var(--primary-dark), #651a98);
+        .name-combobox input[type="text"]::placeholder {
+            color: #b7b7c2;
+            font-weight: 500;
+        }
+
+        .name-combobox input[type="text"]:focus {
+            outline: none;
+            border-color: #a99eff;
+            box-shadow: 0 0 0 3px rgba(146, 133, 255, 0.25);
+        }
+
+        .combobox-toggle {
+            position: absolute;
+            right: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #b7b7c2;
+            pointer-events: none;
+        }
+
+        .name-suggestions {
+            display: none;
+            position: absolute;
+            top: calc(100% + 6px);
+            left: 0;
+            right: 0;
+            z-index: 30;
+            max-height: 320px;
+            overflow-y: auto;
+            list-style: none;
+            margin: 0;
+            padding: 10px 0;
+            background: #242428;
+            border: 1px solid #3b3b42;
+            border-radius: 14px;
+            box-shadow: 0 16px 36px rgba(0, 0, 0, 0.28);
+        }
+
+        .name-suggestions.is-open {
+            display: block;
+        }
+
+        .name-suggestions li {
+            padding: 12px 18px;
+            color: #f3f3f5;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .name-suggestions li:hover,
+        .name-suggestions li.is-active {
+            background: #33333a;
+        }
+
+        .name-suggestions .empty-option {
+            cursor: default;
+            color: #b7b7c2;
+            font-weight: 500;
+        }
+
+        .filter-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .filter-actions button,
+        .filter-actions a {
+            padding: 12px 22px;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            font-size: 15px;
+            font-weight: 600;
+            transition: var(--transition);
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            text-decoration: none;
+        }
+
+        .filter-actions button {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            border: none;
+        }
+
+        .filter-actions a {
+            background: #eef0f5;
+            color: var(--dark);
+            border: 1px solid var(--light-gray);
+        }
+
+        .filter-actions button:hover,
+        .filter-actions a:hover {
             transform: translateY(-2px);
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
         }
@@ -239,6 +355,111 @@
             max-width: 250px;
         }
 
+        .row-division-select {
+            min-width: 190px;
+            padding: 8px 10px;
+            border: 1px solid #cfd4dc;
+            border-radius: 8px;
+            background: #fff;
+            color: var(--dark);
+            font-size: 14px;
+        }
+
+        .row-update-btn {
+            padding: 8px 14px;
+            border: none;
+            border-radius: 8px;
+            background: var(--primary);
+            color: #fff;
+            cursor: pointer;
+            font-weight: 600;
+            transition: var(--transition);
+        }
+
+        .row-update-btn:hover:not(:disabled) {
+            background: var(--primary-dark);
+        }
+
+        .row-update-btn:disabled {
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+
+        .row-update-status {
+            display: inline-block;
+            margin-left: 8px;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--gray);
+        }
+
+        .row-update-status.is-success {
+            color: #198754;
+        }
+
+        .row-update-status.is-error {
+            color: #dc3545;
+        }
+
+        .confirm-modal-backdrop {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            background: rgba(15, 23, 42, 0.55);
+        }
+
+        .confirm-modal-backdrop.is-open {
+            display: flex;
+        }
+
+        .confirm-modal {
+            width: min(420px, 100%);
+            padding: 24px;
+            border-radius: 16px;
+            background: #fff;
+            box-shadow: 0 24px 60px rgba(0, 0, 0, 0.28);
+        }
+
+        .confirm-modal h3 {
+            margin-bottom: 8px;
+            color: var(--dark);
+            font-size: 1.25rem;
+        }
+
+        .confirm-modal p {
+            margin-bottom: 20px;
+            color: var(--gray);
+        }
+
+        .confirm-modal-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+
+        .confirm-modal-actions button {
+            padding: 10px 18px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 700;
+        }
+
+        .confirm-no-btn {
+            border: 1px solid #d0d5dd;
+            background: #fff;
+            color: var(--dark);
+        }
+
+        .confirm-yes-btn {
+            border: none;
+            background: var(--primary);
+            color: #fff;
+        }
+
         tr:hover {
             background-color: #f8f9fa;
         }
@@ -293,6 +514,20 @@
             .search-form {
                 flex-direction: column;
             }
+
+            .name-combobox {
+                max-width: 100%;
+            }
+
+            .filter-actions {
+                flex-direction: column;
+            }
+
+            .filter-actions button,
+            .filter-actions a {
+                justify-content: center;
+                width: 100%;
+            }
             
             .filters {
                 flex-direction: column;
@@ -320,100 +555,92 @@
         </header>
 
         <div class="search-container">
-            <form class="search-form" action="<?php echo htmlspecialchars($_SERVER['PHP_SELF']); ?>" method="GET">
-                <div class="search-box">
-                    <i class="fas fa-search"></i>
-                    <input type="text" name="query" placeholder="Search by employee name, equipment type, serial number..." required value="<?php echo isset($_GET['query']) ? htmlspecialchars($_GET['query']) : ''; ?>">
+            <form class="search-form" id="inventorySearchForm" action="<?php echo $formAction; ?>" method="GET" autocomplete="off">
+                <?php if ($currentDir !== ''): ?>
+                    <input type="hidden" name="dir" value="<?php echo htmlspecialchars($currentDir, ENT_QUOTES, 'UTF-8'); ?>">
+                <?php endif; ?>
+                <div class="name-combobox">
+                    <div class="name-combobox-shell">
+                        <i class="fas fa-search"></i>
+                        <input type="text" id="employeeNameSearch" name="employeeName" placeholder="Search employee name..." value="<?php echo htmlspecialchars($employeeNameFilter, ENT_QUOTES, 'UTF-8'); ?>" aria-autocomplete="list" aria-expanded="false" aria-controls="employeeNameSuggestions">
+                        <span class="combobox-toggle"><i class="fas fa-chevron-down"></i></span>
+                    </div>
+                    <ul class="name-suggestions" id="employeeNameSuggestions"></ul>
                 </div>
-                <button type="submit">
-                    <i class="fas fa-search"></i> Search
-                </button>
-            </form>
-            
+
             <div class="filters">
                 <div class="filter-group">
                     <label for="category">Category</label>
-                    <select id="category">
+                    <select id="category" name="category">
                         <option value="">All Categories</option>
-                        <option value="hardware">Hardware</option>
-                        <option value="software">Software</option>
-                        <option value="equipment">Equipment</option>
+                        <?php foreach ($categoryOptions as $category): ?>
+                            <option value="<?php echo htmlspecialchars($category, ENT_QUOTES, 'UTF-8'); ?>" <?php echo $categoryFilter === $category ? 'selected' : ''; ?>><?php echo htmlspecialchars($category, ENT_QUOTES, 'UTF-8'); ?></option>
+                        <?php endforeach; ?>
                     </select>
                 </div>
                 <div class="filter-group">
                     <label for="status">Status</label>
-                    <select id="status">
+                    <select id="status" name="status">
                         <option value="">All Statuses</option>
-                        <option value="active">Active</option>
-                        <option value="inactive">Inactive</option>
-                        <option value="maintenance">Maintenance</option>
+                        <?php foreach ($statusOptions as $status): ?>
+                            <option value="<?php echo htmlspecialchars($status, ENT_QUOTES, 'UTF-8'); ?>" <?php echo $statusFilter === $status ? 'selected' : ''; ?>><?php echo htmlspecialchars($status, ENT_QUOTES, 'UTF-8'); ?></option>
+                        <?php endforeach; ?>
                     </select>
                 </div>
                 <div class="filter-group">
                     <label for="office">Office/Division</label>
-                    <select id="office">
+                    <select id="office" name="officeDivision">
                         <option value="">All Offices</option>
-                        <option value="hr">Human Resources</option>
-                        <option value="it">IT Department</option>
-                        <option value="finance">Finance</option>
+                        <?php foreach ($officeOptions as $officeDivision): ?>
+                            <option value="<?php echo htmlspecialchars($officeDivision, ENT_QUOTES, 'UTF-8'); ?>" <?php echo $officeDivisionFilter === $officeDivision ? 'selected' : ''; ?>><?php echo htmlspecialchars($officeDivision, ENT_QUOTES, 'UTF-8'); ?></option>
+                        <?php endforeach; ?>
                     </select>
                 </div>
             </div>
+                <div class="filter-actions">
+                    <button type="submit"><i class="fas fa-filter"></i> Apply Filters</button>
+                    <a href="<?php echo $formAction . ($currentDir !== '' ? '?dir=' . urlencode($currentDir) : ''); ?>"><i class="fas fa-rotate-left"></i> Reset</a>
+                </div>
+            </form>
         </div>
         
         <?php
-        // Check if a search query was submitted
-        if (isset($_GET['query'])) {
-            $search_query = $_GET['query'];
-
-            // Define the columns you want to search through.
-            $columns_to_search = [
-                'employeeName',
-                'equipmentType',
-                'yearAcquired',
-                'shelfLife',
-                'brand',
-                'specifications',
-                'rangeCategory',
-                'softwareInstalled',
-                'licensingModel',
-                'serialNumber',
-                'propertyNumber',
-                'accountablePerson',
-                'sex',
-                'officeDivision',
-                'statusOfEmployment',
-                'actualUser',
-                'actualUserSex',
-                'actualUserStatusOfEmployment',
-                'natureOfWork',
-                'remarks',
-                'office'
-            ];
-
-            $sql_parts = [];
+        if ($hasFilters) {
+            $conditions = [];
             $types = '';
             $params = [];
 
-            // Build the SQL query dynamically
-            $sql_template = "SELECT DISTINCT * FROM inv_inventory WHERE ";
-            $conditions = [];
-            foreach ($columns_to_search as $column) {
-                $conditions[] = "`" . $column . "` LIKE ?";
+            if ($employeeNameFilter !== '') {
+                $conditions[] = '`employeeName` LIKE ?';
                 $types .= 's';
-                $params[] = "%" . $search_query . "%";
+                $params[] = '%' . $employeeNameFilter . '%';
             }
-            $sql_template .= implode(" OR ", $conditions);
-            $sql_template .= " ORDER BY id";
 
-            // Prepare the statement to prevent SQL injection
+            if ($categoryFilter !== '') {
+                $conditions[] = '`equipmentType` = ?';
+                $types .= 's';
+                $params[] = $categoryFilter;
+            }
+
+            if ($statusFilter !== '') {
+                $conditions[] = '`statusOfEmployment` = ?';
+                $types .= 's';
+                $params[] = $statusFilter;
+            }
+
+            if ($officeDivisionFilter !== '') {
+                $conditions[] = '`officeDivision` = ?';
+                $types .= 's';
+                $params[] = $officeDivisionFilter;
+            }
+
+            $sql_template = 'SELECT DISTINCT * FROM inv_inventory WHERE ' . implode(' AND ', $conditions) . ' ORDER BY employeeName ASC, id DESC';
             $stmt = $conn->prepare($sql_template);
 
             if ($stmt === false) {
                 die("Error preparing statement: " . $conn->error);
             }
 
-            // Dynamically bind parameters
             $stmt->bind_param($types, ...$params);
 
             // Execute the statement
@@ -421,10 +648,26 @@
             $result = $stmt->get_result();
             
             // Start the results display section
-            echo '<a href="' . htmlspecialchars($_SERVER['PHP_SELF']) . '" class="back-link"><i class="fas fa-arrow-left"></i> New Search</a>';
+            $newSearchUrl = $formAction . ($currentDir !== '' ? '?dir=' . urlencode($currentDir) : '');
+            $filterSummaryParts = [];
+            if ($employeeNameFilter !== '') {
+                $filterSummaryParts[] = 'Name: ' . $employeeNameFilter;
+            }
+            if ($categoryFilter !== '') {
+                $filterSummaryParts[] = 'Category: ' . $categoryFilter;
+            }
+            if ($statusFilter !== '') {
+                $filterSummaryParts[] = 'Status: ' . $statusFilter;
+            }
+            if ($officeDivisionFilter !== '') {
+                $filterSummaryParts[] = 'Office/Division: ' . $officeDivisionFilter;
+            }
+            $filterSummary = implode(', ', $filterSummaryParts);
+
+            echo '<a href="' . htmlspecialchars($newSearchUrl, ENT_QUOTES, 'UTF-8') . '" class="back-link"><i class="fas fa-arrow-left"></i> New Search</a>';
             echo '<div class="results-container">';
             echo '<div class="results-header">';
-            echo '<div class="results-count">' . $result->num_rows . ' Results found for "' . htmlspecialchars($search_query) . '"</div>';
+            echo '<div class="results-count">' . $result->num_rows . ' Results found' . ($filterSummary !== '' ? ' for "' . htmlspecialchars($filterSummary, ENT_QUOTES, 'UTF-8') . '"' : '') . '</div>';
             echo '<button class="export-btn"><i class="fas fa-download"></i> Export Results</button>';
             echo '</div>';
 
@@ -432,17 +675,37 @@
                 echo '<div class="table-container">';
                 echo '<table>';
                 echo '<thead><tr>';
+                $fieldNames = [];
                 while ($fieldinfo = $result->fetch_field()) {
+                    $fieldNames[] = $fieldinfo->name;
                     echo '<th>' . htmlspecialchars(ucwords(preg_replace('/(?<!\ )[A-Z]/', ' $0', $fieldinfo->name))) . '</th>';
                 }
+                echo '<th>Action</th>';
                 echo '</tr></thead>';
                 
                 echo '<tbody>';
                 while ($row = $result->fetch_assoc()) {
-                    echo '<tr>';
-                    foreach ($row as $data) {
-                        echo '<td>' . htmlspecialchars($data) . '</td>';
+                    $inventoryId = (int)($row['id'] ?? 0);
+                    echo '<tr data-inventory-id="' . $inventoryId . '">';
+                    foreach ($fieldNames as $fieldName) {
+                        $data = $row[$fieldName] ?? '';
+                        if ($fieldName === 'officeDivision') {
+                            echo '<td>';
+                            echo '<select class="row-division-select" data-original-division="' . htmlspecialchars($data, ENT_QUOTES, 'UTF-8') . '">';
+                            foreach ($officeOptions as $divisionOption) {
+                                $selected = (string)$data === (string)$divisionOption ? ' selected' : '';
+                                echo '<option value="' . htmlspecialchars($divisionOption, ENT_QUOTES, 'UTF-8') . '"' . $selected . '>' . htmlspecialchars($divisionOption, ENT_QUOTES, 'UTF-8') . '</option>';
+                            }
+                            if ($data !== '' && !in_array($data, $officeOptions, true)) {
+                                echo '<option value="' . htmlspecialchars($data, ENT_QUOTES, 'UTF-8') . '" selected>' . htmlspecialchars($data, ENT_QUOTES, 'UTF-8') . '</option>';
+                            }
+                            echo '</select>';
+                            echo '</td>';
+                        } else {
+                            echo '<td>' . htmlspecialchars($data) . '</td>';
+                        }
                     }
+                    echo '<td><button type="button" class="row-update-btn">Update</button><span class="row-update-status" aria-live="polite"></span></td>';
                     echo '</tr>';
                 }
                 echo '</tbody>';
@@ -468,9 +731,19 @@
             <p>Asset Management and Service Optimization System &copy; 2023 | ICT AMSOS</p>
         </footer>
     </div>
+
+    <div class="confirm-modal-backdrop" id="divisionConfirmModal" aria-hidden="true">
+        <div class="confirm-modal" role="dialog" aria-modal="true" aria-labelledby="divisionConfirmTitle">
+            <h3 id="divisionConfirmTitle">Update Office Division?</h3>
+            <p>Do you really want to update this row's office division?</p>
+            <div class="confirm-modal-actions">
+                <button type="button" class="confirm-no-btn" id="divisionConfirmNo">No</button>
+                <button type="button" class="confirm-yes-btn" id="divisionConfirmYes">Yes</button>
+            </div>
+        </div>
+    </div>
     
     <script>
-        // Simple animation for the search container
         document.addEventListener('DOMContentLoaded', function() {
             const searchContainer = document.querySelector('.search-container');
             searchContainer.style.opacity = '0';
@@ -489,14 +762,214 @@
                     alert('Export functionality would be implemented here. This could export to CSV, PDF, or Excel format.');
                 });
             }
-            
-            // Filter functionality (basic implementation)
-            const filters = document.querySelectorAll('.filter-group select');
-            filters.forEach(filter => {
-                filter.addEventListener('change', function() {
-                    // In a real implementation, this would update the search results
-                    console.log('Filter changed:', this.id, this.value);
+
+            const employeeNames = <?php echo json_encode($employeeNames, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT); ?>;
+            const form = document.getElementById('inventorySearchForm');
+            const nameInput = document.getElementById('employeeNameSearch');
+            const suggestions = document.getElementById('employeeNameSuggestions');
+
+            function escapeHtml(value) {
+                return String(value)
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/"/g, '&quot;')
+                    .replace(/'/g, '&#039;');
+            }
+
+            function renderSuggestions(filter = '') {
+                const normalizedFilter = filter.trim().toLowerCase();
+                const matches = employeeNames
+                    .filter((name) => normalizedFilter === '' || name.toLowerCase().includes(normalizedFilter))
+                    .slice(0, 60);
+
+                if (!matches.length) {
+                    suggestions.innerHTML = '<li class="empty-option">No matching names found</li>';
+                    suggestions.classList.add('is-open');
+                    nameInput.setAttribute('aria-expanded', 'true');
+                    return;
+                }
+
+                suggestions.innerHTML = matches.map((name) => '<li data-name="' + escapeHtml(name) + '">' + escapeHtml(name) + '</li>').join('');
+                suggestions.classList.add('is-open');
+                nameInput.setAttribute('aria-expanded', 'true');
+            }
+
+            function closeSuggestions() {
+                suggestions.classList.remove('is-open');
+                nameInput.setAttribute('aria-expanded', 'false');
+            }
+
+            nameInput.addEventListener('focus', function() {
+                renderSuggestions(nameInput.value);
+            });
+
+            nameInput.addEventListener('input', function() {
+                renderSuggestions(nameInput.value);
+            });
+
+            nameInput.addEventListener('keydown', function(event) {
+                if (event.key === 'Enter') {
+                    closeSuggestions();
+                    form.submit();
+                }
+            });
+
+            suggestions.addEventListener('mousedown', function(event) {
+                const option = event.target.closest('li[data-name]');
+                if (!option) {
+                    return;
+                }
+
+                nameInput.value = option.dataset.name;
+                closeSuggestions();
+                form.submit();
+            });
+
+            document.addEventListener('mousedown', function(event) {
+                if (!event.target.closest('.name-combobox')) {
+                    closeSuggestions();
+                }
+            });
+
+            const confirmModal = document.getElementById('divisionConfirmModal');
+            const confirmYes = document.getElementById('divisionConfirmYes');
+            const confirmNo = document.getElementById('divisionConfirmNo');
+            let pendingDivisionUpdate = null;
+
+            function openConfirmModal(updateData) {
+                pendingDivisionUpdate = updateData;
+                confirmModal.classList.add('is-open');
+                confirmModal.setAttribute('aria-hidden', 'false');
+                confirmYes.focus();
+            }
+
+            function closeConfirmModal(revertChange = false) {
+                if (revertChange && pendingDivisionUpdate) {
+                    pendingDivisionUpdate.select.value = pendingDivisionUpdate.select.dataset.originalDivision;
+                    pendingDivisionUpdate.status.textContent = '';
+                    pendingDivisionUpdate.status.className = 'row-update-status';
+                }
+
+                pendingDivisionUpdate = null;
+                confirmModal.classList.remove('is-open');
+                confirmModal.setAttribute('aria-hidden', 'true');
+            }
+
+            function saveDivisionUpdate(updateData) {
+                const formData = new FormData();
+                formData.append('id', updateData.inventoryId);
+                formData.append('officeDivision', updateData.select.value);
+
+                updateData.status.textContent = 'Updating...';
+                updateData.status.className = 'row-update-status';
+                updateData.button.disabled = true;
+                updateData.button.textContent = 'Updating...';
+
+                fetch('update_inventory_division.php', {
+                    method: 'POST',
+                    body: formData,
+                    credentials: 'same-origin'
+                })
+                    .then(function(response) {
+                        return response.json().then(function(data) {
+                            if (!response.ok || !data.success) {
+                                throw new Error(data.message || 'Update failed.');
+                            }
+                            return data;
+                        });
+                    })
+                    .then(function() {
+                        updateData.select.dataset.originalDivision = updateData.select.value;
+                        updateData.status.textContent = 'Updated';
+                        updateData.status.classList.add('is-success');
+                    })
+                    .catch(function(error) {
+                        updateData.status.textContent = error.message || 'Error';
+                        updateData.status.classList.add('is-error');
+                    })
+                    .finally(function() {
+                        updateData.button.disabled = false;
+                        updateData.button.textContent = 'Update';
+                    });
+            }
+
+            document.querySelectorAll('.row-update-btn').forEach(function(button) {
+                button.addEventListener('click', function() {
+                    const row = button.closest('tr[data-inventory-id]');
+                    const select = row ? row.querySelector('.row-division-select') : null;
+                    const status = row ? row.querySelector('.row-update-status') : null;
+                    const inventoryId = row ? row.dataset.inventoryId : '';
+
+                    if (!row || !select || !status || !inventoryId) {
+                        return;
+                    }
+
+                    if (select.value === select.dataset.originalDivision) {
+                        status.textContent = 'No changes';
+                        status.className = 'row-update-status';
+                        return;
+                    }
+
+                    openConfirmModal({
+                        button: button,
+                        inventoryId: inventoryId,
+                        select: select,
+                        status: status
+                    });
                 });
+            });
+
+            document.querySelectorAll('.row-division-select').forEach(function(select) {
+                select.addEventListener('change', function() {
+                    const row = select.closest('tr[data-inventory-id]');
+                    const button = row ? row.querySelector('.row-update-btn') : null;
+                    const status = row ? row.querySelector('.row-update-status') : null;
+                    const inventoryId = row ? row.dataset.inventoryId : '';
+
+                    if (!row || !button || !status || !inventoryId) {
+                        return;
+                    }
+
+                    if (select.value === select.dataset.originalDivision) {
+                        status.textContent = 'No changes';
+                        status.className = 'row-update-status';
+                        return;
+                    }
+
+                    status.textContent = '';
+                    status.className = 'row-update-status';
+                    openConfirmModal({
+                        button: button,
+                        inventoryId: inventoryId,
+                        select: select,
+                        status: status
+                    });
+                });
+            });
+
+            confirmYes.addEventListener('click', function() {
+                const updateData = pendingDivisionUpdate;
+                closeConfirmModal();
+                if (updateData) {
+                    saveDivisionUpdate(updateData);
+                }
+            });
+
+            confirmNo.addEventListener('click', function() {
+                closeConfirmModal(true);
+            });
+
+            confirmModal.addEventListener('mousedown', function(event) {
+                if (event.target === confirmModal) {
+                    closeConfirmModal(true);
+                }
+            });
+
+            document.addEventListener('keydown', function(event) {
+                if (event.key === 'Escape' && confirmModal.classList.contains('is-open')) {
+                    closeConfirmModal(true);
+                }
             });
         });
     </script>

@@ -24,7 +24,12 @@ if ($id <= 0) {
 }
 
 $office = $_SESSION['OfficeSRF'] ?? '';
-$query = "SELECT id, employeeName, equipmentType, yearAcquired, brand, amount, propertyNumber
+$columnCheck = $conn->query("SHOW COLUMNS FROM inv_inventory LIKE 'sticker_attached'");
+if ($columnCheck && $columnCheck->num_rows === 0) {
+    $conn->query("ALTER TABLE inv_inventory ADD COLUMN sticker_attached TINYINT(1) NOT NULL DEFAULT 0");
+}
+
+$query = "SELECT id, employeeName, equipmentType, yearAcquired, brand, amount, propertyNumber, sticker_attached
           FROM inv_inventory
           WHERE id = ? AND Office = ?";
 $stmt = $conn->prepare($query);

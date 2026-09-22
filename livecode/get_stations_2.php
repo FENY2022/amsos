@@ -3,20 +3,19 @@ require_once "connect.php";
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['office'])) {
     $selectedOffice = $_POST['office'];
-    require_once 'connect_otos.php';
 
-    $stationsQuery = "SELECT DISTINCT Station FROM useremployee WHERE Office = ? AND Station IS NOT NULL AND Station != ''";
-    $stmt = $conn_otos->prepare($stationsQuery);
+    $divisionsQuery = "SELECT DISTINCT officeDivision FROM inventory_people WHERE office = ? AND officeDivision IS NOT NULL AND officeDivision != '' ORDER BY officeDivision ASC";
+    $stmt = $conn->prepare($divisionsQuery);
     $stmt->bind_param('s', $selectedOffice);
     $stmt->execute();
-    $stationsResult = $stmt->get_result();
+    $divisionsResult = $stmt->get_result();
 
-    if ($stationsResult->num_rows > 0) {
-        while ($row = $stationsResult->fetch_assoc()) {
-            echo '<option value="' . htmlspecialchars($row['Station']) . '">' . htmlspecialchars($row['Station']) . '</option>';
+    if ($divisionsResult->num_rows > 0) {
+        while ($row = $divisionsResult->fetch_assoc()) {
+            echo '<option value="' . htmlspecialchars($row['officeDivision']) . '">' . htmlspecialchars($row['officeDivision']) . '</option>';
         }
     } else {
-        echo '<option value="">No stations found</option>';
+        echo '<option value="">No divisions found</option>';
     }
 
     $stmt->close();

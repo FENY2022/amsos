@@ -127,6 +127,10 @@ require_once 'sidebar.php';
 
                 require_once 'otos_employee_include.php' ;
 
+            }elseif ($_dirlist == 'office_employee') {
+
+                require_once 'office_employee.php' ;
+
             }elseif ($_dirlist == 'division_counts') {
 
                 require_once 'division_counts.php' ;
