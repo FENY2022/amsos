@@ -282,18 +282,17 @@ if (session_status() === PHP_SESSION_NONE) {
         $conn->query("ALTER TABLE inv_inventory ADD COLUMN sticker_attached TINYINT(1) NOT NULL DEFAULT 0");
     }
 
-    // For testing purposes, I'm defining a session variable. Remove this in your live environment.
-    if (!isset($_SESSION['OfficeSRF'])) {
-        $_SESSION['OfficeSRF'] = 'some_default_office'; // Replace with actual session handling if not set
-    }
+    // Use the authenticated office from the login session.
+    // Normalize whitespace during comparisons so valid inventory records are not hidden.
+    $sessionOffice = trim((string)($_SESSION['OfficeSRF'] ?? ''));
 
     $office_division_options = "";
     $previousDivision = "";
 
     // Fetch office divisions from the local master table for the current office session
-    $sql = "SELECT officeDivision FROM office_divisions WHERE office = ? ORDER BY officeDivision ASC";
+    $sql = "SELECT officeDivision FROM office_divisions WHERE UPPER(TRIM(office)) = UPPER(TRIM(?)) ORDER BY officeDivision ASC";
     $stmt = $conn->prepare($sql);
-    $stmt->bind_param("s", $_SESSION['OfficeSRF']);
+    $stmt->bind_param("s", $sessionOffice);
     $stmt->execute();
     $result = $stmt->get_result();
 
@@ -429,8 +428,8 @@ if (session_status() === PHP_SESSION_NONE) {
                 $offset = ($page - 1) * $records_per_page;
                 
                 // GET SEARCH PARAMETERS
-                $officeDivision = isset($_REQUEST['officeDivision']) ? $_REQUEST['officeDivision'] : '';
-                $employeeName = isset($_REQUEST['employeeName']) ? $_REQUEST['employeeName'] : '';
+                $officeDivision = isset($_REQUEST['officeDivision']) ? trim((string)$_REQUEST['officeDivision']) : '';
+                $employeeName = isset($_REQUEST['employeeName']) ? trim((string)$_REQUEST['employeeName']) : '';
                 $statusFilter = isset($_REQUEST['statusFilter']) ? $_REQUEST['statusFilter'] : '';
                 $stickerFilter = isset($_REQUEST['stickerFilter']) ? $_REQUEST['stickerFilter'] : '';
                 $inventoryId = isset($_REQUEST['inventoryId']) && is_numeric($_REQUEST['inventoryId']) ? (int)$_REQUEST['inventoryId'] : 0;
@@ -438,8 +437,8 @@ if (session_status() === PHP_SESSION_NONE) {
                 $employeeNameParts = array_filter(preg_split('/\s+/', trim($employeeName)));
 
                 // BUILD THE COUNT QUERY
-                $count_query = "SELECT COUNT(*) as total FROM inv_inventory WHERE Office = ?";
-                $params = [$_SESSION['OfficeSRF']];
+                $count_query = "SELECT COUNT(*) as total FROM inv_inventory WHERE UPPER(TRIM(Office)) = UPPER(TRIM(?))";
+                $params = [$sessionOffice];
                 $types = "s";
 
                 if ($inventoryId > 0) {
@@ -449,7 +448,7 @@ if (session_status() === PHP_SESSION_NONE) {
                 }
 
                 if (!empty($officeDivision)) {
-                    $count_query .= " AND officeDivision = ?";
+                    $count_query .= " AND UPPER(TRIM(officeDivision)) = UPPER(TRIM(?))";
                     $params[] = $officeDivision;
                     $types .= "s";
                 }
@@ -489,8 +488,8 @@ if (session_status() === PHP_SESSION_NONE) {
                 echo '<div id="record-count-label"><i class="fas fa-list-ol"></i> Found <strong>'. $total_records . '</strong> Records</div>';
 
                 // BUILD THE DATA QUERY
-                $query = "SELECT * FROM inv_inventory WHERE Office = ?";
-                $params_data = [$_SESSION['OfficeSRF']];
+                $query = "SELECT * FROM inv_inventory WHERE UPPER(TRIM(Office)) = UPPER(TRIM(?))";
+                $params_data = [$sessionOffice];
                 $types_data = "s";
 
                 if ($inventoryId > 0) {
@@ -500,7 +499,7 @@ if (session_status() === PHP_SESSION_NONE) {
                 }
 
                 if (!empty($officeDivision)) {
-                    $query .= " AND officeDivision = ?";
+                    $query .= " AND UPPER(TRIM(officeDivision)) = UPPER(TRIM(?))";
                     $params_data[] = $officeDivision;
                     $types_data .= "s";
                 }
