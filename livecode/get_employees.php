@@ -10,13 +10,7 @@ if (session_status() == PHP_SESSION_NONE) {
     session_start();
 }
 
-// For testing purposes, I'm defining a session variable if it's not set.
-// In a live environment, $_SESSION['OfficeSRF'] should be reliably set during user login.
-if (!isset($_SESSION['OfficeSRF'])) {
-    // IMPORTANT: Replace 'some_default_office' with a real default or handle unauthenticated access.
-    // In a real application, you might redirect if $_SESSION['OfficeSRF'] is not set.
-    $_SESSION['OfficeSRF'] = 'some_default_office'; 
-}
+$sessionOffice = trim((string)($_SESSION['OfficeSRF'] ?? ''));
 
 // Get the selected office division from the AJAX request
 // Use null coalescing operator (??) for cleaner handling of unset $_GET variables
@@ -24,17 +18,38 @@ $officeDivision = $_GET['officeDivision'] ?? '';
 
 $employees = []; // Initialize an empty array to hold employee names
 
-function employeeLookupColumnExists($conn, $column) {
-    $stmt = $conn->prepare("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'useremployee' AND COLUMN_NAME = ?");
+function employeeLookupColumnExists($conn, $table, $column) {
+    $stmt = $conn->prepare("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?");
     if (!$stmt) {
         return false;
     }
-    $stmt->bind_param("s", $column);
+    $stmt->bind_param("ss", $table, $column);
     $stmt->execute();
     $stmt->bind_result($count);
     $stmt->fetch();
     $stmt->close();
     return (int)$count > 0;
+}
+
+function loadEmployeesFromQuery($conn, $sql, $types, $params, $column) {
+    $employees = [];
+    $stmt = $conn->prepare($sql);
+
+    if (!$stmt) {
+        error_log("Failed to prepare employee lookup: " . $conn->error);
+        return $employees;
+    }
+
+    $stmt->bind_param($types, ...$params);
+    $stmt->execute();
+    $result = $stmt->get_result();
+
+    while ($row = $result->fetch_assoc()) {
+        $employees[] = htmlspecialchars($row[$column]);
+    }
+
+    $stmt->close();
+    return $employees;
 }
 
 function normalizeDivisionName($value) {
@@ -65,66 +80,50 @@ function getDivisionStationAliases($officeDivision) {
 }
 
 // Only proceed if an office division is provided and the session office is set
-if (!empty($officeDivision) && !empty($_SESSION['OfficeSRF'])) {
+if (!empty($officeDivision) && !empty($sessionOffice)) {
     try {
-        if (!employeeLookupColumnExists($conn, 'Full_Name') || !employeeLookupColumnExists($conn, 'Office') || !employeeLookupColumnExists($conn, 'Station') || !employeeLookupColumnExists($conn, 'Div_Sec_Unit')) {
-            echo json_encode($employees);
-            $conn->close();
-            exit();
-        }
+        if (employeeLookupColumnExists($conn, 'useremployee', 'Full_Name') && employeeLookupColumnExists($conn, 'useremployee', 'Office') && employeeLookupColumnExists($conn, 'useremployee', 'Station') && employeeLookupColumnExists($conn, 'useremployee', 'Div_Sec_Unit')) {
+            $normalizedDivision = normalizeDivisionName($officeDivision);
+            $stationAliases = getDivisionStationAliases($officeDivision);
+            $divisionAliases = [$officeDivision];
 
-        $normalizedDivision = normalizeDivisionName($officeDivision);
-        $stationAliases = getDivisionStationAliases($officeDivision);
-        $divisionAliases = [$officeDivision];
-
-        if ($normalizedDivision === 'ADMINDIVISION') {
-            $divisionAliases = array_merge($divisionAliases, ['ADMIN', 'ADMIN DIVISION', 'ADMINISTRATIVE DIVISION', 'ADMINISTRATIVE']);
-        }
-
-        $divisionConditions = [];
-        $params = [$_SESSION['OfficeSRF']];
-        $types = "s";
-
-        foreach (array_unique($divisionAliases) as $divisionAlias) {
-            $divisionConditions[] = "UPPER(REPLACE(REPLACE(REPLACE(TRIM(Div_Sec_Unit), ' ', ''), '-', ''), '/', '')) = ?";
-            $params[] = normalizeDivisionName($divisionAlias);
-            $types .= "s";
-        }
-
-        foreach ($stationAliases as $stationAlias) {
-            $divisionConditions[] = "TRIM(Station) = ?";
-            $params[] = $stationAlias;
-            $types .= "s";
-        }
-
-        // Select employees from the users table. This is the authoritative user list.
-        $sql = "SELECT DISTINCT Full_Name FROM useremployee WHERE Office = ? AND TRIM(Full_Name) != '' AND (" . implode(' OR ', $divisionConditions) . ") ORDER BY Full_Name ASC";
-        
-        // Use mysqli_prepare for secure execution to prevent SQL injection
-        $stmt = $conn->prepare($sql);
-
-        if ($stmt) {
-            $stmt->bind_param($types, ...$params);
-            
-            // Execute the prepared statement
-            $stmt->execute();
-            
-            // Get the result set
-            $result = $stmt->get_result();
-
-            // Fetch results and add to the employees array
-            if ($result->num_rows > 0) {
-                while ($row = $result->fetch_assoc()) {
-                    // Ensure HTML special characters are handled if employee names might contain them
-                    $employees[] = htmlspecialchars($row['Full_Name']);
-                }
+            if ($normalizedDivision === 'ADMINDIVISION') {
+                $divisionAliases = array_merge($divisionAliases, ['ADMIN', 'ADMIN DIVISION', 'ADMINISTRATIVE DIVISION', 'ADMINISTRATIVE']);
             }
-            $stmt->close(); // Close the statement
-        } else {
-            // Log the error for debugging purposes (check your PHP error logs)
-            error_log("Failed to prepare statement in get_employees.php: " . $conn->error);
-            // Optionally, return an empty array or an error message to the client
-            // $employees = ['error' => 'Database query failed.']; 
+
+            $divisionConditions = [];
+            $params = [$sessionOffice];
+            $types = "s";
+
+            foreach (array_unique($divisionAliases) as $divisionAlias) {
+                $divisionConditions[] = "UPPER(REPLACE(REPLACE(REPLACE(TRIM(Div_Sec_Unit), ' ', ''), '-', ''), '/', '')) = ?";
+                $params[] = normalizeDivisionName($divisionAlias);
+                $types .= "s";
+            }
+
+            foreach ($stationAliases as $stationAlias) {
+                $divisionConditions[] = "UPPER(TRIM(Station)) = UPPER(TRIM(?))";
+                $params[] = $stationAlias;
+                $types .= "s";
+            }
+
+            $employees = loadEmployeesFromQuery(
+                $conn,
+                "SELECT DISTINCT Full_Name FROM useremployee WHERE UPPER(TRIM(Office)) = UPPER(TRIM(?)) AND TRIM(Full_Name) != '' AND (" . implode(' OR ', $divisionConditions) . ") ORDER BY Full_Name ASC",
+                $types,
+                $params,
+                'Full_Name'
+            );
+        }
+
+        if (empty($employees) && employeeLookupColumnExists($conn, 'inv_inventory', 'employeeName') && employeeLookupColumnExists($conn, 'inv_inventory', 'Office') && employeeLookupColumnExists($conn, 'inv_inventory', 'officeDivision')) {
+            $employees = loadEmployeesFromQuery(
+                $conn,
+                "SELECT DISTINCT employeeName FROM inv_inventory WHERE UPPER(TRIM(Office)) = UPPER(TRIM(?)) AND UPPER(TRIM(officeDivision)) = UPPER(TRIM(?)) AND TRIM(employeeName) != '' ORDER BY employeeName ASC",
+                "ss",
+                [$sessionOffice, $officeDivision],
+                'employeeName'
+            );
         }
     } catch (Throwable $e) {
         error_log("Employee lookup failed in get_employees.php: " . $e->getMessage());
