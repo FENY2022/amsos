@@ -25,7 +25,7 @@ $officeDivision = $_GET['officeDivision'] ?? '';
 $employees = []; // Initialize an empty array to hold employee names
 
 function employeeLookupColumnExists($conn, $column) {
-    $stmt = $conn->prepare("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'inventory_people' AND COLUMN_NAME = ?");
+    $stmt = $conn->prepare("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'useremployee' AND COLUMN_NAME = ?");
     if (!$stmt) {
         return false;
     }
@@ -37,24 +37,74 @@ function employeeLookupColumnExists($conn, $column) {
     return (int)$count > 0;
 }
 
+function normalizeDivisionName($value) {
+    $value = strtoupper(trim((string)$value));
+    return preg_replace('/[^A-Z0-9]+/', '', $value);
+}
+
+function getDivisionStationAliases($officeDivision) {
+    $aliases = [
+        'ADMINDIVISION' => ['RO ASD'],
+        'ARDMS' => ['RO MS', 'RO ARD'],
+        'ARDTS' => ['RO TS'],
+        'CDD' => ['RO CDD'],
+        'ED' => ['RO ED'],
+        'ENGP' => ['RO NGP'],
+        'FINANCE' => ['RO FD'],
+        'LEGAL' => ['RO LD'],
+        'LPDD' => ['RO LPDD'],
+        'ORED' => ['RO ORED'],
+        'PMD' => ['RO PMD'],
+        'RSCIG' => ['RO ORED'],
+        'SMD' => ['RO SMD'],
+        'SURVEYSANDMAPPINGDIVISION' => ['RO SMD'],
+    ];
+
+    $key = normalizeDivisionName($officeDivision);
+    return $aliases[$key] ?? [];
+}
+
 // Only proceed if an office division is provided and the session office is set
 if (!empty($officeDivision) && !empty($_SESSION['OfficeSRF'])) {
     try {
-        if (!employeeLookupColumnExists($conn, 'full_name') || !employeeLookupColumnExists($conn, 'office') || !employeeLookupColumnExists($conn, 'officeDivision')) {
+        if (!employeeLookupColumnExists($conn, 'Full_Name') || !employeeLookupColumnExists($conn, 'Office') || !employeeLookupColumnExists($conn, 'Station') || !employeeLookupColumnExists($conn, 'Div_Sec_Unit')) {
             echo json_encode($employees);
             $conn->close();
             exit();
         }
 
-        // Select inventory people from the local inventory people master list.
-        $sql = "SELECT full_name FROM inventory_people WHERE office = ? AND officeDivision = ? ORDER BY full_name ASC";
+        $normalizedDivision = normalizeDivisionName($officeDivision);
+        $stationAliases = getDivisionStationAliases($officeDivision);
+        $divisionAliases = [$officeDivision];
+
+        if ($normalizedDivision === 'ADMINDIVISION') {
+            $divisionAliases = array_merge($divisionAliases, ['ADMIN', 'ADMIN DIVISION', 'ADMINISTRATIVE DIVISION', 'ADMINISTRATIVE']);
+        }
+
+        $divisionConditions = [];
+        $params = [$_SESSION['OfficeSRF']];
+        $types = "s";
+
+        foreach (array_unique($divisionAliases) as $divisionAlias) {
+            $divisionConditions[] = "UPPER(REPLACE(REPLACE(REPLACE(TRIM(Div_Sec_Unit), ' ', ''), '-', ''), '/', '')) = ?";
+            $params[] = normalizeDivisionName($divisionAlias);
+            $types .= "s";
+        }
+
+        foreach ($stationAliases as $stationAlias) {
+            $divisionConditions[] = "TRIM(Station) = ?";
+            $params[] = $stationAlias;
+            $types .= "s";
+        }
+
+        // Select employees from the users table. This is the authoritative user list.
+        $sql = "SELECT DISTINCT Full_Name FROM useremployee WHERE Office = ? AND TRIM(Full_Name) != '' AND (" . implode(' OR ', $divisionConditions) . ") ORDER BY Full_Name ASC";
         
         // Use mysqli_prepare for secure execution to prevent SQL injection
         $stmt = $conn->prepare($sql);
 
         if ($stmt) {
-            // Bind parameters: 'ss' means two string parameters
-            $stmt->bind_param("ss", $_SESSION['OfficeSRF'], $officeDivision);
+            $stmt->bind_param($types, ...$params);
             
             // Execute the prepared statement
             $stmt->execute();
@@ -66,7 +116,7 @@ if (!empty($officeDivision) && !empty($_SESSION['OfficeSRF'])) {
             if ($result->num_rows > 0) {
                 while ($row = $result->fetch_assoc()) {
                     // Ensure HTML special characters are handled if employee names might contain them
-                    $employees[] = htmlspecialchars($row['full_name']);
+                    $employees[] = htmlspecialchars($row['Full_Name']);
                 }
             }
             $stmt->close(); // Close the statement

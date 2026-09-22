@@ -1,16 +1,15 @@
 <?php
 require_once "connect.php";
-require_once "connect_otos.php";
 
-$officesQuery = "SELECT DISTINCT Office FROM useremployee WHERE Office IS NOT NULL AND Office != ''";
-$officesResult = $conn_otos->query($officesQuery);
+$officesQuery = "SELECT DISTINCT office FROM inventory_people WHERE office IS NOT NULL AND office != '' ORDER BY office ASC";
+$officesResult = $conn->query($officesQuery);
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Filter Stations by Office and Name</title>
+  <title>Inventory People</title>
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
@@ -111,22 +110,22 @@ $officesResult = $conn_otos->query($officesQuery);
 </head>
 <body>
   <div class="container">
-    <h1>Filter Stations by Office and Name</h1>
+    <h1>Inventory People</h1>
     <form method="POST" action="">
       <label for="office">Select Office:</label>
       <select name="office" id="office">
         <option value="">-- Select an Office --</option>
         <?php while ($row = $officesResult->fetch_assoc()): ?>
-          <option value="<?php echo htmlspecialchars($row['Office']); ?>">
-            <?php echo htmlspecialchars($row['Office']); ?>
+          <option value="<?php echo htmlspecialchars($row['office']); ?>">
+            <?php echo htmlspecialchars($row['office']); ?>
           </option>
         <?php endwhile; ?>
       </select>
     </form>
     <div style="text-align:center;">
-      <label for="station">Select Station:</label>
+      <label for="station">Office Division:</label>
       <select name="station" id="station">
-        <option value="">-- Select a Station --</option>
+        <option value="">-- Select Division --</option>
       </select>
       <br><br>
       <label for="fullname">Full Name:</label>
@@ -137,76 +136,108 @@ $officesResult = $conn_otos->query($officesQuery);
     <div id="tableContainer"></div>
   </div>
   <script>
-    $(document).ready(function () {
+    document.addEventListener('DOMContentLoaded', function () {
+      var officeSelect = document.getElementById('office');
+      var divisionSelect = document.getElementById('station');
+      var fullnameInput = document.getElementById('fullname');
+      var showTableBtn = document.getElementById('showTableBtn');
+      var tableContainer = document.getElementById('tableContainer');
       var savedOffice = localStorage.getItem('selectedOffice');
-      var savedStation = localStorage.getItem('selectedStation');
+      var savedDivision = localStorage.getItem('selectedDivision');
       var savedFullName = localStorage.getItem('fullName');
 
       if (savedFullName) {
-        $('#fullname').val(savedFullName);
+        fullnameInput.value = savedFullName;
       }
+
+      function postForm(url, data) {
+        var body = new URLSearchParams();
+        Object.keys(data).forEach(function (key) {
+          body.append(key, data[key]);
+        });
+
+        return fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'
+          },
+          body: body.toString()
+        }).then(function (response) {
+          if (!response.ok) {
+            throw new Error('Request failed: ' + response.status);
+          }
+          return response.text();
+        });
+      }
+
+      function loadDivisions(selectedOffice, divisionToSelect) {
+        localStorage.setItem('selectedOffice', selectedOffice);
+        localStorage.removeItem('selectedDivision');
+        divisionSelect.innerHTML = '<option value="">-- Select Division --</option>';
+
+        if (!selectedOffice) {
+          return;
+        }
+
+        postForm('get_stations_2.php', { office: selectedOffice })
+          .then(function (response) {
+            divisionSelect.insertAdjacentHTML('beforeend', response);
+            if (divisionToSelect) {
+              divisionSelect.value = divisionToSelect;
+            }
+          })
+          .catch(function (error) {
+            console.error('Error fetching divisions:', error);
+            alert('Error fetching divisions');
+          });
+      }
+
+      officeSelect.addEventListener('change', function () {
+        loadDivisions(this.value, '');
+      });
 
       if (savedOffice) {
-        $('#office').val(savedOffice).trigger('change');
+        officeSelect.value = savedOffice;
+        loadDivisions(savedOffice, savedDivision);
       }
 
-      $('#office').on('change', function () {
-        var selectedOffice = $(this).val();
-        localStorage.setItem('selectedOffice', selectedOffice);
-        localStorage.removeItem('selectedStation');
-        $('#station').html('<option value="">-- Select a Station --</option>');
-
-        if (selectedOffice) {
-          $.ajax({
-            url: 'get_stations_2.php',
-            type: 'POST',
-            data: { office: selectedOffice },
-            success: function (response) {
-              $('#station').append(response);
-              if (savedStation) {
-                $('#station').val(savedStation);
-              }
-            }
-          });
-        }
+      divisionSelect.addEventListener('change', function () {
+        localStorage.setItem('selectedDivision', this.value);
       });
 
-      $('#station').on('change', function () {
-        localStorage.setItem('selectedStation', $(this).val());
+      fullnameInput.addEventListener('keyup', function () {
+        localStorage.setItem('fullName', this.value.trim());
       });
 
-      $('#fullname').on('keyup change', function() {
-        localStorage.setItem('fullName', $(this).val().trim());
+      fullnameInput.addEventListener('change', function () {
+        localStorage.setItem('fullName', this.value.trim());
       });
 
-      $('#showTableBtn').on('click', function () {
-        var selectedOffice = $('#office').val();
-        var selectedStation = $('#station').val();
-        var fullName = $('#fullname').val().trim();
+      showTableBtn.addEventListener('click', function () {
+        var selectedOffice = officeSelect.value;
+        var selectedDivision = divisionSelect.value;
+        var fullName = fullnameInput.value.trim();
 
         if (!selectedOffice) {
           alert('Please select an office');
           return;
         }
 
-        $.ajax({
-          url: 'get_filtered_data.php',
-          type: 'POST',
-          data: { 
-            office: selectedOffice, 
-            station: selectedStation,
-            fullname: fullName 
-          },
-          success: function (response) {
-            $('#tableContainer').html(response);
-          },
-          error: function () {
+        postForm('get_filtered_data.php', {
+          office: selectedOffice,
+          officeDivision: selectedDivision,
+          fullname: fullName
+        })
+          .then(function (response) {
+            tableContainer.innerHTML = response;
+          })
+          .catch(function (error) {
+            console.error('Error fetching data:', error);
             alert('Error fetching data');
-          }
-        });
+          });
       });
     });
   </script>
 </body>
 </html>
-<?php $conn->close(); $conn_otos->close(); ?>
+<?php $conn->close(); ?>
