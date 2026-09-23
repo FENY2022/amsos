@@ -99,7 +99,7 @@ $conn->close();
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ICT Equipment Inventory</title>
+    <title>Add Inventory - ICT-AMSOS</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
@@ -301,7 +301,7 @@ $conn->close();
         <div class="header-section">
             <div class="d-flex justify-content-between align-items-center">
                 <div>
-                    <h1 class="h2 mb-0"><i class="fas fa-laptop me-2"></i>ICT Equipment Inventory</h1>
+                    <h1 class="h2 mb-0"><i class="fas fa-plus-circle me-2"></i>Add Inventory</h1>
                     <p class="mb-0">Enter details for new ICT equipment to keep your inventory updated</p>
                 </div>
                 <div class="d-flex align-items-center">
