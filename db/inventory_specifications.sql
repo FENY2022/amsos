@@ -1,6 +1,5 @@
 -- ICT-AMSOS structured inventory specifications
 -- One structured specification row per inv_inventory record.
--- Reporting/search pages should use LEFT JOIN so legacy inventory rows remain visible.
 
 CREATE TABLE IF NOT EXISTS inventory_specifications (
     id INT NOT NULL AUTO_INCREMENT,
