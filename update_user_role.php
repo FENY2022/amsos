@@ -74,28 +74,19 @@ if (!amsos_is_valid_chief_role_for_office($newRole, $office)) {
     sendRoleJson(['success' => false, 'message' => 'The selected role is not valid for this office.'], 422);
 }
 
-$knownRoles = [];
-$rolesResult = $conn_otos->query("SELECT DISTINCT User_Role FROM useremployee WHERE User_Role IS NOT NULL AND TRIM(User_Role) <> ''");
-if ($rolesResult) {
-    while ($roleRow = $rolesResult->fetch_assoc()) {
-        $roleValue = trim((string)$roleRow['User_Role']);
-        if ($roleValue !== '') {
-            $knownRoles[amsos_role_key($roleValue)] = $roleValue;
-        }
-    }
-}
-
 $roleKey = amsos_role_key($newRole);
-if (!isset($knownRoles[$roleKey]) && !in_array($roleKey, ['DIVISIONCHIEF', 'SECTIONCHIEF'], true)) {
-    sendRoleJson(['success' => false, 'message' => 'Unknown role selected.'], 422);
+$baseRoleKey = amsos_role_key($baseOtosRole);
+
+if (!in_array($roleKey, [$baseRoleKey, 'DIVISIONCHIEF', 'SECTIONCHIEF'], true)) {
+    sendRoleJson(['success' => false, 'message' => 'Only the existing account role or the valid office chief role can be assigned in AMSOS.'], 422);
 }
 
 if ($roleKey === 'DIVISIONCHIEF') {
     $newRole = 'Division Chief';
 } elseif ($roleKey === 'SECTIONCHIEF') {
     $newRole = 'Section Chief';
-} elseif (isset($knownRoles[$roleKey])) {
-    $newRole = $knownRoles[$roleKey];
+} else {
+    $newRole = $baseOtosRole;
 }
 
 $effectiveRole = $newRole;
