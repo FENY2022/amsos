@@ -355,6 +355,7 @@ $currentDir = $_GET['dir'] ?? '';
             max-width: 250px;
         }
 
+        .row-name-select,
         .row-division-select {
             min-width: 190px;
             padding: 8px 10px;
@@ -689,7 +690,19 @@ $currentDir = $_GET['dir'] ?? '';
                     echo '<tr data-inventory-id="' . $inventoryId . '">';
                     foreach ($fieldNames as $fieldName) {
                         $data = $row[$fieldName] ?? '';
-                        if ($fieldName === 'officeDivision') {
+                        if ($fieldName === 'employeeName') {
+                            echo '<td>';
+                            echo '<select class="row-name-select" data-original-name="' . htmlspecialchars($data, ENT_QUOTES, 'UTF-8') . '">';
+                            foreach ($employeeNames as $employeeNameOption) {
+                                $selected = (string)$data === (string)$employeeNameOption ? ' selected' : '';
+                                echo '<option value="' . htmlspecialchars($employeeNameOption, ENT_QUOTES, 'UTF-8') . '"' . $selected . '>' . htmlspecialchars($employeeNameOption, ENT_QUOTES, 'UTF-8') . '</option>';
+                            }
+                            if ($data !== '' && !in_array($data, $employeeNames, true)) {
+                                echo '<option value="' . htmlspecialchars($data, ENT_QUOTES, 'UTF-8') . '" selected>' . htmlspecialchars($data, ENT_QUOTES, 'UTF-8') . '</option>';
+                            }
+                            echo '</select>';
+                            echo '</td>';
+                        } elseif ($fieldName === 'officeDivision') {
                             echo '<td>';
                             echo '<select class="row-division-select" data-original-division="' . htmlspecialchars($data, ENT_QUOTES, 'UTF-8') . '">';
                             foreach ($officeOptions as $divisionOption) {
@@ -734,8 +747,8 @@ $currentDir = $_GET['dir'] ?? '';
 
     <div class="confirm-modal-backdrop" id="divisionConfirmModal" aria-hidden="true">
         <div class="confirm-modal" role="dialog" aria-modal="true" aria-labelledby="divisionConfirmTitle">
-            <h3 id="divisionConfirmTitle">Update Office Division?</h3>
-            <p>Do you really want to update this row's office division?</p>
+            <h3 id="divisionConfirmTitle">Update Inventory Row?</h3>
+            <p>Do you really want to update this row's employee name or office division?</p>
             <div class="confirm-modal-actions">
                 <button type="button" class="confirm-no-btn" id="divisionConfirmNo">No</button>
                 <button type="button" class="confirm-yes-btn" id="divisionConfirmYes">Yes</button>
@@ -846,7 +859,12 @@ $currentDir = $_GET['dir'] ?? '';
 
             function closeConfirmModal(revertChange = false) {
                 if (revertChange && pendingDivisionUpdate) {
-                    pendingDivisionUpdate.select.value = pendingDivisionUpdate.select.dataset.originalDivision;
+                    if (pendingDivisionUpdate.nameSelect) {
+                        pendingDivisionUpdate.nameSelect.value = pendingDivisionUpdate.nameSelect.dataset.originalName;
+                    }
+                    if (pendingDivisionUpdate.divisionSelect) {
+                        pendingDivisionUpdate.divisionSelect.value = pendingDivisionUpdate.divisionSelect.dataset.originalDivision;
+                    }
                     pendingDivisionUpdate.status.textContent = '';
                     pendingDivisionUpdate.status.className = 'row-update-status';
                 }
@@ -859,7 +877,8 @@ $currentDir = $_GET['dir'] ?? '';
             function saveDivisionUpdate(updateData) {
                 const formData = new FormData();
                 formData.append('id', updateData.inventoryId);
-                formData.append('officeDivision', updateData.select.value);
+                formData.append('employeeName', updateData.nameSelect.value);
+                formData.append('officeDivision', updateData.divisionSelect.value);
 
                 updateData.status.textContent = 'Updating...';
                 updateData.status.className = 'row-update-status';
@@ -880,7 +899,8 @@ $currentDir = $_GET['dir'] ?? '';
                         });
                     })
                     .then(function() {
-                        updateData.select.dataset.originalDivision = updateData.select.value;
+                        updateData.nameSelect.dataset.originalName = updateData.nameSelect.value;
+                        updateData.divisionSelect.dataset.originalDivision = updateData.divisionSelect.value;
                         updateData.status.textContent = 'Updated';
                         updateData.status.classList.add('is-success');
                     })
@@ -897,15 +917,16 @@ $currentDir = $_GET['dir'] ?? '';
             document.querySelectorAll('.row-update-btn').forEach(function(button) {
                 button.addEventListener('click', function() {
                     const row = button.closest('tr[data-inventory-id]');
-                    const select = row ? row.querySelector('.row-division-select') : null;
+                    const nameSelect = row ? row.querySelector('.row-name-select') : null;
+                    const divisionSelect = row ? row.querySelector('.row-division-select') : null;
                     const status = row ? row.querySelector('.row-update-status') : null;
                     const inventoryId = row ? row.dataset.inventoryId : '';
 
-                    if (!row || !select || !status || !inventoryId) {
+                    if (!row || !nameSelect || !divisionSelect || !status || !inventoryId) {
                         return;
                     }
 
-                    if (select.value === select.dataset.originalDivision) {
+                    if (nameSelect.value === nameSelect.dataset.originalName && divisionSelect.value === divisionSelect.dataset.originalDivision) {
                         status.textContent = 'No changes';
                         status.className = 'row-update-status';
                         return;
@@ -914,24 +935,27 @@ $currentDir = $_GET['dir'] ?? '';
                     openConfirmModal({
                         button: button,
                         inventoryId: inventoryId,
-                        select: select,
+                        nameSelect: nameSelect,
+                        divisionSelect: divisionSelect,
                         status: status
                     });
                 });
             });
 
-            document.querySelectorAll('.row-division-select').forEach(function(select) {
+            document.querySelectorAll('.row-name-select, .row-division-select').forEach(function(select) {
                 select.addEventListener('change', function() {
                     const row = select.closest('tr[data-inventory-id]');
                     const button = row ? row.querySelector('.row-update-btn') : null;
+                    const nameSelect = row ? row.querySelector('.row-name-select') : null;
+                    const divisionSelect = row ? row.querySelector('.row-division-select') : null;
                     const status = row ? row.querySelector('.row-update-status') : null;
                     const inventoryId = row ? row.dataset.inventoryId : '';
 
-                    if (!row || !button || !status || !inventoryId) {
+                    if (!row || !button || !nameSelect || !divisionSelect || !status || !inventoryId) {
                         return;
                     }
 
-                    if (select.value === select.dataset.originalDivision) {
+                    if (nameSelect.value === nameSelect.dataset.originalName && divisionSelect.value === divisionSelect.dataset.originalDivision) {
                         status.textContent = 'No changes';
                         status.className = 'row-update-status';
                         return;
@@ -942,7 +966,8 @@ $currentDir = $_GET['dir'] ?? '';
                     openConfirmModal({
                         button: button,
                         inventoryId: inventoryId,
-                        select: select,
+                        nameSelect: nameSelect,
+                        divisionSelect: divisionSelect,
                         status: status
                     });
                 });

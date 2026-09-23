@@ -52,71 +52,10 @@ function loadEmployeesFromQuery($conn, $sql, $types, $params, $column) {
     return $employees;
 }
 
-function normalizeDivisionName($value) {
-    $value = strtoupper(trim((string)$value));
-    return preg_replace('/[^A-Z0-9]+/', '', $value);
-}
-
-function getDivisionStationAliases($officeDivision) {
-    $aliases = [
-        'ADMINDIVISION' => ['RO ASD'],
-        'ARDMS' => ['RO MS', 'RO ARD'],
-        'ARDTS' => ['RO TS'],
-        'CDD' => ['RO CDD'],
-        'ED' => ['RO ED'],
-        'ENGP' => ['RO NGP'],
-        'FINANCE' => ['RO FD'],
-        'LEGAL' => ['RO LD'],
-        'LPDD' => ['RO LPDD'],
-        'ORED' => ['RO ORED'],
-        'PMD' => ['RO PMD'],
-        'RSCIG' => ['RO ORED'],
-        'SMD' => ['RO SMD'],
-        'SURVEYSANDMAPPINGDIVISION' => ['RO SMD'],
-    ];
-
-    $key = normalizeDivisionName($officeDivision);
-    return $aliases[$key] ?? [];
-}
-
 // Only proceed if an office division is provided and the session office is set
 if (!empty($officeDivision) && !empty($sessionOffice)) {
     try {
-        if (employeeLookupColumnExists($conn, 'useremployee', 'Full_Name') && employeeLookupColumnExists($conn, 'useremployee', 'Office') && employeeLookupColumnExists($conn, 'useremployee', 'Station') && employeeLookupColumnExists($conn, 'useremployee', 'Div_Sec_Unit')) {
-            $normalizedDivision = normalizeDivisionName($officeDivision);
-            $stationAliases = getDivisionStationAliases($officeDivision);
-            $divisionAliases = [$officeDivision];
-
-            if ($normalizedDivision === 'ADMINDIVISION') {
-                $divisionAliases = array_merge($divisionAliases, ['ADMIN', 'ADMIN DIVISION', 'ADMINISTRATIVE DIVISION', 'ADMINISTRATIVE']);
-            }
-
-            $divisionConditions = [];
-            $params = [$sessionOffice];
-            $types = "s";
-
-            foreach (array_unique($divisionAliases) as $divisionAlias) {
-                $divisionConditions[] = "UPPER(REPLACE(REPLACE(REPLACE(TRIM(Div_Sec_Unit), ' ', ''), '-', ''), '/', '')) = ?";
-                $params[] = normalizeDivisionName($divisionAlias);
-                $types .= "s";
-            }
-
-            foreach ($stationAliases as $stationAlias) {
-                $divisionConditions[] = "UPPER(TRIM(Station)) = UPPER(TRIM(?))";
-                $params[] = $stationAlias;
-                $types .= "s";
-            }
-
-            $employees = loadEmployeesFromQuery(
-                $conn,
-                "SELECT DISTINCT Full_Name FROM useremployee WHERE UPPER(TRIM(Office)) = UPPER(TRIM(?)) AND TRIM(Full_Name) != '' AND (" . implode(' OR ', $divisionConditions) . ") ORDER BY Full_Name ASC",
-                $types,
-                $params,
-                'Full_Name'
-            );
-        }
-
-        if (empty($employees) && employeeLookupColumnExists($conn, 'inv_inventory', 'employeeName') && employeeLookupColumnExists($conn, 'inv_inventory', 'Office') && employeeLookupColumnExists($conn, 'inv_inventory', 'officeDivision')) {
+        if (employeeLookupColumnExists($conn, 'inv_inventory', 'employeeName') && employeeLookupColumnExists($conn, 'inv_inventory', 'Office') && employeeLookupColumnExists($conn, 'inv_inventory', 'officeDivision')) {
             $employees = loadEmployeesFromQuery(
                 $conn,
                 "SELECT DISTINCT employeeName FROM inv_inventory WHERE UPPER(TRIM(Office)) = UPPER(TRIM(?)) AND UPPER(TRIM(officeDivision)) = UPPER(TRIM(?)) AND TRIM(employeeName) != '' ORDER BY employeeName ASC",
