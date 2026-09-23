@@ -271,6 +271,69 @@ function evaluateIctInventoryEntry(array $data) {
     ];
 }
 
+function ensureInventorySpecificationsTable($conn) {
+    if (tableExists($conn, 'inventory_specifications')) {
+        return true;
+    }
+
+    $sql = "CREATE TABLE IF NOT EXISTS inventory_specifications (
+        id INT NOT NULL AUTO_INCREMENT,
+        inventory_id INT NOT NULL,
+        hdd_capacity VARCHAR(100) NULL,
+        ssd_capacity VARCHAR(100) NULL,
+        ram_capacity VARCHAR(100) NULL,
+        memory_capacity VARCHAR(100) NULL,
+        processor_type VARCHAR(255) NULL,
+        display_size VARCHAR(100) NULL,
+        display_resolution VARCHAR(100) NULL,
+        battery_capacity VARCHAR(100) NULL,
+        os_type VARCHAR(150) NULL,
+        os_status VARCHAR(100) NULL,
+        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        PRIMARY KEY (id),
+        UNIQUE KEY uq_inventory_specifications_inventory_id (inventory_id),
+        KEY idx_inventory_specifications_processor (processor_type),
+        KEY idx_inventory_specifications_os (os_type)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
+
+    if (!$conn->query($sql)) {
+        throw new RuntimeException('Unable to initialize inventory_specifications: ' . $conn->error);
+    }
+
+    return true;
+}
+
+function buildCombinedSpecifications(array $specs, $fallback = '') {
+    $labels = [
+        'hdd_capacity' => 'HDD',
+        'ssd_capacity' => 'SSD',
+        'ram_capacity' => 'RAM',
+        'memory_capacity' => 'Memory',
+        'processor_type' => 'Processor',
+        'display_size' => 'Display Size',
+        'display_resolution' => 'Display Resolution',
+        'battery_capacity' => 'Battery',
+        'os_type' => 'OS',
+        'os_status' => 'OS Status',
+    ];
+
+    $parts = [];
+
+    foreach ($labels as $key => $label) {
+        $value = trim((string)($specs[$key] ?? ''));
+        if ($value !== '') {
+            $parts[] = $label . ': ' . $value;
+        }
+    }
+
+    if (!empty($parts)) {
+        return implode('; ', $parts);
+    }
+
+    return trim((string)$fallback);
+}
+
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     try {
     // --- Collect and sanitize form data ---
@@ -281,7 +344,25 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $yearAcquired = postValue('yearAcquired');
     $shelfLife = postValue('shelfLife');
     $brand = postValue('brand');
-    $specifications = postValue('specifications');
+    $postedSpecifications = postValue('specifications');
+
+    $structuredSpecifications = [
+        'hdd_capacity' => trim((string)postValue('hdd-capacity')),
+        'ssd_capacity' => trim((string)postValue('ssd-capacity')),
+        'ram_capacity' => trim((string)postValue('ram-capacity')),
+        'memory_capacity' => trim((string)postValue('memory-capacity')),
+        'processor_type' => trim((string)postValue('processor-type')),
+        'display_size' => trim((string)postValue('display-size')),
+        'display_resolution' => trim((string)postValue('display-resolution')),
+        'battery_capacity' => trim((string)postValue('battery-capacity')),
+        'os_type' => trim((string)postValue('os-type')),
+        'os_status' => trim((string)postValue('os-status')),
+    ];
+
+    // Server is authoritative: helper fields are also combined into the legacy
+    // inv_inventory.specifications text so existing AMSOS reports keep working.
+    $specifications = buildCombinedSpecifications($structuredSpecifications, $postedSpecifications);
+
     $rangeCategory = postValue('rangeCategory');
     $softwareInstalled = postValue('softwareInstalled');
     $licensingModel = postValue('licensingModel');
@@ -333,6 +414,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $_SESSION['warning'] = 'System detected this entry needs review to confirm ICT classification.';
     }
 
+    ensureInventorySpecificationsTable($conn);
+    $conn->begin_transaction();
+
     $officeId = getOrCreateOfficeDivisionId($conn, $office, $officeDivision);
     $employeePersonId = getOrCreateInventoryPersonId($conn, $employeeName, $officeId, $office, $officeDivision, $statusOfEmployment, 'employeeName');
     $accountablePersonId = getOrCreateInventoryPersonId($conn, $accountablePerson, $officeId, $office, $officeDivision, $statusOfEmployment, 'accountablePerson');
@@ -366,12 +450,14 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $check_stmt->close();
 
             if ($count > 0) {
+                $conn->rollback();
                 $_SESSION['error'] = "A record with this Property Number or Serial Number already exists!";
                 $_SESSION['focus_step'] = 2;
                 $_SESSION['form_data'] = $_POST;
                 redirectBack();
             }
         } else {
+            $conn->rollback();
             $_SESSION['error'] = "Error preparing the uniqueness check query.";
             $_SESSION['form_data'] = $_POST;
             redirectBack();
@@ -429,28 +515,96 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
     $sql = 'INSERT INTO inv_inventory (' . implode(', ', $columns) . ') VALUES (' . implode(', ', $placeholders) . ')';
 
-    if ($stmt = $conn->prepare($sql)) {
-        $stmt->bind_param($types, ...$params);
-
-        if ($stmt->execute()) {
-            $_SESSION['success'] = "Inventory record saved successfully!";
-            unset($_SESSION['form_data']);
-        } else {
-            $_SESSION['error'] = "Error: Could not execute the insertion query. " . $stmt->error;
-            error_log('entrydatahandler.php insert execute failed: ' . $stmt->error);
-            $_SESSION['form_data'] = $_POST;
-        }
-
-        $stmt->close();
-    } else {
-        $_SESSION['error'] = "Error: Could not prepare the insertion query. " . $conn->error;
-        error_log('entrydatahandler.php insert prepare failed: ' . $conn->error);
-        $_SESSION['form_data'] = $_POST;
+    $stmt = $conn->prepare($sql);
+    if (!$stmt) {
+        throw new RuntimeException('Could not prepare inventory insert: ' . $conn->error);
     }
+
+    $stmt->bind_param($types, ...$params);
+
+    if (!$stmt->execute()) {
+        $error = $stmt->error;
+        $stmt->close();
+        throw new RuntimeException('Could not insert inventory record: ' . $error);
+    }
+
+    $inventoryId = (int)$stmt->insert_id;
+    $stmt->close();
+
+    if ($inventoryId <= 0) {
+        throw new RuntimeException('Inventory record was inserted without a valid inventory ID.');
+    }
+
+    $specStmt = $conn->prepare(
+        "INSERT INTO inventory_specifications (
+            inventory_id,
+            hdd_capacity,
+            ssd_capacity,
+            ram_capacity,
+            memory_capacity,
+            processor_type,
+            display_size,
+            display_resolution,
+            battery_capacity,
+            os_type,
+            os_status
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ON DUPLICATE KEY UPDATE
+            hdd_capacity = VALUES(hdd_capacity),
+            ssd_capacity = VALUES(ssd_capacity),
+            ram_capacity = VALUES(ram_capacity),
+            memory_capacity = VALUES(memory_capacity),
+            processor_type = VALUES(processor_type),
+            display_size = VALUES(display_size),
+            display_resolution = VALUES(display_resolution),
+            battery_capacity = VALUES(battery_capacity),
+            os_type = VALUES(os_type),
+            os_status = VALUES(os_status),
+            updated_at = CURRENT_TIMESTAMP"
+    );
+
+    if (!$specStmt) {
+        throw new RuntimeException('Could not prepare structured specifications insert: ' . $conn->error);
+    }
+
+    $specStmt->bind_param(
+        'issssssssss',
+        $inventoryId,
+        $structuredSpecifications['hdd_capacity'],
+        $structuredSpecifications['ssd_capacity'],
+        $structuredSpecifications['ram_capacity'],
+        $structuredSpecifications['memory_capacity'],
+        $structuredSpecifications['processor_type'],
+        $structuredSpecifications['display_size'],
+        $structuredSpecifications['display_resolution'],
+        $structuredSpecifications['battery_capacity'],
+        $structuredSpecifications['os_type'],
+        $structuredSpecifications['os_status']
+    );
+
+    if (!$specStmt->execute()) {
+        $error = $specStmt->error;
+        $specStmt->close();
+        throw new RuntimeException('Could not save structured specifications: ' . $error);
+    }
+
+    $specStmt->close();
+    $conn->commit();
+
+    $_SESSION['success'] = "Inventory record and specifications saved successfully!";
+    unset($_SESSION['form_data']);
 
     $conn->close();
     redirectBack();
     } catch (Throwable $e) {
+        if (isset($conn) && $conn instanceof mysqli) {
+            try {
+                $conn->rollback();
+            } catch (Throwable $rollbackError) {
+                error_log('entrydatahandler.php rollback failed: ' . $rollbackError->getMessage());
+            }
+        }
+
         error_log('entrydatahandler.php failed: ' . $e->getMessage());
         $_SESSION['error'] = 'Error saving inventory record. Please check the server error log.';
         $_SESSION['form_data'] = $_POST;
