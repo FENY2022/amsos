@@ -421,10 +421,26 @@ $officesResult = $conn->query($officesQuery);
           },
           body: body.toString()
         }).then(function (response) {
-          if (!response.ok) {
-            throw new Error('Request failed: ' + response.status);
-          }
-          return response.text();
+          return response.text().then(function (responseText) {
+            if (!response.ok) {
+              var message = 'Request failed: ' + response.status;
+
+              try {
+                var errorData = JSON.parse(responseText);
+                if (errorData && errorData.message) {
+                  message = errorData.message;
+                }
+              } catch (parseError) {
+                if (responseText.trim() !== '') {
+                  message = responseText.trim();
+                }
+              }
+
+              throw new Error(message);
+            }
+
+            return responseText;
+          });
         });
       }
 
