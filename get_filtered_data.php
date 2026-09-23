@@ -117,28 +117,7 @@ if (!empty($otosIds) && amsos_ensure_user_roles_table($conn)) {
     }
 }
 
-$systemRoles = [];
-$systemRolesResult = $conn_otos->query("SELECT DISTINCT User_Role FROM useremployee WHERE User_Role IS NOT NULL AND TRIM(User_Role) <> '' ORDER BY User_Role ASC");
-if ($systemRolesResult) {
-    while ($roleRow = $systemRolesResult->fetch_assoc()) {
-        $roleValue = trim((string)$roleRow['User_Role']);
-        if ($roleValue !== '') {
-            $systemRoles[amsos_role_key($roleValue)] = $roleValue;
-        }
-    }
-}
-if (amsos_ensure_user_roles_table($conn)) {
-    $localRolesResult = $conn->query("SELECT DISTINCT role FROM amsos_user_roles WHERE role IS NOT NULL AND TRIM(role) <> '' ORDER BY role ASC");
-    if ($localRolesResult) {
-        while ($roleRow = $localRolesResult->fetch_assoc()) {
-            $roleValue = trim((string)$roleRow['role']);
-            if ($roleValue !== '') {
-                $systemRoles[amsos_role_key($roleValue)] = $roleValue;
-            }
-        }
-    }
-}
-$systemRoles = array_values($systemRoles);
+
 
 echo '<div style="max-height: 560px; overflow: auto; border: 1px solid #ccc; padding: 10px; border-radius: 8px;">';
 echo '<table style="width: 100%; border-collapse: collapse;">';
@@ -165,7 +144,10 @@ foreach ($people as $row) {
         ? $amsosRoleOverrides[$otosUserId]
         : $baseRole;
 
-    $roleOptions = amsos_filter_roles_for_office($systemRoles, $roleOffice);
+    $roleOptions = amsos_filter_roles_for_office(
+        $baseRole !== '' ? [$baseRole] : [],
+        $roleOffice
+    );
 
     if ($currentRole !== '') {
         $hasCurrentRole = false;
