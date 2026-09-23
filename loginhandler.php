@@ -50,8 +50,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             // Verify user and password
             if ($user && password_verify($password, $user['password'])) {
-                if (!amsos_is_valid_chief_role_for_office($user['User_Role'], $user['Office'])) {
-                    $roleKey = amsos_role_key($user['User_Role']);
+                $effectiveRole = trim((string)$user['User_Role']);
+
+                if (amsos_ensure_user_roles_table($conn)) {
+                    $amsosRoleOverride = amsos_get_role_override($conn, (int)$user['id']);
+                    if ($amsosRoleOverride !== '') {
+                        $effectiveRole = $amsosRoleOverride;
+                    }
+                }
+
+                if (!amsos_is_valid_chief_role_for_office($effectiveRole, $user['Office'])) {
+                    $roleKey = amsos_role_key($effectiveRole);
 
                     if ($roleKey === 'DIVISIONCHIEF') {
                         echo json_encode([
@@ -81,7 +90,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $_SESSION['OfficeSRF'] = $user['Office'];
                 $_SESSION['StationSRF'] = $user['Station'];
                 $_SESSION['Profile_LinkSRF'] = $user['Profile_Link'];
-                $_SESSION['User_RoleSRF'] = $user['User_Role'];
+                $_SESSION['User_RoleSRF'] = $effectiveRole;
                 $Station = $user['Station'];
 
                 $Endsrd = "";
