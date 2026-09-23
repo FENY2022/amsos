@@ -97,6 +97,26 @@ if (!empty($otosIds)) {
     }
 }
 
+$amsosRoleOverrides = [];
+
+if (!empty($otosIds) && amsos_ensure_user_roles_table($conn)) {
+    $placeholders = implode(',', array_fill(0, count($otosIds), '?'));
+    $idTypes = str_repeat('i', count($otosIds));
+
+    $overrideStmt = $conn->prepare("SELECT otos_user_id, role FROM amsos_user_roles WHERE otos_user_id IN ($placeholders)");
+    if ($overrideStmt) {
+        $overrideStmt->bind_param($idTypes, ...$otosIds);
+        $overrideStmt->execute();
+        $overrideResult = $overrideStmt->get_result();
+
+        while ($overrideRow = $overrideResult->fetch_assoc()) {
+            $amsosRoleOverrides[(int)$overrideRow['otos_user_id']] = trim((string)$overrideRow['role']);
+        }
+
+        $overrideStmt->close();
+    }
+}
+
 $systemRoles = [];
 $systemRolesResult = $conn_otos->query("SELECT DISTINCT User_Role FROM useremployee WHERE User_Role IS NOT NULL AND TRIM(User_Role) <> '' ORDER BY User_Role ASC");
 if ($systemRolesResult) {
@@ -104,6 +124,17 @@ if ($systemRolesResult) {
         $roleValue = trim((string)$roleRow['User_Role']);
         if ($roleValue !== '') {
             $systemRoles[amsos_role_key($roleValue)] = $roleValue;
+        }
+    }
+}
+if (amsos_ensure_user_roles_table($conn)) {
+    $localRolesResult = $conn->query("SELECT DISTINCT role FROM amsos_user_roles WHERE role IS NOT NULL AND TRIM(role) <> '' ORDER BY role ASC");
+    if ($localRolesResult) {
+        while ($roleRow = $localRolesResult->fetch_assoc()) {
+            $roleValue = trim((string)$roleRow['role']);
+            if ($roleValue !== '') {
+                $systemRoles[amsos_role_key($roleValue)] = $roleValue;
+            }
         }
     }
 }
@@ -129,7 +160,10 @@ foreach ($people as $row) {
     $otosUserId = !empty($row['otos_user_id']) && is_numeric($row['otos_user_id']) ? (int)$row['otos_user_id'] : 0;
     $roleInfo = $otosUserId > 0 && isset($rolesByUserId[$otosUserId]) ? $rolesByUserId[$otosUserId] : null;
     $roleOffice = $roleInfo && $roleInfo['office'] !== '' ? $roleInfo['office'] : $row['office'];
-    $currentRole = $roleInfo ? $roleInfo['role'] : '';
+    $baseRole = $roleInfo ? $roleInfo['role'] : '';
+    $currentRole = $otosUserId > 0 && isset($amsosRoleOverrides[$otosUserId])
+        ? $amsosRoleOverrides[$otosUserId]
+        : $baseRole;
 
     $roleOptions = amsos_filter_roles_for_office($systemRoles, $roleOffice);
 
