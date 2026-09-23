@@ -346,6 +346,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $brand = postValue('brand');
     $postedSpecifications = postValue('specifications');
 
+    // Structured specification fields are stored in inventory_specifications
+    // and also combined into inv_inventory.specifications for backward compatibility.
     $structuredSpecifications = [
         'hdd_capacity' => trim((string)postValue('hdd-capacity')),
         'ssd_capacity' => trim((string)postValue('ssd-capacity')),
