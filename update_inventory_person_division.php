@@ -1,7 +1,24 @@
 <?php
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
 require_once "connect.php";
+require_once "role_access.php";
 
 header('Content-Type: application/json');
+
+if (!isset($_SESSION['loggedin']) || $_SESSION['loggedin'] !== ($_SESSION['usernameSRF'] ?? null)) {
+    http_response_code(401);
+    echo json_encode(['success' => false, 'message' => 'Your session has expired. Please log in again.']);
+    exit;
+}
+
+if (!amsos_can_manage_configuration($_SESSION['User_RoleSRF'] ?? '')) {
+    http_response_code(403);
+    echo json_encode(['success' => false, 'message' => 'You do not have permission to manage AMSOS users.']);
+    exit;
+}
 
 $id = isset($_POST['id']) && is_numeric($_POST['id']) ? (int)$_POST['id'] : 0;
 $office = trim($_POST['office'] ?? '');
