@@ -29,12 +29,33 @@ error_reporting(E_ALL);
 
 $_dirlist = isset($_GET['dir']) && !empty($_GET['dir']) ? $_GET['dir'] : "";
 
+require_once 'session_checker.php';
+require_once 'role_access.php';
+
+$configurationRoutes = array(
+    'assigntracking',
+    'viewassigntracking',
+    'assignactionstaff',
+    'otos_employee_include',
+    'office_employee',
+    'division_counts',
+    'amsos_requestdata'
+);
+$configurationAccessDenied = false;
+
+if (
+    in_array($_dirlist, $configurationRoutes, true) &&
+    !amsos_can_manage_configuration($_SESSION['User_RoleSRF'] ?? '')
+) {
+    $configurationAccessDenied = true;
+    $_dirlist = 'home';
+}
+
 if ($_dirlist == 'amsos_requestdata') {
     require_once 'amsos-requestdata-connect.php';
 } else {
     require_once 'connect.php';
 }
-require_once 'session_checker.php';
 
 if ($_dirlist == 'requestlist' && isset($_SESSION['idSRF'])) {
     require_once 'srf_request_notification_helpers.php';
@@ -48,6 +69,13 @@ require_once 'sidebar.php';
 
  
         <div class="content">
+
+            <?php if ($configurationAccessDenied): ?>
+                <div class="alert alert-warning mx-3 mt-3" role="alert">
+                    <i class="fas fa-lock mr-2"></i>
+                    Your current AMSOS role does not have access to Configuration.
+                </div>
+            <?php endif; ?>
 
             <?php
             
