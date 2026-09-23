@@ -1,5 +1,22 @@
 <?php
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
 require_once "connect.php";
+require_once "role_access.php";
+
+if (!isset($_SESSION['loggedin']) || $_SESSION['loggedin'] !== ($_SESSION['usernameSRF'] ?? null)) {
+    http_response_code(401);
+    echo '<div class="alert alert-danger m-3">Your session has expired. Please log in again.</div>';
+    exit;
+}
+
+if (!amsos_can_manage_configuration($_SESSION['User_RoleSRF'] ?? '')) {
+    http_response_code(403);
+    echo '<div class="alert alert-danger m-3">You do not have permission to manage AMSOS users.</div>';
+    exit;
+}
 
 $officesQuery = "SELECT DISTINCT office FROM inventory_people WHERE office IS NOT NULL AND office != '' ORDER BY office ASC";
 $officesResult = $conn->query($officesQuery);
@@ -9,7 +26,7 @@ $officesResult = $conn->query($officesQuery);
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Inventory People</title>
+  <title>AMSOS Users</title>
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
@@ -290,8 +307,8 @@ $officesResult = $conn->query($officesQuery);
   <div class="inventory-people-page">
     <div class="inventory-people-card">
       <div class="inventory-people-header">
-        <h1><i class="fas fa-users me-2"></i>Inventory People</h1>
-        <p>Local records from amsos.inventory_people</p>
+        <h1><i class="fas fa-users-cog me-2"></i>Users & Roles</h1>
+        <p>Manage included AMSOS users, office assignments, and role access.</p>
       </div>
       <div class="inventory-people-body">
         <form method="POST" action="" class="inventory-people-filters">
@@ -348,6 +365,21 @@ $officesResult = $conn->query($officesQuery);
       </div>
     </div>
   </div>
+  <div class="division-confirm-backdrop" id="roleConfirmModal" aria-hidden="true">
+    <div class="division-confirm-modal" role="dialog" aria-modal="true" aria-labelledby="roleConfirmTitle">
+      <div class="division-confirm-header">
+        <h5 id="roleConfirmTitle"><i class="fas fa-user-shield me-2"></i>Confirm Role Update</h5>
+      </div>
+      <div class="division-confirm-body">
+        <p>Update this user's AMSOS role?</p>
+        <div class="division-confirm-detail" id="roleConfirmDetails"></div>
+      </div>
+      <div class="division-confirm-actions">
+        <button type="button" class="division-confirm-cancel" id="cancelRoleUpdate">Cancel</button>
+        <button type="button" class="division-confirm-save" id="confirmRoleUpdate">Update Role</button>
+      </div>
+    </div>
+  </div>
   <script>
     document.addEventListener('DOMContentLoaded', function () {
       var officeSelect = document.getElementById('office');
@@ -361,8 +393,13 @@ $officesResult = $conn->query($officesQuery);
       var divisionConfirmDetails = document.getElementById('divisionConfirmDetails');
       var cancelDivisionUpdate = document.getElementById('cancelDivisionUpdate');
       var confirmDivisionUpdate = document.getElementById('confirmDivisionUpdate');
+      var roleConfirmModal = document.getElementById('roleConfirmModal');
+      var roleConfirmDetails = document.getElementById('roleConfirmDetails');
+      var cancelRoleUpdate = document.getElementById('cancelRoleUpdate');
+      var confirmRoleUpdate = document.getElementById('confirmRoleUpdate');
       var fullNameOptions = [];
       var pendingDivisionUpdate = null;
+      var pendingRoleUpdate = null;
       var savedOffice = localStorage.getItem('selectedOffice');
       var savedDivision = localStorage.getItem('selectedDivision');
       var savedFullName = localStorage.getItem('fullName');
@@ -427,6 +464,33 @@ $officesResult = $conn->query($officesQuery);
         }
         pendingDivisionUpdate = null;
         closeDivisionConfirmModal();
+      }
+
+      function openRoleConfirmModal(updateData) {
+        pendingRoleUpdate = updateData;
+        roleConfirmDetails.innerHTML =
+          '<div>' + escapeHtml(updateData.name) + '</div>' +
+          '<div style="margin-top: 0.35rem; color: #64748b; font-weight: 600;">' +
+          escapeHtml(updateData.oldRole || 'No role') + ' &rarr; ' + escapeHtml(updateData.newRole) +
+          '</div>' +
+          '<div style="margin-top: 0.35rem; color: #64748b; font-size: 0.85rem;">' +
+          escapeHtml(updateData.office || '') +
+          '</div>';
+        roleConfirmModal.classList.add('is-open');
+        roleConfirmModal.setAttribute('aria-hidden', 'false');
+      }
+
+      function closeRoleConfirmModal() {
+        roleConfirmModal.classList.remove('is-open');
+        roleConfirmModal.setAttribute('aria-hidden', 'true');
+      }
+
+      function revertPendingRoleUpdate() {
+        if (pendingRoleUpdate && pendingRoleUpdate.select) {
+          pendingRoleUpdate.select.value = pendingRoleUpdate.oldRole;
+        }
+        pendingRoleUpdate = null;
+        closeRoleConfirmModal();
       }
 
       function renderNameOptions() {
@@ -573,6 +637,26 @@ $officesResult = $conn->query($officesQuery);
       });
 
       tableContainer.addEventListener('change', function (event) {
+        var roleSelect = event.target.closest('.user-role-select');
+        if (roleSelect) {
+          var oldRole = roleSelect.getAttribute('data-original') || '';
+          var newRole = roleSelect.value;
+
+          if (newRole === oldRole) {
+            return;
+          }
+
+          openRoleConfirmModal({
+            select: roleSelect,
+            userId: roleSelect.getAttribute('data-user-id'),
+            name: roleSelect.getAttribute('data-name') || '',
+            office: roleSelect.getAttribute('data-office') || '',
+            oldRole: oldRole,
+            newRole: newRole
+          });
+          return;
+        }
+
         var select = event.target.closest('.division-update-select');
         if (!select) {
           return;
@@ -596,11 +680,56 @@ $officesResult = $conn->query($officesQuery);
       });
 
       cancelDivisionUpdate.addEventListener('click', revertPendingDivisionUpdate);
+      cancelRoleUpdate.addEventListener('click', revertPendingRoleUpdate);
 
       divisionConfirmModal.addEventListener('mousedown', function (event) {
         if (event.target === divisionConfirmModal) {
           revertPendingDivisionUpdate();
         }
+      });
+
+      roleConfirmModal.addEventListener('mousedown', function (event) {
+        if (event.target === roleConfirmModal) {
+          revertPendingRoleUpdate();
+        }
+      });
+
+      confirmRoleUpdate.addEventListener('click', function () {
+        if (!pendingRoleUpdate) {
+          return;
+        }
+
+        var updateData = pendingRoleUpdate;
+        confirmRoleUpdate.disabled = true;
+        confirmRoleUpdate.textContent = 'Updating...';
+
+        postForm('update_user_role.php', {
+          user_id: updateData.userId,
+          role: updateData.newRole
+        })
+          .then(function (response) {
+            var data = JSON.parse(response);
+            if (!data.success) {
+              throw new Error(data.message || 'Unable to update user role.');
+            }
+
+            updateData.select.setAttribute('data-original', data.role || updateData.newRole);
+            updateData.select.value = data.role || updateData.newRole;
+            pendingRoleUpdate = null;
+            closeRoleConfirmModal();
+          })
+          .catch(function (error) {
+            alert(error.message || 'Unable to update user role.');
+            if (updateData.select) {
+              updateData.select.value = updateData.oldRole;
+            }
+            pendingRoleUpdate = null;
+            closeRoleConfirmModal();
+          })
+          .finally(function () {
+            confirmRoleUpdate.disabled = false;
+            confirmRoleUpdate.textContent = 'Update Role';
+          });
       });
 
       confirmDivisionUpdate.addEventListener('click', function () {
