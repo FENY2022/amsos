@@ -368,8 +368,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $licensingModel = postValue('licensingModel');
     
     // --- Robust N/A and Whitespace Handling for Serial Number ---
+    // Serial/Property Number are required fields. An explicit "N/A" is allowed,
+    // but a blank value is rejected by the backend validation below.
     $serialNumberInput = isset($_POST['serialNumber']) ? trim($_POST['serialNumber']) : '';
-    if (strtoupper($serialNumberInput) === 'N/A' || $serialNumberInput === '') {
+    if (strtoupper($serialNumberInput) === 'N/A') {
         $serialNumber = 'N/A';
     } else {
         $serialNumber = $serialNumberInput;
@@ -377,7 +379,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
     // --- Robust N/A and Whitespace Handling for Property Number ---
     $propertyNumberInput = isset($_POST['propertyNumber']) ? trim($_POST['propertyNumber']) : '';
-    if (strtoupper($propertyNumberInput) === 'N/A' || $propertyNumberInput === '') {
+    if (strtoupper($propertyNumberInput) === 'N/A') {
         $propertyNumber = 'N/A';
     } else {
         $propertyNumber = $propertyNumberInput;
@@ -392,6 +394,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $actualUserStatusOfEmployment = postValue('actualUserStatusOfEmployment');
     $natureOfWork = postValue('natureOfWork');
     $remarks = postValue('remarks');
+    $mark_as_done = isset($_POST['mark_as_done']) ? 1 : 0;
     
     // ---------------------------------------------------------
     // 1. CAPTURE THE NEW VARIABLE
@@ -532,6 +535,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         'office' => ['s', $office],
         'office_id' => ['i', $officeId],
         'computer_specs' => ['s', $computer_specs],
+        'mark_as_done' => ['i', $mark_as_done],
     ];
 
     $columns = [];
