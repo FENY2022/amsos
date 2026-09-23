@@ -178,6 +178,8 @@
 </style>
 <?php
 
+require_once 'role_access.php';
+
 $stationID = $_SESSION['idSRF'];
 $fullName = $_SESSION['Full_NameSRF'] ?? 'User';
 $profileLink = trim($_SESSION['Profile_LinkSRF'] ?? '');
@@ -196,6 +198,10 @@ foreach ($nameParts as $namePart) {
 }
 
 $temporaryInitials = $temporaryInitials !== '' ? $temporaryInitials : 'U';
+
+$currentAmsosRole = $_SESSION['User_RoleSRF'] ?? '';
+$isLimitedOperationalRole = amsos_is_limited_operational_role($currentAmsosRole);
+$canManageConfiguration = amsos_can_manage_configuration($currentAmsosRole);
 
 
                     // if ($_SESSION['OfficeSRF'] != 'REGIONAL OFFICE') {
@@ -424,7 +430,7 @@ $tracking2 = $tracking2 ?? 0;
 
 <?php
 
-if ($_SESSION['User_RoleSRF'] == 'Encoder' || $_SESSION['User_RoleSRF'] == 'Verifier' || $_SESSION['User_RoleSRF'] == 'Approver' || $_SESSION['User_RoleSRF'] == 'Recommending_approval') {
+if ($isLimitedOperationalRole) {
 
                         echo '<li>
                         <a href="mainmenu.php?dir=recent"><i class="fas fa-history"></i> Recent</a>
@@ -462,7 +468,7 @@ if ($_SESSION['User_RoleSRF'] == 'Encoder' || $_SESSION['User_RoleSRF'] == 'Veri
 <?php
  
 
- if ($_SESSION['User_RoleSRF'] == 'Encoder' || $_SESSION['User_RoleSRF'] == 'Verifier' || $_SESSION['User_RoleSRF'] == 'Approver' || $_SESSION['User_RoleSRF'] == 'Recommending_approval') {
+ if (!$canManageConfiguration) {
 
 
     
