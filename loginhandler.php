@@ -2,6 +2,7 @@
 session_start();
 require 'connect.php';
 require 'connect_otos.php';
+require_once 'role_access.php';
 
 
 error_reporting(E_ALL);
@@ -49,6 +50,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             // Verify user and password
             if ($user && password_verify($password, $user['password'])) {
+                if (!amsos_is_valid_chief_role_for_office($user['User_Role'], $user['Office'])) {
+                    $roleKey = amsos_role_key($user['User_Role']);
+
+                    if ($roleKey === 'DIVISIONCHIEF') {
+                        echo json_encode([
+                            'success' => false,
+                            'message' => 'Division Chief accounts are only allowed for the Regional Office. Please contact the AMSOS administrator.'
+                        ]);
+                    } elseif ($roleKey === 'SECTIONCHIEF') {
+                        echo json_encode([
+                            'success' => false,
+                            'message' => 'Section Chief accounts are only allowed for PENRO or CENRO offices. Please contact the AMSOS administrator.'
+                        ]);
+                    } else {
+                        echo json_encode([
+                            'success' => false,
+                            'message' => 'Your AMSOS role is not valid for the assigned office. Please contact the administrator.'
+                        ]);
+                    }
+
+                    exit;
+                }
+
                 // Set session variables
                 $_SESSION["loggedin"] = $user['username'];
                 $_SESSION['idSRF'] = $user['id'];
