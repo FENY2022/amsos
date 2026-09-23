@@ -5,6 +5,7 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
+require_once 'connect.php';
 require_once 'connect_otos.php';
 require_once 'role_access.php';
 
@@ -55,6 +56,11 @@ if (!$user) {
 }
 
 $office = trim((string)$user['Office']);
+$baseOtosRole = trim((string)$user['User_Role']);
+
+if (!amsos_ensure_user_roles_table($conn)) {
+    sendRoleJson(['success' => false, 'message' => 'Unable to initialize the AMSOS role table.'], 500);
+}
 
 if (!amsos_is_valid_chief_role_for_office($newRole, $office)) {
     if (amsos_role_key($newRole) === 'DIVISIONCHIEF') {
@@ -92,23 +98,44 @@ if ($roleKey === 'DIVISIONCHIEF') {
     $newRole = $knownRoles[$roleKey];
 }
 
-$updateStmt = $conn_otos->prepare('UPDATE useremployee SET User_Role = ? WHERE id = ?');
-if (!$updateStmt) {
-    sendRoleJson(['success' => false, 'message' => 'Unable to prepare the role update.'], 500);
-}
-$updateStmt->bind_param('si', $newRole, $userId);
+$effectiveRole = $newRole;
+$updatedBy = (int)($_SESSION['idSRF'] ?? 0);
 
-if (!$updateStmt->execute()) {
+if (amsos_role_key($newRole) === amsos_role_key($baseOtosRole)) {
+    $deleteStmt = $conn->prepare('DELETE FROM amsos_user_roles WHERE otos_user_id = ?');
+    if (!$deleteStmt) {
+        sendRoleJson(['success' => false, 'message' => 'Unable to prepare the AMSOS role reset.'], 500);
+    }
+    $deleteStmt->bind_param('i', $userId);
+    $deleteStmt->execute();
+    $deleteStmt->close();
+    $effectiveRole = $baseOtosRole;
+} else {
+    $updateStmt = $conn->prepare(
+        'INSERT INTO amsos_user_roles (otos_user_id, role, updated_by)
+         VALUES (?, ?, ?)
+         ON DUPLICATE KEY UPDATE role = VALUES(role), updated_by = VALUES(updated_by), updated_at = CURRENT_TIMESTAMP'
+    );
+
+    if (!$updateStmt) {
+        sendRoleJson(['success' => false, 'message' => 'Unable to prepare the AMSOS role update.'], 500);
+    }
+
+    $updateStmt->bind_param('isi', $userId, $newRole, $updatedBy);
+
+    if (!$updateStmt->execute()) {
+        $updateStmt->close();
+        sendRoleJson(['success' => false, 'message' => 'Unable to update the AMSOS user role.'], 500);
+    }
+
     $updateStmt->close();
-    sendRoleJson(['success' => false, 'message' => 'Unable to update the user role.'], 500);
 }
-
-$updateStmt->close();
 
 if ((int)($_SESSION['idSRF'] ?? 0) === $userId) {
-    $_SESSION['User_RoleSRF'] = $newRole;
+    $_SESSION['User_RoleSRF'] = $effectiveRole;
 }
 
+$conn->close();
 $conn_otos->close();
 
 sendRoleJson([
@@ -117,6 +144,6 @@ sendRoleJson([
     'user_id' => $userId,
     'full_name' => $user['Full_Name'],
     'office' => $office,
-    'role' => $newRole,
+    'role' => $effectiveRole,
 ]);
 ?>
