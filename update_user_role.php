@@ -104,6 +104,11 @@ if (!$updateStmt->execute()) {
 }
 
 $updateStmt->close();
+
+if ((int)($_SESSION['idSRF'] ?? 0) === $userId) {
+    $_SESSION['User_RoleSRF'] = $newRole;
+}
+
 $conn_otos->close();
 
 sendRoleJson([
