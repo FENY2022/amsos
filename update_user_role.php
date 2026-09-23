@@ -55,6 +55,20 @@ if (!$user) {
     sendRoleJson(['success' => false, 'message' => 'User account was not found.'], 404);
 }
 
+$includedStmt = $conn->prepare('SELECT id FROM inventory_people WHERE otos_user_id = ? LIMIT 1');
+if (!$includedStmt) {
+    sendRoleJson(['success' => false, 'message' => 'Unable to validate the AMSOS user record.'], 500);
+}
+$includedStmt->bind_param('i', $userId);
+$includedStmt->execute();
+$includedResult = $includedStmt->get_result();
+$isIncludedInAmsos = (bool)$includedResult->fetch_assoc();
+$includedStmt->close();
+
+if (!$isIncludedInAmsos) {
+    sendRoleJson(['success' => false, 'message' => 'This OTOS account is not included in AMSOS Users.'], 404);
+}
+
 $office = trim((string)$user['Office']);
 $baseOtosRole = trim((string)$user['User_Role']);
 
