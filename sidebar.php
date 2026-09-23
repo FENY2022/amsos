@@ -259,6 +259,7 @@ $tracking2 = $tracking2 ?? 0;
             <a href="mainmenu.php?dir=home"><i class="fas fa-home"></i> Home</a>
         </li>
         <li>
+            <!-- ICT-AMSOS Asset Inventory: Add Inventory + structured specifications build -->
 
             <a href="#servicesSubmenu" data-toggle="collapse" aria-expanded="false" ><i class="fas fa-boxes"></i> Asset Inventory<span class="arrow"></span></a>
             <ul class="collapse list-unstyled" id="servicesSubmenu">
