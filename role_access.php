@@ -72,6 +72,48 @@ if (!function_exists('amsos_can_manage_configuration')) {
     }
 }
 
+if (!function_exists('amsos_ensure_user_roles_table')) {
+    function amsos_ensure_user_roles_table($conn)
+    {
+        $sql = "CREATE TABLE IF NOT EXISTS amsos_user_roles (
+            id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+            otos_user_id INT NOT NULL,
+            role VARCHAR(100) NOT NULL,
+            updated_by INT NULL,
+            created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            UNIQUE KEY uq_amsos_user_roles_otos_user_id (otos_user_id),
+            KEY idx_amsos_user_roles_role (role)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
+
+        return $conn->query($sql) === true;
+    }
+}
+
+if (!function_exists('amsos_get_role_override')) {
+    function amsos_get_role_override($conn, $otosUserId)
+    {
+        $otosUserId = (int)$otosUserId;
+        if ($otosUserId <= 0 || !amsos_ensure_user_roles_table($conn)) {
+            return '';
+        }
+
+        $stmt = $conn->prepare("SELECT role FROM amsos_user_roles WHERE otos_user_id = ? LIMIT 1");
+        if (!$stmt) {
+            return '';
+        }
+
+        $stmt->bind_param('i', $otosUserId);
+        $stmt->execute();
+        $stmt->bind_result($role);
+        $found = $stmt->fetch();
+        $stmt->close();
+
+        return $found ? trim((string)$role) : '';
+    }
+}
+
 if (!function_exists('amsos_filter_roles_for_office')) {
     function amsos_filter_roles_for_office(array $roles, $office)
     {
