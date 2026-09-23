@@ -260,10 +260,10 @@ $tracking2 = $tracking2 ?? 0;
         </li>
         <li>
 
-            <a href="#servicesSubmenu" data-toggle="collapse" aria-expanded="false" ><i class="fas fa-boxes"></i> Inventory<span class="arrow"></span></a>
+            <a href="#servicesSubmenu" data-toggle="collapse" aria-expanded="false" ><i class="fas fa-boxes"></i> Asset Inventory<span class="arrow"></span></a>
             <ul class="collapse list-unstyled" id="servicesSubmenu">
                 <li>
-                    <a href="mainmenu.php?dir=entrydata"><i class="fas fa-keyboard"></i> Entry Data</a>
+                    <a href="mainmenu.php?dir=entrydata"><i class="fas fa-plus-circle"></i> Add Inventory</a>
                 </li>
                 <li>
                     <a href="mainmenu.php?dir=edupdate"><i class="fas fa-sync"></i> Regular Update</a>
