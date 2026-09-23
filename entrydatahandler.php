@@ -399,6 +399,45 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $computer_specs = postValue('computer_specs'); 
     
     $office = $_SESSION['OfficeSRF'] ?? '';
+
+    $requiredFields = [
+        'employeeName' => $employeeName,
+        'equipmentType' => $equipmentType,
+        'yearAcquired' => $yearAcquired,
+        'shelfLife' => $shelfLife,
+        'brand' => $brand,
+        'specifications' => $specifications,
+        'rangeCategory' => $rangeCategory,
+        'serialNumber' => $serialNumber,
+        'propertyNumber' => $propertyNumber,
+        'accountablePerson' => $accountablePerson,
+        'sex' => $sex,
+        'officeDivision' => $officeDivision,
+        'statusOfEmployment' => $statusOfEmployment,
+        'actualUser' => $actualUser,
+        'actualUserSex' => $actualUserSex,
+        'actualUserStatusOfEmployment' => $actualUserStatusOfEmployment,
+        'natureOfWork' => $natureOfWork,
+        'amount' => postValue('amount'),
+    ];
+
+    $missingRequiredFields = [];
+    foreach ($requiredFields as $fieldName => $fieldValue) {
+        if (trim((string)$fieldValue) === '') {
+            $missingRequiredFields[] = $fieldName;
+        }
+    }
+
+    if ($office === '') {
+        $missingRequiredFields[] = 'office';
+    }
+
+    if (!empty($missingRequiredFields)) {
+        $_SESSION['error'] = 'Please complete all required inventory fields: ' . implode(', ', $missingRequiredFields) . '.';
+        $_SESSION['form_data'] = $_POST;
+        redirectBack();
+    }
+
     $ictValidation = evaluateIctInventoryEntry([
         'equipmentType' => $equipmentType,
         'computer_specs' => $computer_specs,
