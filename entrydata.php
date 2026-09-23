@@ -302,7 +302,7 @@ $conn->close();
             <div class="d-flex justify-content-between align-items-center">
                 <div>
                     <h1 class="h2 mb-0"><i class="fas fa-plus-circle me-2"></i>Add Inventory</h1>
-                    <p class="mb-0">Enter details for new ICT equipment to keep your inventory updated</p>
+                    <p class="mb-0">Add a new ICT asset with structured hardware specifications and inventory details</p>
                 </div>
                 <div class="d-flex align-items-center">
                     <span class="status-indicator status-active"></span>
