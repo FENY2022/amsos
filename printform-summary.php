@@ -107,7 +107,7 @@ function renderSummaryRows($result, $completed = false)
         $statusClass = $status === 'Completed' ? 'success' : 'secondary';
         $rate = $completed ? (string)($row['rate'] ?? 'N/A') : 'No rating';
         $rateClass = $completed ? ratingBadgeClass($rate) : 'dark';
-        $printUrl = 'mainmenu.php?dir=printform&id=' . urlencode((string)$row['id']);
+        $printUrl = 'printform-a4.php?id=' . urlencode((string)$row['id']);
         $printTitle = 'Ticket #' . (string)($row['ticketNumber'] ?? '') . ' - ' . (string)($row['name'] ?? '');
 
         echo '<tr>';
@@ -389,10 +389,9 @@ $dateRangeLabel = date('M j, Y', strtotime($startDate)) . ' - ' . date('M j, Y',
     document.querySelectorAll('.js-print-preview').forEach(function (button) {
         button.addEventListener('click', function () {
             currentPreviewUrl = button.getAttribute('data-print-url') || '';
-            var title = button.getAttribute('data-print-title') || 'Print Preview';
-            previewTitle.textContent = title;
-            previewFrame.src = currentPreviewUrl || 'about:blank';
-            previewModal.modal('show');
+            if (currentPreviewUrl) {
+                window.open(currentPreviewUrl, '_blank', 'noopener');
+            }
         });
     });
 

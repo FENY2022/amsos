@@ -231,7 +231,15 @@ if ($result_step_counter) {
     echo "Error: " . $conn->error; 
 }
 
-$stmt->close(); 
+$stmt->close();
+
+$allowedPrintSizes = ['small', 'medium', 'large', 'xl', 'xxl', 'xxxl'];
+$printSize = strtolower((string)($_GET['print_size'] ?? 'medium'));
+if (!in_array($printSize, $allowedPrintSizes, true)) {
+    $printSize = 'medium';
+}
+$isA4Print = isset($_GET['print_a4']) && $_GET['print_a4'] === '1';
+$bodyClasses = trim(($isA4Print ? 'srf-a4-print ' : '') . 'srf-print-size-' . $printSize);
 
 ?>
 
@@ -247,7 +255,7 @@ $stmt->close();
     <link rel="stylesheet" type="text/css" href="srf.css" />
     
 </head>
-<body>
+<body class="<?php echo htmlspecialchars($bodyClasses, ENT_QUOTES, 'UTF-8'); ?>">
     <div id = 'srf'>
         <div id = 'header' style="width:8.3in;">
             <div>

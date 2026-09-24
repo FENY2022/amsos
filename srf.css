@@ -1,39 +1,70 @@
 #srf {
     background:#fff;
-    /* height:100dvh; */
     display:flex;
     justify-content:center;
     color: #000;
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 11px;
+    line-height: 1.18;
 }
+
+#srf #header {
+    box-sizing: border-box;
+    width: 210mm !important;
+    min-height: 297mm;
+    padding: 8mm;
+}
+
 #srf table{
     width: 100%;
 }
 #srf table,tr,td{
     border: solid 2px #000;
-    padding: 5px;
+    padding: 3px 4px;
     border-collapse: collapse;
+}
+
+#srf p {
+    margin: 0 0 4px;
+}
+
+#srf img {
+    max-width: 100%;
+}
+
+#srf input[type="checkbox"] {
+    width: 10px;
+    height: 10px;
+    margin: 0 2px 0 0;
+}
+
+#srf input[type="text"] {
+    font-size: inherit;
+    height: 16px;
+    padding: 1px 3px;
 }
 #srf a{
     text-decoration: underline;
     color: blue;
 }
 #srf .cell-logo{
-    width: 100px;
+    width: 70px;
 }
 #srf .div-3{
     display:flex;
     justify-content:space-between;
 }
 #srf .div-margin{
-    margin-top: 15px;
+    margin-top: 6px;
 }
 #srf .table-header-bg{
     background: #cbcbcb;
 }
 #srf .div-flex{
     display: flex;
-    gap:5px;
+    gap:4px;
     align-items:center;
+    flex-wrap: wrap;
 }
 #srf .large-text{
     font-size: 1.3rem;
@@ -44,15 +75,15 @@
     display: flex;
     align-items: center;
     flex-wrap: wrap;
-    gap: 5px;
-    margin-bottom: 5px;
+    gap: 4px;
+    margin-bottom: 2px;
 }
 .div-flex input[type="text"] {
     margin-left: 5px;
-    padding: 4px;
+    padding: 1px 3px;
     border: 1px solid #ccc;
     border-radius: 4px;
-    width: 200px;
+    width: 170px;
 }
 .table-header-bg {
     background-color: #f4f4f4;
@@ -64,4 +95,205 @@
     margin-top: 5px;
     padding: 5px;
     border: 2px solid #000;
+}
+
+body.srf-a4-print {
+    --srf-print-scale: 0.72;
+    --srf-print-width: 265mm;
+    --srf-print-font-size: 8px;
+}
+
+body.srf-a4-print.srf-print-size-small {
+    --srf-print-scale: 0.68;
+    --srf-print-width: 280mm;
+    --srf-print-font-size: 7.4px;
+}
+
+body.srf-a4-print.srf-print-size-large {
+    --srf-print-scale: 0.76;
+    --srf-print-width: 251mm;
+    --srf-print-font-size: 8.6px;
+}
+
+body.srf-a4-print.srf-print-size-xl {
+    --srf-print-scale: 0.8;
+    --srf-print-width: 239mm;
+    --srf-print-font-size: 9.1px;
+}
+
+body.srf-a4-print.srf-print-size-xxl {
+    --srf-print-scale: 0.84;
+    --srf-print-width: 227mm;
+    --srf-print-font-size: 9.6px;
+}
+
+body.srf-a4-print.srf-print-size-xxxl {
+    --srf-print-scale: 0.88;
+    --srf-print-width: 217mm;
+    --srf-print-font-size: 10px;
+}
+
+body.srf-a4-print {
+    margin: 0;
+    background: #fff;
+    overflow: hidden;
+}
+
+body.srf-a4-print #srf {
+    display: block;
+    width: auto;
+    height: calc(297mm - 16mm);
+    font-size: var(--srf-print-font-size);
+    line-height: 1;
+    overflow: hidden;
+}
+
+body.srf-a4-print #srf #header {
+    width: var(--srf-print-width) !important;
+    height: auto;
+    min-height: 0;
+    margin: 0;
+    padding: 0;
+    overflow: visible;
+    transform: scale(var(--srf-print-scale));
+    transform-origin: top left;
+}
+
+body.srf-a4-print > div[style*="text-align: right"] {
+    display: none !important;
+}
+
+@media print {
+    @page {
+        size: A4 portrait;
+        margin: 8mm;
+    }
+
+    html,
+    body {
+        margin: 0 !important;
+        padding: 0 !important;
+        background: #fff !important;
+        overflow: hidden;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+
+    nav.navbar,
+    #sidebar,
+    #globalLoadingOverlay {
+        display: none !important;
+    }
+
+    .content {
+        display: block !important;
+        width: auto !important;
+        height: calc(297mm - 16mm) !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        overflow: hidden !important;
+    }
+
+    #srf {
+        display: block;
+        width: auto;
+        height: calc(297mm - 16mm);
+        font-size: var(--srf-print-font-size, 8px);
+        line-height: 1;
+        overflow: hidden;
+    }
+
+    #srf #header {
+        width: var(--srf-print-width, 265mm) !important;
+        height: auto;
+        min-height: 0;
+        margin: 0;
+        padding: 0;
+        overflow: visible;
+        page-break-after: avoid;
+        transform: scale(var(--srf-print-scale, 0.72));
+        transform-origin: top left;
+    }
+
+    #srf table,
+    #srf tr,
+    #srf td {
+        border-width: 1px;
+        padding: 1px 2px !important;
+    }
+
+    #srf p {
+        margin: 0 0 2px !important;
+    }
+
+    #srf .cell-logo {
+        width: 48px;
+    }
+
+    #srf .cell-logo img {
+        width: 36px !important;
+        height: 36px !important;
+    }
+
+    #srf .div-margin {
+        margin-top: 3px !important;
+    }
+
+    #srf .div-flex,
+    .div-flex {
+        gap: 2px !important;
+        margin-bottom: 0 !important;
+    }
+
+    #srf input[type="checkbox"] {
+        width: 8px;
+        height: 8px;
+    }
+
+    #srf input[type="text"],
+    .div-flex input[type="text"] {
+        width: 120px;
+        height: 12px;
+        padding: 0 2px !important;
+        border-radius: 0;
+    }
+
+    #srf td[style*="height: 150px"] {
+        height: 42px !important;
+        background-size: 95px 42px !important;
+    }
+
+    #srf td[style*="height: 150px"] div {
+        font-size: 9px !important;
+        padding-right: 20px !important;
+    }
+
+    #srf div[style*="padding: 10px 15px 0 15px"] {
+        padding: 1px 6px 0 !important;
+    }
+
+    #srf div[style*="padding: 20px"] {
+        padding: 3px !important;
+        background-size: 34% !important;
+    }
+
+    #srf div[style*="width: 60%"] {
+        width: 58% !important;
+    }
+
+    #srf div[style*="width: 35%"] {
+        width: 38% !important;
+    }
+
+    #srf span[style*="font-size: medium"] {
+        font-size: 9px !important;
+    }
+
+    #srf td img[src^="srfsigner/"] {
+        width: 42px !important;
+    }
+
+    body > div[style*="text-align: right"] {
+        display: none !important;
+    }
 }
