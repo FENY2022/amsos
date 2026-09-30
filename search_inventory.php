@@ -29,10 +29,12 @@ $statusOptions = fetchDistinctValues($conn, 'statusOfEmployment');
 $officeOptions = fetchDistinctValues($conn, 'officeDivision');
 
 $employeeNameFilter = trim($_GET['employeeName'] ?? $_GET['query'] ?? '');
+$serialNumberFilter = trim($_GET['serialNumber'] ?? '');
+$propertyNumberFilter = trim($_GET['propertyNumber'] ?? '');
 $categoryFilter = trim($_GET['category'] ?? '');
 $statusFilter = trim($_GET['status'] ?? '');
 $officeDivisionFilter = trim($_GET['officeDivision'] ?? '');
-$hasFilters = $employeeNameFilter !== '' || $categoryFilter !== '' || $statusFilter !== '' || $officeDivisionFilter !== '';
+$hasFilters = $employeeNameFilter !== '' || $serialNumberFilter !== '' || $propertyNumberFilter !== '' || $categoryFilter !== '' || $statusFilter !== '' || $officeDivisionFilter !== '';
 $formAction = htmlspecialchars($_SERVER['PHP_SELF'], ENT_QUOTES, 'UTF-8');
 $currentDir = $_GET['dir'] ?? '';
 ?>
@@ -276,7 +278,8 @@ $currentDir = $_GET['dir'] ?? '';
             color: var(--dark);
         }
 
-        select {
+        select,
+        .filter-group input[type="text"] {
             width: 100%;
             padding: 12px;
             border: 1px solid var(--light-gray);
@@ -571,6 +574,14 @@ $currentDir = $_GET['dir'] ?? '';
 
             <div class="filters">
                 <div class="filter-group">
+                    <label for="serialNumber">Serial #</label>
+                    <input type="text" id="serialNumber" name="serialNumber" placeholder="Search serial #" value="<?php echo htmlspecialchars($serialNumberFilter, ENT_QUOTES, 'UTF-8'); ?>">
+                </div>
+                <div class="filter-group">
+                    <label for="propertyNumber">Property #</label>
+                    <input type="text" id="propertyNumber" name="propertyNumber" placeholder="Search property #" value="<?php echo htmlspecialchars($propertyNumberFilter, ENT_QUOTES, 'UTF-8'); ?>">
+                </div>
+                <div class="filter-group">
                     <label for="category">Category</label>
                     <select id="category" name="category">
                         <option value="">All Categories</option>
@@ -617,6 +628,18 @@ $currentDir = $_GET['dir'] ?? '';
                 $params[] = '%' . $employeeNameFilter . '%';
             }
 
+            if ($serialNumberFilter !== '') {
+                $conditions[] = '`serialNumber` LIKE ?';
+                $types .= 's';
+                $params[] = '%' . $serialNumberFilter . '%';
+            }
+
+            if ($propertyNumberFilter !== '') {
+                $conditions[] = '`propertyNumber` LIKE ?';
+                $types .= 's';
+                $params[] = '%' . $propertyNumberFilter . '%';
+            }
+
             if ($categoryFilter !== '') {
                 $conditions[] = '`equipmentType` = ?';
                 $types .= 's';
@@ -653,6 +676,12 @@ $currentDir = $_GET['dir'] ?? '';
             $filterSummaryParts = [];
             if ($employeeNameFilter !== '') {
                 $filterSummaryParts[] = 'Name: ' . $employeeNameFilter;
+            }
+            if ($serialNumberFilter !== '') {
+                $filterSummaryParts[] = 'Serial #: ' . $serialNumberFilter;
+            }
+            if ($propertyNumberFilter !== '') {
+                $filterSummaryParts[] = 'Property #: ' . $propertyNumberFilter;
             }
             if ($categoryFilter !== '') {
                 $filterSummaryParts[] = 'Category: ' . $categoryFilter;
