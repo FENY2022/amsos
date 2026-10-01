@@ -168,13 +168,13 @@ if ($history_result->num_rows >= 2) {
 
     $Second_date = date("F j, Y", strtotime($row2['date']));
     $Second_time = !empty($row2['time']) ? date('g:i A', strtotime($row2['time'])) : '';
-    $recieve = "recieve.png";
+    $recieve = "recieve_stamp.png";
 } elseif ($history_result->num_rows == 1) {
     $row1 = $history_result->fetch_assoc();
 
     $First_date = date("F j, Y", strtotime($row1['date']));
     $First_time = !empty($row1['time']) ? date('g:i A', strtotime($row1['time'])) : '';
-    $recieve = "recieve.png";
+    $recieve = "recieve_stamp.png";
 }
 
 
